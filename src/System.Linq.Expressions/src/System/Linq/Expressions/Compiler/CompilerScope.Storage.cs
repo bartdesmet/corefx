@@ -194,5 +194,103 @@ namespace System.Linq.Expressions.Compiler
                 Compiler.IL.Emit(OpCodes.Stloc, _boxLocal);
             }
         }
+
+        private sealed class ClosureStorage : Storage
+        {
+            private readonly int _index;
+            private readonly Storage _closure;
+            private readonly FieldInfo _closureField;
+
+            internal ClosureStorage(Storage closure, int index, ParameterExpression variable)
+                : base(closure.Compiler, variable)
+            {
+                _closure = closure;
+                _index = index;
+                Type closureType = closure.Compiler.ClosureType;
+                _closureField = closureType.GetField("Item" + (index + 1));
+            }
+
+            internal override void EmitLoad()
+            {
+                _closure.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+            }
+
+            internal override void EmitStore()
+            {
+                LocalBuilder value = Compiler.GetLocal(Variable.Type);
+                Compiler.IL.Emit(OpCodes.Stloc, value);
+                _closure.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Ldloc, value);
+                Compiler.FreeLocal(value);
+                Compiler.IL.Emit(OpCodes.Stfld, _closureField);
+            }
+
+            internal override void EmitStore(Storage value)
+            {
+                _closure.EmitLoad();
+                value.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Stfld, _closureField);
+            }
+
+            internal override void EmitAddress()
+            {
+                _closure.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Ldflda, _closureField);
+            }
+        }
+
+        private sealed class ClosureBoxStorage : Storage
+        {
+            private readonly int _index;
+            private readonly Storage _closure;
+            private readonly FieldInfo _closureField;
+            private readonly Type _boxType;
+            private readonly FieldInfo _boxValueField;
+
+            internal ClosureBoxStorage(Storage closure, int index, ParameterExpression variable)
+                : base(closure.Compiler, variable)
+            {
+                _closure = closure;
+                _index = index;
+                Type closureType = closure.Compiler.ClosureType;
+                _closureField = closureType.GetField("Item" + (index + 1));
+                _boxType = typeof(StrongBox<>).MakeGenericType(variable.Type);
+                _boxValueField = _boxType.GetField("Value");
+            }
+
+            internal override void EmitLoad()
+            {
+                _closure.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+                Compiler.IL.Emit(OpCodes.Ldfld, _boxValueField);
+            }
+
+            internal override void EmitStore()
+            {
+                LocalBuilder value = Compiler.GetLocal(Variable.Type);
+                Compiler.IL.Emit(OpCodes.Stloc, value);
+                _closure.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+                Compiler.IL.Emit(OpCodes.Ldloc, value);
+                Compiler.FreeLocal(value);
+                Compiler.IL.Emit(OpCodes.Stfld, _boxValueField);
+            }
+
+            internal override void EmitStore(Storage value)
+            {
+                _closure.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+                value.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Stfld, _boxValueField);
+            }
+
+            internal override void EmitAddress()
+            {
+                _closure.EmitLoad();
+                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+                Compiler.IL.Emit(OpCodes.Ldflda, _boxValueField);
+            }
+        }
     }
 }
