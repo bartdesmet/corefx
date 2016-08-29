@@ -429,7 +429,7 @@ namespace System.Linq.Expressions.Compiler
         private void EmitClosureToVariable(LambdaCompiler lc, HoistedLocals locals)
         {
             lc.EmitClosureArgument();
-            lc.IL.Emit(OpCodes.Ldfld, typeof(Closure).GetField("Locals"));
+            lc.IL.Emit(OpCodes.Ldfld, typeof(CompiledLambdaEnvironment<object[], object[]>).GetField("Locals"));
             AddLocal(lc, locals.SelfVariable);
             EmitSet(locals.SelfVariable);
         }

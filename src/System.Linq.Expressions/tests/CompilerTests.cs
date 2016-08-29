@@ -111,13 +111,19 @@ namespace System.Linq.Expressions.Tests
 
         private static void VerifyEmitConstantsToIL(Expression e, int expectedCount, object expectedValue)
         {
-            var f = Expression.Lambda(e).Compile();
+            var d = Expression.Lambda(e).Compile();
 
-            var c = f.Target as Closure;
+            var t = d.Target;
+
+            var f = t.GetType().GetField("Constants");
+            Assert.NotNull(f);
+
+            var c = f.GetValue(t) as object[];
             Assert.NotNull(c);
-            Assert.Equal(expectedCount, c.Constants.Length);
 
-            var o = f.DynamicInvoke();
+            Assert.Equal(expectedCount, c.Length);
+
+            var o = d.DynamicInvoke();
             Assert.Equal(expectedValue, o);
         }
 #endif

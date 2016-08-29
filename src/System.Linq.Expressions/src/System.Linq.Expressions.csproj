@@ -183,6 +183,8 @@
     <Compile Include="System\Linq\Expressions\Compiler\StackSpiller.Temps.cs" />
     <Compile Include="System\Linq\Expressions\Compiler\VariableBinder.cs" />
     <Compile Include="System\Runtime\CompilerServices\Closure.cs" />
+    <Compile Include="System\Runtime\CompilerServices\Closures.cs" />
+    <Compile Include="System\Runtime\CompilerServices\CompiledLambdaEnvironment.cs" />
     <Compile Include="System\Runtime\CompilerServices\RuntimeOps.ExpressionQuoter.cs" />
     <Compile Include="System\Runtime\CompilerServices\RuntimeOps.RuntimeVariableList.cs" />
   </ItemGroup>

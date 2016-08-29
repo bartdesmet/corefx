@@ -75,7 +75,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 _ilg.EmitNull();
             }
-            _ilg.EmitNew(typeof(Closure).GetConstructor(new Type[] { typeof(object[]), typeof(object[]) }));
+            _ilg.EmitNew(typeof(CompiledLambdaEnvironment<object[], object[]>).GetConstructor(new Type[] { typeof(object[]), typeof(object[]) }));
         }
 
         /// <summary>

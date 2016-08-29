@@ -58,7 +58,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private LambdaCompiler(AnalyzedTree tree, LambdaExpression lambda)
         {
-            Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(typeof(Closure));
+            Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(typeof(CompiledLambdaEnvironment<object[], object[]>));
 
             var method = new DynamicMethod(lambda.Name ?? "lambda_method", lambda.ReturnType, parameterTypes, true);
 
@@ -95,7 +95,7 @@ namespace System.Linq.Expressions.Compiler
             Type[] paramTypes = GetParameterTypes(lambda);
             if (hasClosureArgument)
             {
-                paramTypes = paramTypes.AddFirst(typeof(Closure));
+                paramTypes = paramTypes.AddFirst(typeof(CompiledLambdaEnvironment<object[], object[]>));
             }
 
             method.SetReturnType(lambda.ReturnType);
@@ -263,7 +263,7 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(_method is DynamicMethod);
 
-            return _method.CreateDelegate(_lambda.Type, new Closure(_boundConstants.ToArray(), null));
+            return _method.CreateDelegate(_lambda.Type, new CompiledLambdaEnvironment<object[], object[]>(_boundConstants.ToArray(), null));
         }
 
         private FieldBuilder CreateStaticField(string name, Type type)
