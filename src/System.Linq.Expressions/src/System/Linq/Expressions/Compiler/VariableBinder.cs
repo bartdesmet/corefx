@@ -226,10 +226,12 @@ namespace System.Linq.Expressions.Compiler
 
         private void Reference(ParameterExpression node, VariableStorageKind storage)
         {
+            VariableStorageKind currentStorage = (VariableStorageKind)(-1);
+
             CompilerScope definition = null;
             foreach (CompilerScope scope in _scopes)
             {
-                if (scope.Definitions.ContainsKey(node))
+                if (scope.Definitions.TryGetValue(node, out currentStorage))
                 {
                     definition = scope;
                     break;
@@ -240,17 +242,32 @@ namespace System.Linq.Expressions.Compiler
                     storage = VariableStorageKind.Hoisted;
                 }
             }
+
             if (definition == null)
             {
                 throw Error.UndefinedVariable(node.Name, node.Type, CurrentLambdaName);
             }
-            if (storage == VariableStorageKind.Hoisted)
+
+            Debug.Assert((int)currentStorage != -1);
+
+            if (storage == VariableStorageKind.Hoisted && node.IsByRef)
             {
-                if (node.IsByRef)
-                {
-                    throw Error.CannotCloseOverByRef(node.Name, CurrentLambdaName);
-                }
-                definition.Definitions[node] = VariableStorageKind.Hoisted;
+                throw Error.CannotCloseOverByRef(node.Name, CurrentLambdaName);
+            }
+
+            // If the Quoted flag was already set, keep it. Information about variables that occur in Quote nodes
+            // is used to emit StrongBox<T> closure storage for backwards compatibility reasons in RuntimeOps.Quote.
+
+            storage |= currentStorage;
+
+            if (_inQuote)
+            {
+                storage |= VariableStorageKind.Quoted;
+            }
+
+            if (storage != currentStorage)
+            {
+                definition.Definitions[node] = storage;
             }
         }
 

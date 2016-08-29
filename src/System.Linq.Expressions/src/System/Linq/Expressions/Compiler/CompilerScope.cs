@@ -12,10 +12,12 @@ using System.Dynamic.Utils;
 
 namespace System.Linq.Expressions.Compiler
 {
+    [Flags]
     internal enum VariableStorageKind
     {
-        Local,
-        Hoisted
+        Local = 0,
+        Hoisted = 1,
+        Quoted = 2,
     }
 
     /// <summary>
@@ -295,7 +297,7 @@ namespace System.Linq.Expressions.Compiler
                 _closureHoistedLocals = _parent.NearestHoistedLocals;
             }
 
-            var hoistedVars = GetVariables().Where(p => Definitions[p] == VariableStorageKind.Hoisted).ToReadOnly();
+            var hoistedVars = GetVariables().Where(p => (Definitions[p] & VariableStorageKind.Hoisted) != 0).ToReadOnly();
 
             if (hoistedVars.Count > 0)
             {
