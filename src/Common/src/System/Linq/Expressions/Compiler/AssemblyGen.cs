@@ -72,6 +72,15 @@ namespace System.Linq.Expressions.Compiler
                 TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AnsiClass | TypeAttributes.AutoClass
             );
         }
+
+        internal static TypeBuilder DefineClosureType(string name)
+        {
+            return Assembly.DefineType(
+                name,
+                typeof(object),
+                TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AnsiClass | TypeAttributes.AutoClass
+            );
+        }
     }
 }
 
