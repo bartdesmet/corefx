@@ -53,12 +53,16 @@ namespace System.Linq.Expressions.Compiler
         // Free list of locals, so we reuse them rather than creating new ones
         private readonly KeyedQueue<Type, LocalBuilder> _freeLocals = new KeyedQueue<Type, LocalBuilder>();
 
+        // Type of the environment the lambda is invoked on
+        private readonly Type _closureType = typeof(object[]);
+        private readonly Type _environmentType = typeof(CompiledLambdaEnvironment<object[], object[]>);
+
         /// <summary>
         /// Creates a lambda compiler that will compile to a dynamic method
         /// </summary>
         private LambdaCompiler(AnalyzedTree tree, LambdaExpression lambda)
         {
-            Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(typeof(CompiledLambdaEnvironment<object[], object[]>));
+            Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(_environmentType);
 
             var method = new DynamicMethod(lambda.Name ?? "lambda_method", lambda.ReturnType, parameterTypes, true);
 
@@ -95,7 +99,7 @@ namespace System.Linq.Expressions.Compiler
             Type[] paramTypes = GetParameterTypes(lambda);
             if (hasClosureArgument)
             {
-                paramTypes = paramTypes.AddFirst(typeof(CompiledLambdaEnvironment<object[], object[]>));
+                paramTypes = paramTypes.AddFirst(_environmentType);
             }
 
             method.SetReturnType(lambda.ReturnType);
@@ -167,6 +171,16 @@ namespace System.Linq.Expressions.Compiler
         internal bool CanEmitBoundConstants
         {
             get { return _method is DynamicMethod; }
+        }
+
+        internal Type ClosureType
+        {
+            get { return _closureType; }
+        }
+
+        internal Type EnvironmentType
+        {
+            get { return _environmentType; }
         }
 
         #region Compiler entry points
@@ -263,7 +277,8 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(_method is DynamicMethod);
 
-            return _method.CreateDelegate(_lambda.Type, new CompiledLambdaEnvironment<object[], object[]>(_boundConstants.ToArray(), null));
+            var target = Activator.CreateInstance(_environmentType, new[] { _boundConstants.ToArray(), null });
+            return _method.CreateDelegate(_lambda.Type, target);
         }
 
         private FieldBuilder CreateStaticField(string name, Type type)

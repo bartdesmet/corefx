@@ -175,7 +175,7 @@ namespace System.Linq.Expressions.Compiler
             Debug.Assert(lc.CanEmitBoundConstants); // this should've been checked already
 
             lc.EmitClosureArgument();
-            lc.IL.Emit(OpCodes.Ldfld, typeof(CompiledLambdaEnvironment<object[], object[]>).GetField("Constants"));
+            lc.IL.Emit(OpCodes.Ldfld, lc.EnvironmentType.GetField("Constants"));
         }
 
         private void EmitConstantFromArray(LambdaCompiler lc, object value, Type type)
