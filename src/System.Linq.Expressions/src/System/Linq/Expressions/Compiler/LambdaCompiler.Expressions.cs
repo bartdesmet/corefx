@@ -823,7 +823,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 object value;
 
-                if (fi.IsLiteral && TryGetRawConstantValue(fi, out value))
+                if (fi.IsLiteral && Utils.TryGetRawConstantValue(fi, out value))
                 {
                     EmitConstant(value, fi.FieldType);
                 }
@@ -846,23 +846,6 @@ namespace System.Linq.Expressions.Compiler
             }
         }
 
-        private static bool TryGetRawConstantValue(FieldInfo fi, out object value)
-        {
-            // TODO: It looks like GetRawConstantValue is not available at the moment, use it when it comes back.
-            //value = fi.GetRawConstantValue();
-            //return true;
-
-            try
-            {
-                value = fi.GetValue(null);
-                return true;
-            }
-            catch
-            {
-                value = null;
-                return false;
-            }
-        }
         private void EmitInstance(Expression instance, Type type)
         {
             if (instance != null)
