@@ -53,21 +53,31 @@ namespace System.Linq.Expressions.Compiler
         // Free list of locals, so we reuse them rather than creating new ones
         private readonly KeyedQueue<Type, LocalBuilder> _freeLocals = new KeyedQueue<Type, LocalBuilder>();
 
+        // Type of the closure with hoisted variables the lambda is invoked on
+        private readonly Type _closureType;
+
         // Type of the environment the lambda is invoked on
-        private readonly Type _closureType = typeof(object[]);
-        private readonly Type _environmentType = typeof(CompiledLambdaEnvironment<object[], object[]>);
+        private readonly Type _environmentType;
 
         /// <summary>
         /// Creates a lambda compiler that will compile to a dynamic method
         /// </summary>
-        private LambdaCompiler(AnalyzedTree tree, LambdaExpression lambda)
+        private LambdaCompiler(AnalyzedTree tree, LambdaExpression lambda, CompilerScope parent)
         {
+            _tree = tree;
+            _lambda = lambda;
+
+            // These are populated by AnalyzeTree/VariableBinder
+            _scope = tree.Scopes[lambda];
+            _boundConstants = tree.Constants[lambda];
+
+            _closureType = _scope.GetClosureType(parent);
+            _environmentType = typeof(CompiledLambdaEnvironment<,>).MakeGenericType(_closureType, typeof(object[]));
+            _hasClosureArgument = true;
+
             Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(_environmentType);
 
             var method = new DynamicMethod(lambda.Name ?? "lambda_method", lambda.ReturnType, parameterTypes, true);
-
-            _tree = tree;
-            _lambda = lambda;
             _method = method;
 
             // In a Win8 immersive process user code is not allowed to access non-W8P framework APIs through 
@@ -79,25 +89,27 @@ namespace System.Linq.Expressions.Compiler
 
             _ilg = method.GetILGenerator();
 
-            _hasClosureArgument = true;
-
-            // These are populated by AnalyzeTree/VariableBinder
-            _scope = tree.Scopes[lambda];
-            _boundConstants = tree.Constants[lambda];
-
             InitializeMethod();
         }
 
         /// <summary>
         /// Creates a lambda compiler that will compile into the provided MethodBuilder
         /// </summary>
-        private LambdaCompiler(AnalyzedTree tree, LambdaExpression lambda, MethodBuilder method)
+        private LambdaCompiler(AnalyzedTree tree, LambdaExpression lambda, MethodBuilder method, CompilerScope parent)
         {
-            var scope = tree.Scopes[lambda];
-            var hasClosureArgument = scope.NeedsClosure;
+            _tree = tree;
+            _lambda = lambda;
+
+            // These are populated by AnalyzeTree/VariableBinder
+            _scope = tree.Scopes[lambda];
+            _boundConstants = tree.Constants[lambda];
+
+            _closureType = _scope.GetClosureType(parent);
+            _environmentType = typeof(CompiledLambdaEnvironment<,>).MakeGenericType(_closureType, typeof(object[]));
+            _hasClosureArgument = _scope.NeedsClosure;
 
             Type[] paramTypes = GetParameterTypes(lambda);
-            if (hasClosureArgument)
+            if (_hasClosureArgument)
             {
                 paramTypes = paramTypes.AddFirst(_environmentType);
             }
@@ -106,23 +118,16 @@ namespace System.Linq.Expressions.Compiler
             method.SetParameters(paramTypes);
             var paramNames = lambda.Parameters.Map(p => p.Name);
             // parameters are index from 1, with closure argument we need to skip the first arg
-            int startIndex = hasClosureArgument ? 2 : 1;
+            int startIndex = _hasClosureArgument ? 2 : 1;
             for (int i = 0; i < paramNames.Length; i++)
             {
                 method.DefineParameter(i + startIndex, ParameterAttributes.None, paramNames[i]);
             }
 
-            _tree = tree;
-            _lambda = lambda;
             _typeBuilder = (TypeBuilder)method.DeclaringType.GetTypeInfo();
             _method = method;
-            _hasClosureArgument = hasClosureArgument;
 
             _ilg = method.GetILGenerator();
-
-            // These are populated by AnalyzeTree/VariableBinder
-            _scope = scope;
-            _boundConstants = tree.Constants[lambda];
 
             InitializeMethod();
         }
@@ -144,6 +149,9 @@ namespace System.Linq.Expressions.Compiler
             // inlined scopes are associated with invocation, not with the lambda
             _scope = _tree.Scopes[invocation];
             _boundConstants = parent._boundConstants;
+
+            _closureType = _scope.GetClosureType(parent._scope);
+            _environmentType = typeof(CompiledLambdaEnvironment<,>).MakeGenericType(_closureType, typeof(object[]));
         }
 
         private void InitializeMethod()
@@ -196,7 +204,7 @@ namespace System.Linq.Expressions.Compiler
             AnalyzedTree tree = AnalyzeLambda(ref lambda);
 
             // 2. Create lambda compiler
-            LambdaCompiler c = new LambdaCompiler(tree, lambda);
+            LambdaCompiler c = new LambdaCompiler(tree, lambda, default(CompilerScope));
 
             // 3. Emit
             c.EmitLambdaBody();

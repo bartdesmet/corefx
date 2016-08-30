@@ -116,6 +116,14 @@ namespace System.Linq.Expressions.Compiler
         }
 
         /// <summary>
+        /// Get the type of the closure containing hoisted locals, if any
+        /// </summary>
+        internal Type GetClosureType(CompilerScope parent)
+        {
+            return NeedsClosure ? parent.NearestHoistedLocals.SelfVariable.Type : typeof(Empty);
+        }
+
+        /// <summary>
         /// Called when entering a lambda/block. Performs all variable allocation
         /// needed, including creating hoisted locals and IL locals for accessing
         /// parent locals
@@ -198,7 +206,7 @@ namespace System.Linq.Expressions.Compiler
                 {
                     EmitGet(NearestHoistedLocals.SelfVariable);
                     lc.EmitConstantArray(indexes.ToArray());
-                    lc.IL.Emit(OpCodes.Call, typeof(RuntimeOps).GetMethod("CreateRuntimeVariables", new[] { typeof(object[]), typeof(long[]) }));
+                    lc.IL.Emit(OpCodes.Call, typeof(RuntimeOps).GetMethod("CreateRuntimeVariables", new[] { typeof(IRuntimeVariables), typeof(long[]) }));
                     return;
                 }
             }
@@ -242,7 +250,7 @@ namespace System.Linq.Expressions.Compiler
 
         /// <summary>
         /// Resolve a local variable in this scope or a closed over scope
-        /// Throws if the variable is defined
+        /// Throws if the variable is undefined
         /// </summary>
         private Storage ResolveVariable(ParameterExpression variable, HoistedLocals hoistedLocals)
         {
@@ -268,11 +276,24 @@ namespace System.Linq.Expressions.Compiler
                 int index;
                 if (h.Indexes.TryGetValue(variable, out index))
                 {
-                    return new ElementBoxStorage(
-                        ResolveVariable(h.SelfVariable, hoistedLocals),
-                        index,
-                        variable
-                    );
+                    VariableStorageKind kind = h.GetStorageKind(variable);
+
+                    if ((kind & VariableStorageKind.Quoted) != 0)
+                    {
+                        return new ClosureBoxStorage(
+                            ResolveVariable(h.SelfVariable, hoistedLocals),
+                            index,
+                            variable
+                        );
+                    }
+                    else
+                    {
+                        return new ClosureStorage(
+                            ResolveVariable(h.SelfVariable, hoistedLocals),
+                            index,
+                            variable
+                        );
+                    }
                 }
             }
 
@@ -301,7 +322,7 @@ namespace System.Linq.Expressions.Compiler
 
             if (hoistedVars.Count > 0)
             {
-                _hoistedLocals = new HoistedLocals(_closureHoistedLocals, hoistedVars);
+                _hoistedLocals = new HoistedLocals(_closureHoistedLocals, hoistedVars, Definitions);
                 AddLocal(lc, _hoistedLocals.SelfVariable);
             }
         }
@@ -314,44 +335,73 @@ namespace System.Linq.Expressions.Compiler
                 return;
             }
 
-            // create the array
-            lc.IL.EmitInt(_hoistedLocals.Variables.Count);
-            lc.IL.Emit(OpCodes.Newarr, typeof(object));
+            // create the storage
+            Type closureType = _hoistedLocals.SelfVariable.Type;
+            lc.IL.EmitNew(closureType.GetConstructor(Type.EmptyTypes));
 
-            // initialize all elements
+            // initialize all slots
             int i = 0;
             foreach (ParameterExpression v in _hoistedLocals.Variables)
             {
-                // array[i] = new StrongBox<T>(...);
-                lc.IL.Emit(OpCodes.Dup);
-                lc.IL.EmitInt(i++);
-                Type boxType = typeof(StrongBox<>).MakeGenericType(v.Type);
+                FieldInfo field = closureType.GetField("Item" + ++i);
+
+                VariableStorageKind storage = _hoistedLocals.GetStorageKind(v);
+                Type boxType = null;
+                if ((storage & VariableStorageKind.Quoted) != 0)
+                {
+                    boxType = typeof(StrongBox<>).MakeGenericType(v.Type);
+                }
 
                 if (IsMethod && lc.Parameters.Contains(v))
                 {
-                    // array[i] = new StrongBox<T>(argument);
+                    lc.IL.Emit(OpCodes.Dup);
+
+                    // storage.ItemN = argument;
                     int index = lc.Parameters.IndexOf(v);
                     lc.EmitLambdaArgument(index);
-                    lc.IL.Emit(OpCodes.Newobj, boxType.GetConstructor(new Type[] { v.Type }));
+
+                    if (boxType != null)
+                    {
+                        // storage.ItemN = new StrongBox<T>(argument);
+                        lc.IL.Emit(OpCodes.Newobj, boxType.GetConstructor(new Type[] { v.Type }));
+                    }
                 }
                 else if (v == _hoistedLocals.ParentVariable)
                 {
-                    // array[i] = new StrongBox<T>(closure.Locals);
+                    lc.IL.Emit(OpCodes.Dup);
+
+                    // storage.ItemN = closure.Locals;
                     ResolveVariable(v, _closureHoistedLocals).EmitLoad();
-                    lc.IL.Emit(OpCodes.Newobj, boxType.GetConstructor(new Type[] { v.Type }));
+
+                    if (boxType != null)
+                    {
+                        // storage.ItemN = new StrongBox<T>(closure.Locals);
+                        lc.IL.Emit(OpCodes.Newobj, boxType.GetConstructor(new Type[] { v.Type }));
+                    }
                 }
                 else
                 {
-                    // array[i] = new StrongBox<T>();
-                    lc.IL.Emit(OpCodes.Newobj, boxType.GetConstructor(Type.EmptyTypes));
+                    if (boxType != null)
+                    {
+                        lc.IL.Emit(OpCodes.Dup);
+
+                        // storage.ItemN = new StrongBox<T>();
+                        lc.IL.Emit(OpCodes.Newobj, boxType.GetConstructor(Type.EmptyTypes));
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
+
                 // if we want to cache this into a local, do it now
-                if (ShouldCache(v))
+                if (boxType != null && ShouldCache(v))
                 {
                     lc.IL.Emit(OpCodes.Dup);
                     CacheBoxToLocal(lc, v);
                 }
-                lc.IL.Emit(OpCodes.Stelem_Ref);
+
+                lc.IL.Emit(OpCodes.Stfld, field);
             }
 
             // store it
@@ -372,7 +422,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 if (ShouldCache(refCount.Key, refCount.Value))
                 {
-                    var storage = ResolveVariable(refCount.Key) as ElementBoxStorage;
+                    var storage = ResolveVariable(refCount.Key) as ClosureBoxStorage;
                     if (storage != null)
                     {
                         storage.EmitLoadBox();

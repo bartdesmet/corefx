@@ -6,30 +6,30 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Dynamic.Utils;
+using System.Diagnostics;
 
 namespace System.Linq.Expressions.Compiler
 {
 
     // Suppose we have something like:
     //
-    //    (string s)=>()=>s.
+    //    (string s) => () => s
     //
     // We wish to generate the outer as:
     // 
-    //      Func<string> OuterMethod(Closure closure, string s)
+    //      Func<string> OuterMethod(CompiledLambdaEnvironment<Empty, object[]> closure, string s)
     //      {
-    //          object[] locals = new object[1];
-    //          locals[0] = new StrongBox<string>();
-    //          ((StrongBox<string>)locals[0]).Value = s;
-    //          return ((DynamicMethod)closure.Constants[0]).CreateDelegate(typeof(Func<string>), new Closure(null, locals));
+    //          Closure<string> locals = new Closure<string>();
+    //          locals.Item1 = s;
+    //          return ((DynamicMethod)closure.Constants[0]).CreateDelegate(typeof(Func<string>), new CompiledLambdaEnvironment<Closure<string>, object[]>(null, locals));
     //      }
     //      
     // ... and the inner as:
     // 
-    //      string InnerMethod(Closure closure)
+    //      string InnerMethod(CompiledLambdaEnvironment<Closure<string>, object[]> closure)
     //      {
-    //          object[] locals = closure.Locals;
-    //          return ((StrongBox<string>)locals[0]).Value;
+    //          Closure<string> locals = closure.Locals;
+    //          return locals.Item1;
     //      }
     //
     // This class tracks that "s" was hoisted into a closure, as the 0th
@@ -55,26 +55,51 @@ namespace System.Linq.Expressions.Compiler
         // The variables, in the order they appear in the array
         internal readonly ReadOnlyCollection<ParameterExpression> Variables;
 
+        // The storage kinds for the variables
+        internal readonly Dictionary<ParameterExpression, VariableStorageKind> Definitions;
+
         // A virtual variable for accessing this locals array
         internal readonly ParameterExpression SelfVariable;
 
-        internal HoistedLocals(HoistedLocals parent, ReadOnlyCollection<ParameterExpression> vars)
+        internal HoistedLocals(HoistedLocals parent, ReadOnlyCollection<ParameterExpression> vars, Dictionary<ParameterExpression, VariableStorageKind> definitions)
         {
+            Parent = parent;
+            Definitions = definitions;
+
             if (parent != null)
             {
                 // Add the parent locals array as the 0th element in the array
                 vars = new TrueReadOnlyCollection<ParameterExpression>(vars.AddFirst(parent.SelfVariable));
             }
 
-            Dictionary<Expression, int> indexes = new Dictionary<Expression, int>(vars.Count);
-            for (int i = 0; i < vars.Count; i++)
+            Variables = vars;
+
+            var n = vars.Count;
+
+            Debug.Assert(n > 0);
+
+            Dictionary<Expression, int> indexes = new Dictionary<Expression, int>(n);
+            Type[] types = new Type[n];
+
+            for (int i = 0; i < n; i++)
             {
-                indexes.Add(vars[i], i);
+                ParameterExpression var = vars[i];
+                indexes.Add(var, i);
+
+                var type = var.Type;
+
+                var storage = GetStorageKind(var);
+                if ((storage & VariableStorageKind.Quoted) != 0)
+                {
+                    type = typeof(StrongBox<>).MakeGenericType(type);
+                }
+
+                types[i] = type;
             }
 
-            SelfVariable = Expression.Variable(typeof(object[]), null);
-            Parent = parent;
-            Variables = vars;
+            var closureType = DelegateHelpers.GetClosureType(types);
+
+            SelfVariable = Expression.Variable(closureType, null);
             Indexes = new ReadOnlyDictionary<Expression, int>(indexes);
         }
 
@@ -86,6 +111,32 @@ namespace System.Linq.Expressions.Compiler
         internal static object[] GetParent(object[] locals)
         {
             return ((StrongBox<object[]>)locals[0]).Value;
+        }
+
+        internal static IRuntimeVariables GetParent(IRuntimeVariables locals)
+        {
+            return (IRuntimeVariables)locals[0];
+        }
+
+        internal VariableStorageKind GetStorageKind(ParameterExpression variable)
+        {
+            VariableStorageKind kind = (VariableStorageKind)(-1);
+
+            HoistedLocals locals = this;
+
+            while (locals != null)
+            {
+                if (locals.Definitions.TryGetValue(variable, out kind))
+                {
+                    break;
+                }
+
+                locals = locals.Parent;
+            }
+
+            Debug.Assert((int)kind != -1);
+
+            return kind;
         }
     }
 }

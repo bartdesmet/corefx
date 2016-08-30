@@ -30,7 +30,7 @@ namespace System.Linq.Expressions.Compiler
                 // HoistedLocals is internal so emit as System.Object
                 EmitConstant(_scope.NearestHoistedLocals, typeof(object));
                 _scope.EmitGet(_scope.NearestHoistedLocals.SelfVariable);
-                _ilg.Emit(OpCodes.Call, typeof(RuntimeOps).GetMethod("Quote"));
+                _ilg.Emit(OpCodes.Call, typeof(RuntimeOps).GetMethod("Quote", new[] { typeof(Expression), typeof(object), typeof(IRuntimeVariables) }));
 
                 if (quote.Type != typeof(Expression))
                 {

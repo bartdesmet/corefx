@@ -25,6 +25,21 @@ namespace System.Runtime.CompilerServices
         public static Expression Quote(Expression expression, object hoistedLocals, object[] locals)
         {
             Debug.Assert(hoistedLocals != null && locals != null);
+            var quoter = new LegacyExpressionQuoter((HoistedLocals)hoistedLocals, locals);
+            return quoter.Visit(expression);
+        }
+
+        /// <summary>
+        /// Quotes the provided expression tree.
+        /// </summary>
+        /// <param name="expression">The expression to quote.</param>
+        /// <param name="hoistedLocals">The hoisted local state provided by the compiler.</param>
+        /// <param name="locals">The actual hoisted local values.</param>
+        /// <returns>The quoted expression.</returns>
+        [Obsolete("do not use this method", true), EditorBrowsable(EditorBrowsableState.Never)]
+        public static Expression Quote(Expression expression, object hoistedLocals, IRuntimeVariables locals)
+        {
+            Debug.Assert(hoistedLocals != null && locals != null);
             var quoter = new ExpressionQuoter((HoistedLocals)hoistedLocals, locals);
             return quoter.Visit(expression);
         }
@@ -48,17 +63,17 @@ namespace System.Runtime.CompilerServices
         // as indexing expressions.
         //
         // The behavior of Quote is intended to be like C# and VB expression quoting
-        private sealed class ExpressionQuoter : ExpressionVisitor
+        private abstract class ExpressionQuoterBase<TLocals> : ExpressionVisitor
         {
             private readonly HoistedLocals _scope;
-            private readonly object[] _locals;
+            private readonly TLocals _locals;
 
             // A stack of variables that are defined in nested scopes. We search
             // this first when resolving a variable in case a nested scope shadows
             // one of our variable instances.
             private readonly Stack<HashSet<ParameterExpression>> _shadowedVars = new Stack<HashSet<ParameterExpression>>();
 
-            internal ExpressionQuoter(HoistedLocals scope, object[] locals)
+            internal ExpressionQuoterBase(HoistedLocals scope, TLocals locals)
             {
                 _scope = scope;
                 _locals = locals;
@@ -178,25 +193,62 @@ namespace System.Runtime.CompilerServices
                 }
 
                 HoistedLocals scope = _scope;
-                object[] locals = _locals;
+                TLocals locals = _locals;
                 while (true)
                 {
                     int hoistIndex;
                     if (scope.Indexes.TryGetValue(variable, out hoistIndex))
                     {
-                        return (IStrongBox)locals[hoistIndex];
+                        return (IStrongBox)GetLocal(locals, hoistIndex);
                     }
                     scope = scope.Parent;
                     if (scope == null)
                     {
                         break;
                     }
-                    locals = HoistedLocals.GetParent(locals);
+                    locals = GetParent(locals);
                 }
 
                 // Unbound variable: an error should've been thrown already
                 // from VariableBinder
                 throw ContractUtils.Unreachable;
+            }
+
+            protected abstract TLocals GetParent(TLocals locals);
+            protected abstract object GetLocal(TLocals locals, int index);
+        }
+
+        private sealed class ExpressionQuoter : ExpressionQuoterBase<IRuntimeVariables>
+        {
+            internal ExpressionQuoter(HoistedLocals scope, IRuntimeVariables locals) : base(scope, locals)
+            {
+            }
+
+            protected override object GetLocal(IRuntimeVariables locals, int index)
+            {
+                return locals[index];
+            }
+
+            protected override IRuntimeVariables GetParent(IRuntimeVariables locals)
+            {
+                return HoistedLocals.GetParent(locals);
+            }
+        }
+
+        private sealed class LegacyExpressionQuoter : ExpressionQuoterBase<object[]>
+        {
+            internal LegacyExpressionQuoter(HoistedLocals scope, object[] locals) : base(scope, locals)
+            {
+            }
+
+            protected override object GetLocal(object[] locals, int index)
+            {
+                return locals[index];
+            }
+
+            protected override object[] GetParent(object[] locals)
+            {
+                return HoistedLocals.GetParent(locals);
             }
         }
 

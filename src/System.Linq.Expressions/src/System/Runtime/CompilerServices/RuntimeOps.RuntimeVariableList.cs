@@ -24,6 +24,18 @@ namespace System.Runtime.CompilerServices
         [Obsolete("do not use this method", true), EditorBrowsable(EditorBrowsableState.Never)]
         public static IRuntimeVariables CreateRuntimeVariables(object[] data, long[] indexes)
         {
+            return new LegacyRuntimeVariableList(data, indexes);
+        }
+
+        /// <summary>
+        /// Creates an interface that can be used to modify closed over variables at runtime.
+        /// </summary>
+        /// <param name="data">The closure array.</param>
+        /// <param name="indexes">An array of indexes into the closure array where variables are found.</param>
+        /// <returns>An interface to access variables.</returns>
+        [Obsolete("do not use this method", true), EditorBrowsable(EditorBrowsableState.Never)]
+        public static IRuntimeVariables CreateRuntimeVariables(IRuntimeVariables data, long[] indexes)
+        {
             return new RuntimeVariableList(data, indexes);
         }
 
@@ -61,11 +73,11 @@ namespace System.Runtime.CompilerServices
         /// Provides a list of variables, supporting read/write of the values
         /// Exposed via RuntimeVariablesExpression
         /// </summary>
-        private sealed class RuntimeVariableList : IRuntimeVariables
+        private abstract class RuntimeVariableListBase<TLocals> : IRuntimeVariables
         {
             // The top level environment. It contains pointers to parent
             // environments, which are always in the first element
-            private readonly object[] _data;
+            private readonly TLocals _data;
 
             // An array of (int, int) pairs, each representing how to find a
             // variable in the environment data structure.
@@ -75,7 +87,7 @@ namespace System.Runtime.CompilerServices
             // closure chain.
             private readonly long[] _indexes;
 
-            internal RuntimeVariableList(object[] data, long[] indexes)
+            internal RuntimeVariableListBase(TLocals data, long[] indexes)
             {
                 Debug.Assert(data != null);
                 Debug.Assert(indexes != null);
@@ -93,15 +105,21 @@ namespace System.Runtime.CompilerServices
             {
                 get
                 {
-                    return GetStrongBox(index).Value;
+                    TLocals variables;
+                    int slot;
+                    GetStorage(index, out variables, out slot);
+                    return Load(variables, slot);
                 }
                 set
                 {
-                    GetStrongBox(index).Value = value;
+                    TLocals variables;
+                    int slot;
+                    GetStorage(index, out variables, out slot);
+                    Store(variables, slot, value);
                 }
             }
 
-            private IStrongBox GetStrongBox(int index)
+            private void GetStorage(int index, out TLocals variables, out int slot)
             {
                 // We lookup the closure using two ints:
                 // 1. The high dword is the number of parents to go up
@@ -109,14 +127,62 @@ namespace System.Runtime.CompilerServices
                 long closureKey = _indexes[index];
 
                 // walk up the parent chain to find the real environment
-                object[] result = _data;
+                variables = _data;
                 for (int parents = (int)(closureKey >> 32); parents > 0; parents--)
                 {
-                    result = HoistedLocals.GetParent(result);
+                    variables = GetParent(variables);
                 }
 
                 // Return the variable storage
-                return (IStrongBox)result[(int)closureKey];
+                slot = (int)closureKey;
+            }
+
+            protected abstract TLocals GetParent(TLocals locals);
+            protected abstract object Load(TLocals locals, int index);
+            protected abstract void Store(TLocals locals, int index, object value);
+        }
+
+        private sealed class RuntimeVariableList : RuntimeVariableListBase<IRuntimeVariables>
+        {
+            public RuntimeVariableList(IRuntimeVariables data, long[] indexes) : base(data, indexes)
+            {
+            }
+
+            protected override IRuntimeVariables GetParent(IRuntimeVariables locals)
+            {
+                return HoistedLocals.GetParent(locals);
+            }
+
+            protected override object Load(IRuntimeVariables locals, int index)
+            {
+                return locals[index];
+            }
+
+            protected override void Store(IRuntimeVariables locals, int index, object value)
+            {
+                locals[index] = value; ;
+            }
+        }
+
+        private sealed class LegacyRuntimeVariableList : RuntimeVariableListBase<object[]>
+        {
+            public LegacyRuntimeVariableList(object[] data, long[] indexes) : base(data, indexes)
+            {
+            }
+
+            protected override object[] GetParent(object[] locals)
+            {
+                return HoistedLocals.GetParent(locals);
+            }
+
+            protected override object Load(object[] locals, int index)
+            {
+                return locals[index];
+            }
+
+            protected override void Store(object[] locals, int index, object value)
+            {
+                locals[index] = value;
             }
         }
     }

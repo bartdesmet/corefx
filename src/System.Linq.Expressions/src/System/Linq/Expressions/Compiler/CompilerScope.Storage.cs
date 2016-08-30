@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -92,60 +93,6 @@ namespace System.Linq.Expressions.Compiler
             }
         }
 
-        private sealed class ElementBoxStorage : Storage
-        {
-            private readonly int _index;
-            private readonly Storage _array;
-            private readonly Type _boxType;
-            private readonly FieldInfo _boxValueField;
-
-            internal ElementBoxStorage(Storage array, int index, ParameterExpression variable)
-                : base(array.Compiler, variable)
-            {
-                _array = array;
-                _index = index;
-                _boxType = typeof(StrongBox<>).MakeGenericType(variable.Type);
-                _boxValueField = _boxType.GetField("Value");
-            }
-
-            internal override void EmitLoad()
-            {
-                EmitLoadBox();
-                Compiler.IL.Emit(OpCodes.Ldfld, _boxValueField);
-            }
-
-            internal override void EmitStore()
-            {
-                LocalBuilder value = Compiler.GetLocal(Variable.Type);
-                Compiler.IL.Emit(OpCodes.Stloc, value);
-                EmitLoadBox();
-                Compiler.IL.Emit(OpCodes.Ldloc, value);
-                Compiler.FreeLocal(value);
-                Compiler.IL.Emit(OpCodes.Stfld, _boxValueField);
-            }
-
-            internal override void EmitStore(Storage value)
-            {
-                EmitLoadBox();
-                value.EmitLoad();
-                Compiler.IL.Emit(OpCodes.Stfld, _boxValueField);
-            }
-
-            internal override void EmitAddress()
-            {
-                EmitLoadBox();
-                Compiler.IL.Emit(OpCodes.Ldflda, _boxValueField);
-            }
-
-            internal void EmitLoadBox()
-            {
-                _array.EmitLoad();
-                Compiler.IL.EmitInt(_index);
-                Compiler.IL.Emit(OpCodes.Ldelem_Ref);
-                Compiler.IL.Emit(OpCodes.Castclass, _boxType);
-            }
-        }
-
         private sealed class LocalBoxStorage : Storage
         {
             private readonly LocalBuilder _boxLocal;
@@ -206,8 +153,10 @@ namespace System.Linq.Expressions.Compiler
             {
                 _closure = closure;
                 _index = index;
-                Type closureType = closure.Compiler.ClosureType;
+
+                Type closureType = closure.Variable.Type;
                 _closureField = closureType.GetField("Item" + (index + 1));
+                Debug.Assert(_closureField != null);
             }
 
             internal override void EmitLoad()
@@ -253,16 +202,18 @@ namespace System.Linq.Expressions.Compiler
             {
                 _closure = closure;
                 _index = index;
-                Type closureType = closure.Compiler.ClosureType;
+
+                Type closureType = closure.Variable.Type;
                 _closureField = closureType.GetField("Item" + (index + 1));
+                Debug.Assert(_closureField != null);
+
                 _boxType = typeof(StrongBox<>).MakeGenericType(variable.Type);
                 _boxValueField = _boxType.GetField("Value");
             }
 
             internal override void EmitLoad()
             {
-                _closure.EmitLoad();
-                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+                EmitLoadBox();
                 Compiler.IL.Emit(OpCodes.Ldfld, _boxValueField);
             }
 
@@ -270,8 +221,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 LocalBuilder value = Compiler.GetLocal(Variable.Type);
                 Compiler.IL.Emit(OpCodes.Stloc, value);
-                _closure.EmitLoad();
-                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+                EmitLoadBox();
                 Compiler.IL.Emit(OpCodes.Ldloc, value);
                 Compiler.FreeLocal(value);
                 Compiler.IL.Emit(OpCodes.Stfld, _boxValueField);
@@ -279,17 +229,21 @@ namespace System.Linq.Expressions.Compiler
 
             internal override void EmitStore(Storage value)
             {
-                _closure.EmitLoad();
-                Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
+                EmitLoadBox();
                 value.EmitLoad();
                 Compiler.IL.Emit(OpCodes.Stfld, _boxValueField);
             }
 
             internal override void EmitAddress()
             {
+                EmitLoadBox();
+                Compiler.IL.Emit(OpCodes.Ldflda, _boxValueField);
+            }
+
+            internal void EmitLoadBox()
+            {
                 _closure.EmitLoad();
                 Compiler.IL.Emit(OpCodes.Ldfld, _closureField);
-                Compiler.IL.Emit(OpCodes.Ldflda, _boxValueField);
             }
         }
     }
