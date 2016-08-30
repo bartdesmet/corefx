@@ -56,6 +56,9 @@ namespace System.Linq.Expressions.Compiler
         // Type of the closure with hoisted variables the lambda is invoked on
         private readonly Type _closureType;
 
+        // Type of the live constants bundle the lambda is invoked on
+        private readonly Type _constantsType;
+
         // Type of the environment the lambda is invoked on
         private readonly Type _environmentType;
 
@@ -72,7 +75,8 @@ namespace System.Linq.Expressions.Compiler
             _boundConstants = tree.Constants[lambda];
 
             _closureType = _scope.GetClosureType(parent);
-            _environmentType = typeof(CompiledLambdaEnvironment<,>).MakeGenericType(_closureType, typeof(object[]));
+            _constantsType = _boundConstants.GetConstantsType();
+            _environmentType = GetEnvironmentType(_closureType, _constantsType);
             _hasClosureArgument = true;
 
             Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(_environmentType);
@@ -105,7 +109,8 @@ namespace System.Linq.Expressions.Compiler
             _boundConstants = tree.Constants[lambda];
 
             _closureType = _scope.GetClosureType(parent);
-            _environmentType = typeof(CompiledLambdaEnvironment<,>).MakeGenericType(_closureType, typeof(object[]));
+            _constantsType = _boundConstants.GetConstantsType();
+            _environmentType = GetEnvironmentType(_closureType, _constantsType);
             _hasClosureArgument = _scope.NeedsClosure;
 
             Type[] paramTypes = GetParameterTypes(lambda);
@@ -151,7 +156,13 @@ namespace System.Linq.Expressions.Compiler
             _boundConstants = parent._boundConstants;
 
             _closureType = _scope.GetClosureType(parent._scope);
-            _environmentType = typeof(CompiledLambdaEnvironment<,>).MakeGenericType(_closureType, typeof(object[]));
+            _constantsType = _boundConstants.GetConstantsType();
+            _environmentType = GetEnvironmentType(_closureType, _constantsType);
+        }
+
+        private static Type GetEnvironmentType(Type closureType, Type constantsType)
+        {
+            return typeof(CompiledLambdaEnvironment<,>).MakeGenericType(closureType, constantsType);
         }
 
         private void InitializeMethod()
@@ -223,11 +234,11 @@ namespace System.Linq.Expressions.Compiler
 
             var tree = new AnalyzedTree();
 
+            // Allocate storage for live constants in this lambda
+            lambda = ConstantAllocator.Allocate(lambda, tree, compileToDynamicMethod);
+
             // Bind any variable references in this lambda
             VariableBinder.Bind(lambda, tree);
-
-            // Allocate storage for live constants in this lambda
-            ConstantAllocator.Allocate(lambda, tree, compileToDynamicMethod);
 
             return tree;
         }
@@ -292,7 +303,7 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(_method is DynamicMethod);
 
-            var target = Activator.CreateInstance(_environmentType, new[] { _boundConstants.ToArray(), null });
+            var target = Activator.CreateInstance(_environmentType, new[] { _boundConstants.ToObject(), null });
             return _method.CreateDelegate(_lambda.Type, target);
         }
 

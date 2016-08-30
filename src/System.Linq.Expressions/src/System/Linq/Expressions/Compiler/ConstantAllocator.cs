@@ -3,8 +3,10 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace System.Linq.Expressions.Compiler
 {
@@ -14,10 +16,10 @@ namespace System.Linq.Expressions.Compiler
         private readonly bool _compileToDynamicMethod;
         private readonly Stack<BoundConstants> _constants = new Stack<BoundConstants>();
 
-        internal static void Allocate(LambdaExpression lambda, AnalyzedTree tree, bool compileToDynamicMethod)
+        internal static LambdaExpression Allocate(LambdaExpression lambda, AnalyzedTree tree, bool compileToDynamicMethod)
         {
             var allocator = new ConstantAllocator(tree, compileToDynamicMethod);
-            allocator.Visit(lambda);
+            return allocator.VisitAndConvert(lambda, nameof(Allocate));
         }
 
         private ConstantAllocator(AnalyzedTree tree, bool compileToDynamicMethod)
@@ -36,22 +38,69 @@ namespace System.Linq.Expressions.Compiler
             return base.Visit(node);
         }
 
+        private bool _inInvocation;
+
+        protected internal override Expression VisitInvocation(InvocationExpression node)
+        {
+            LambdaExpression lambda = node.LambdaOperand;
+
+            // optimization: inline code for literal lambda's directly
+            if (lambda != null)
+            {
+                // in case node.Expression is a Quote, the node.LambdaOperand property
+                // extracts the Operand of the Quote; simplify the expression in this
+                // case, which is what LambdaCompiler does anyway
+                node = node.Rewrite(lambda, null);
+
+                _inInvocation = true;
+
+                var res = base.VisitInvocation(node);
+
+                Debug.Assert(!_inInvocation); // flag should be cleared by VisitLambda<T>
+
+                return res;
+            }
+
+            return base.VisitInvocation(node);
+        }
+
         protected internal override Expression VisitLambda<T>(Expression<T> node)
         {
-            _constants.Push(_tree.Constants[node] = new BoundConstants());
+            bool inInvocation = _inInvocation;
 
-            var res = base.VisitLambda(node);
-
-            var constants = _constants.Pop();
-
-            if (_constants.Count > 0)
+            if (inInvocation)
             {
-                if (_compileToDynamicMethod)
-                {
-                    Allocate(typeof(MethodInfo)); // for DynamicMethod case in EmitDelegateConstruction
-                }
+                // immediately set to false; we only want to bypass constant analysis
+                // for the LambdaOperand of the InvocationExpression
+                _inInvocation = false;
+            }
+            else
+            {
+                _constants.Push(new BoundConstants());
+            }
 
-                Allocate(constants.GetConstantsType()); // for EmitClosureCreation
+            var res = (LambdaExpression)base.VisitLambda(node);
+
+            if (!inInvocation)
+            {
+                var constants = _constants.Pop();
+
+                _tree.Constants[res] = constants;
+
+                if (_constants.Count > 0)
+                {
+                    if (_compileToDynamicMethod)
+                    {
+                        Allocate(typeof(MethodInfo)); // for DynamicMethod case in EmitDelegateConstruction
+                    }
+
+                    var type = constants.GetConstantsType();
+
+                    if (type != typeof(Empty))
+                    {
+                        Allocate(type); // for EmitClosureCreation
+                    }
+                }
             }
 
             return res;

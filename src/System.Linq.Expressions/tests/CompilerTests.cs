@@ -124,10 +124,19 @@ namespace System.Linq.Expressions.Tests
             var f = t.GetType().GetField("Constants");
             Assert.NotNull(f);
 
-            var c = f.GetValue(t) as object[];
-            Assert.NotNull(c);
+            var v = f.GetValue(t);
 
-            Assert.Equal(expectedCount, c.Length);
+            if (expectedCount == 0)
+            {
+                Assert.True(v is Empty);
+            }
+            else
+            {
+                var c = v as IRuntimeVariables;
+                Assert.NotNull(c);
+
+                Assert.Equal(expectedCount, c.Count);
+            }
 
             var o = d.DynamicInvoke();
             Assert.Equal(expectedValue, o);

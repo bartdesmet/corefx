@@ -80,19 +80,52 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private readonly KeyedQueue<Type, int> _slotIndexes = new KeyedQueue<Type, int>();
 
+        /// <summary>
+        /// The type of the storage for the constants
+        /// </summary>
+        private Type _constantsType;
+
         internal int Count
         {
             get { return _values.Count; }
         }
 
-        internal object[] ToArray()
+        internal object ToObject()
         {
-            return _values.ToArray();
+            var type = GetConstantsType();
+
+            if (type == typeof(Empty))
+            {
+                return Empty.Box;
+            }
+
+            var obj = (IRuntimeVariables)Activator.CreateInstance(type);
+
+            for (var i = 0; i < Count; i++)
+            {
+                obj[i] = _values[i];
+            }
+
+            return obj;
         }
 
         internal Type GetConstantsType()
         {
-            return typeof(object[]);
+            if (_constantsType == null)
+            {
+                if (_types.Count == 0)
+                {
+                    _constantsType = typeof(Empty);
+                }
+                else
+                {
+                    _constantsType = DelegateHelpers.GetClosureType(_types.ToArray());
+                }
+
+                return _constantsType;
+            }
+
+            return _constantsType;
         }
 
         /// <summary>
@@ -101,6 +134,8 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal void AddReference(object value, Type type)
         {
+            Debug.Assert(_constantsType == null);
+
             if (!_indexes.ContainsKey(value))
             {
                 _indexes.Add(value, _values.Count);
@@ -116,6 +151,8 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal void Allocate(Type type)
         {
+            Debug.Assert(_constantsType == null);
+
             var index = _values.Count;
 
             _values.Add(null);
@@ -226,16 +263,10 @@ namespace System.Linq.Expressions.Compiler
                 }
             }
 
-            lc.IL.EmitInt(index);
-            lc.IL.Emit(OpCodes.Ldelem_Ref);
-            if (type.GetTypeInfo().IsValueType)
-            {
-                lc.IL.Emit(OpCodes.Unbox_Any, type);
-            }
-            else if (type != typeof(object))
-            {
-                lc.IL.Emit(OpCodes.Castclass, type);
-            }
+            FieldInfo field = GetConstantsType().GetField("Item" + (index + 1));
+
+            lc.IL.Emit(OpCodes.Ldfld, field);
+            lc.IL.EmitConvertToType(field.FieldType, type, false);
         }
     }
 }

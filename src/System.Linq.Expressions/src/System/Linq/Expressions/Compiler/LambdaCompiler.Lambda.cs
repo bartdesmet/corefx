@@ -61,23 +61,25 @@ namespace System.Linq.Expressions.Compiler
             // new Closure(constantPool, currentHoistedLocals)
             if (boundConstants)
             {
-                var innerBoundConstants = inner._boundConstants.ToArray();
+                var innerBoundConstants = inner._boundConstants.ToObject();
                 var innerBoundConstantsType = inner._boundConstants.GetConstantsType();
 
                 _boundConstants.EmitConstant(this, innerBoundConstants, innerBoundConstantsType);
             }
             else
             {
-                _ilg.EmitNull();
+                _ilg.EmitDefault(typeof(Empty));
             }
+
             if (closure)
             {
                 _scope.EmitGet(_scope.NearestHoistedLocals.SelfVariable);
             }
             else
             {
-                _ilg.EmitNull();
+                _ilg.EmitDefault(typeof(Empty));
             }
+
             _ilg.EmitNew(inner.EnvironmentType.GetConstructors()[0]);
         }
 
@@ -104,7 +106,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 // new DelegateType(closure)
                 EmitClosureCreation(inner);
-                _ilg.Emit(OpCodes.Ldftn, (MethodInfo)inner._method);
+                _ilg.Emit(OpCodes.Ldftn, inner._method);
                 _ilg.Emit(OpCodes.Newobj, (ConstructorInfo)(delegateType.GetMember(".ctor")[0]));
             }
         }

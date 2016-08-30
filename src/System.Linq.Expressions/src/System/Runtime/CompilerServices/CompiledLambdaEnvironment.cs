@@ -45,5 +45,9 @@ namespace System.Runtime.CompilerServices
     [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
     public struct Empty
     {
+        /// <summary>
+        /// Gets the singleton boxed instance of this struct.
+        /// </summary>
+        public static readonly object Box = new Empty();
     }
 }
