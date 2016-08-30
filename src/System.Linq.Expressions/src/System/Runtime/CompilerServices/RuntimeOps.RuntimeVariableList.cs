@@ -15,6 +15,9 @@ namespace System.Runtime.CompilerServices
     [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
     public static partial class RuntimeOps
     {
+        // NB: This overload is kept for backwards compatibility and is superseded by
+        //     the CreateRuntimeVariables(IRuntimeVariables, long[]) overload.
+
         /// <summary>
         /// Creates an interface that can be used to modify closed over variables at runtime.
         /// </summary>

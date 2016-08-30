@@ -189,6 +189,10 @@ namespace System.Linq.Expressions.Compiler
             }
         }
 
+        // closures containing StrongBox<T> slots are used for backwards compatibility
+        // when a variable is referenced in a Quote node; see EmitNewHoistedLocals for
+        // more information
+
         private sealed class ClosureBoxStorage : Storage
         {
             private readonly int _index;

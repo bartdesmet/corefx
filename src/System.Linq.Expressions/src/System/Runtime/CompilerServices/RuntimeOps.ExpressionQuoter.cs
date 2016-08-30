@@ -14,6 +14,9 @@ namespace System.Runtime.CompilerServices
 {
     public partial class RuntimeOps
     {
+        // NB: This overload is kept for backwards compatibility and is superseded by
+        //     the Quote(Expression, object, IRuntimeVariables) overload.
+
         /// <summary>
         /// Quotes the provided expression tree.
         /// </summary>

@@ -280,6 +280,10 @@ namespace System.Linq.Expressions.Compiler
 
                     if ((kind & VariableStorageKind.Quoted) != 0)
                     {
+                        // closures containing StrongBox<T> slots are used for backwards compatibility
+                        // when a variable is referenced in a Quote node; see EmitNewHoistedLocals for
+                        // more information
+
                         return new ClosureBoxStorage(
                             ResolveVariable(h.SelfVariable, hoistedLocals),
                             index,
@@ -344,6 +348,10 @@ namespace System.Linq.Expressions.Compiler
             foreach (ParameterExpression v in _hoistedLocals.Variables)
             {
                 FieldInfo field = closureType.GetField("Item" + ++i);
+
+                // strong boxes are still used in case the variable is reference from a Quote
+                // node; in that case, RuntimeOps.Quote rewrites the reference to the variable
+                // into Field(Constant(box), "Value") which we want to retain for compatibility
 
                 VariableStorageKind storage = _hoistedLocals.GetStorageKind(v);
                 Type boxType = null;
@@ -422,6 +430,10 @@ namespace System.Linq.Expressions.Compiler
             {
                 if (ShouldCache(refCount.Key, refCount.Value))
                 {
+                    // closures containing StrongBox<T> slots are used for backwards compatibility
+                    // when a variable is referenced in a Quote node; see EmitNewHoistedLocals for
+                    // more information
+
                     var storage = ResolveVariable(refCount.Key) as ClosureBoxStorage;
                     if (storage != null)
                     {

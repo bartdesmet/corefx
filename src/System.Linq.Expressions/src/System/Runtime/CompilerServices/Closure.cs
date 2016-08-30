@@ -7,6 +7,9 @@ using System.Diagnostics;
 
 namespace System.Runtime.CompilerServices
 {
+    // NB: This type is kept for backwards compatibility and is superseded by
+    //     the CompiledLambdaEnvironment<,> class.
+
     /// <summary>
     /// This API supports the .NET Framework infrastructure and is not intended to be used directly from your code.
     /// Represents the runtime state of a dynamically generated method.
