@@ -121,8 +121,6 @@ namespace System.Linq.Expressions.Compiler
                 {
                     _constantsType = DelegateHelpers.GetClosureType(_types.ToArray());
                 }
-
-                return _constantsType;
             }
 
             return _constantsType;
