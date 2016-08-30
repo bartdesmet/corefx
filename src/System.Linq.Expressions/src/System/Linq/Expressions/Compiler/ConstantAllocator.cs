@@ -96,7 +96,7 @@ namespace System.Linq.Expressions.Compiler
 
                     var type = constants.GetConstantsType();
 
-                    if (type != typeof(Empty))
+                    if (type != null)
                     {
                         Allocate(type); // for EmitClosureCreation
                     }

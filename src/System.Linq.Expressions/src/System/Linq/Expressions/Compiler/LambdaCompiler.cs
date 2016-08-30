@@ -76,7 +76,7 @@ namespace System.Linq.Expressions.Compiler
 
             _closureType = _scope.GetClosureType(parent);
             _constantsType = _boundConstants.GetConstantsType();
-            _environmentType = GetEnvironmentType(_closureType, _constantsType);
+            _environmentType = GetEnvironmentType();
             _hasClosureArgument = true;
 
             Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(_environmentType);
@@ -110,7 +110,7 @@ namespace System.Linq.Expressions.Compiler
 
             _closureType = _scope.GetClosureType(parent);
             _constantsType = _boundConstants.GetConstantsType();
-            _environmentType = GetEnvironmentType(_closureType, _constantsType);
+            _environmentType = GetEnvironmentType();
             _hasClosureArgument = _scope.NeedsClosure;
 
             Type[] paramTypes = GetParameterTypes(lambda);
@@ -157,12 +157,22 @@ namespace System.Linq.Expressions.Compiler
 
             _closureType = _scope.GetClosureType(parent._scope);
             _constantsType = _boundConstants.GetConstantsType();
-            _environmentType = GetEnvironmentType(_closureType, _constantsType);
+            _environmentType = GetEnvironmentType();
         }
 
-        private static Type GetEnvironmentType(Type closureType, Type constantsType)
+        private Type GetEnvironmentType()
         {
-            return typeof(CompiledLambdaEnvironment<,>).MakeGenericType(closureType, constantsType);
+            if (_closureType == null && _constantsType == null)
+            {
+                return typeof(object);
+            }
+
+            if (_closureType != null && _constantsType != null)
+            {
+                return typeof(CompiledLambdaEnvironment<,>).MakeGenericType(_closureType, _constantsType);
+            }
+
+            return _closureType ?? _constantsType;
         }
 
         private void InitializeMethod()
@@ -292,7 +302,35 @@ namespace System.Linq.Expressions.Compiler
             _ilg.EmitLoadArg(GetLambdaArgument(index));
         }
 
-        internal void EmitClosureArgument()
+        internal void EmitConstantsStorage()
+        {
+            Debug.Assert(CanEmitBoundConstants); // this should've been checked already
+
+            EmitClosureArgument();
+
+            // if we have locals, we'll have an environment; otherwise, we'll just
+            // have the live constants in the closure argument position
+
+            if (_closureType != null)
+            {
+                IL.Emit(OpCodes.Ldfld, _environmentType.GetField("Constants"));
+            }
+        }
+
+        internal void EmitLocalsStorage()
+        {
+            EmitClosureArgument();
+
+            // if we have live constants, we'll have an environment; otherwise,
+            // we'll just have the locals in the closure argument position
+
+            if (_constantsType != null)
+            {
+                IL.Emit(OpCodes.Ldfld, _environmentType.GetField("Locals"));
+            }
+        }
+
+        private void EmitClosureArgument()
         {
             Debug.Assert(_hasClosureArgument, "must have a Closure argument");
             Debug.Assert(_method.IsStatic, "must be a static method");
@@ -303,7 +341,16 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(_method is DynamicMethod);
 
-            var target = Activator.CreateInstance(_environmentType, new[] { _boundConstants.ToObject(), null });
+            // Top-level lambdas never have hoisted locals; at most, we have
+            // live constants in the environment.
+
+            object target = null;
+
+            if (_constantsType != null)
+            {
+                target = _boundConstants.ToObject();
+            }
+
             return _method.CreateDelegate(_lambda.Type, target);
         }
 

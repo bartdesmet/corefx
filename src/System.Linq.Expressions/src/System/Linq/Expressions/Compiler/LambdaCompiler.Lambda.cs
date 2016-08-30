@@ -58,7 +58,6 @@ namespace System.Linq.Expressions.Compiler
                 return;
             }
 
-            // new Closure(constantPool, currentHoistedLocals)
             if (boundConstants)
             {
                 var innerBoundConstants = inner._boundConstants.ToObject();
@@ -66,21 +65,17 @@ namespace System.Linq.Expressions.Compiler
 
                 _boundConstants.EmitConstant(this, innerBoundConstants, innerBoundConstantsType);
             }
-            else
-            {
-                _ilg.EmitDefault(typeof(Empty));
-            }
 
             if (closure)
             {
                 _scope.EmitGet(_scope.NearestHoistedLocals.SelfVariable);
             }
-            else
-            {
-                _ilg.EmitDefault(typeof(Empty));
-            }
 
-            _ilg.EmitNew(inner.EnvironmentType.GetConstructors()[0]);
+            // new CompiledLambdaEnvironment<TLocals, TConstants>(constants, locals)
+            if (boundConstants && closure)
+            {
+                _ilg.EmitNew(inner.EnvironmentType.GetConstructors()[0]);
+            }
         }
 
         /// <summary>

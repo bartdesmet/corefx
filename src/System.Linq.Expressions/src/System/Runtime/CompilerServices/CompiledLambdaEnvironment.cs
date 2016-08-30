@@ -37,17 +37,4 @@ namespace System.Runtime.CompilerServices
             Locals = locals;
         }
     }
-
-    /// <summary>
-    /// This API supports the .NET Framework infrastructure and is not intended to be used directly from your code.
-    /// Represents empty state.
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never), DebuggerStepThrough]
-    public struct Empty
-    {
-        /// <summary>
-        /// Gets the singleton boxed instance of this struct.
-        /// </summary>
-        public static readonly object Box = new Empty();
-    }
 }

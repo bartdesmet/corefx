@@ -85,18 +85,26 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private Type _constantsType;
 
+        /// <summary>
+        /// Gets the number of live constants
+        /// </summary>
         internal int Count
         {
             get { return _values.Count; }
         }
 
+        /// <summary>
+        /// Called by LambdaCompiler to get an object holding all the live constants
+        /// for use by the top-level or inner delegates; returns null if no live
+        /// constants are kept
+        /// </summary>
         internal object ToObject()
         {
             var type = GetConstantsType();
 
-            if (type == typeof(Empty))
+            if (type == null)
             {
-                return Empty.Box;
+                return null;
             }
 
             var obj = (IRuntimeVariables)Activator.CreateInstance(type);
@@ -109,18 +117,16 @@ namespace System.Linq.Expressions.Compiler
             return obj;
         }
 
+        /// <summary>
+        /// Called by LambdaCompiler to construct the environment. Gets the type
+        /// of the object holding the live constants; returns null if no live
+        /// constants are kept
+        /// </summary>
         internal Type GetConstantsType()
         {
-            if (_constantsType == null)
+            if (_constantsType == null && _types.Count > 0)
             {
-                if (_types.Count == 0)
-                {
-                    _constantsType = typeof(Empty);
-                }
-                else
-                {
-                    _constantsType = DelegateHelpers.GetClosureType(_types.ToArray());
-                }
+                _constantsType = DelegateHelpers.GetClosureType(_types.ToArray());
             }
 
             return _constantsType;
@@ -177,7 +183,8 @@ namespace System.Linq.Expressions.Compiler
                 lc.IL.Emit(OpCodes.Ldloc, local);
                 return;
             }
-            EmitConstantsStorage(lc);
+
+            lc.EmitConstantsStorage();
             EmitConstantFromStorage(lc, value, type);
         }
 
@@ -204,7 +211,8 @@ namespace System.Linq.Expressions.Compiler
             {
                 return;
             }
-            EmitConstantsStorage(lc);
+
+            lc.EmitConstantsStorage();
 
             // The same lambda can be in multiple places in the tree, so we
             // need to clear any locals from last time.
@@ -233,14 +241,6 @@ namespace System.Linq.Expressions.Compiler
             // switch. Also, it is too conservative for variables used inside
             // of loops.
             return refCount > 2;
-        }
-
-        private static void EmitConstantsStorage(LambdaCompiler lc)
-        {
-            Debug.Assert(lc.CanEmitBoundConstants); // this should've been checked already
-
-            lc.EmitClosureArgument();
-            lc.IL.Emit(OpCodes.Ldfld, lc.EnvironmentType.GetField("Constants"));
         }
 
         private void EmitConstantFromStorage(LambdaCompiler lc, object value, Type type)

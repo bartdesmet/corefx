@@ -120,7 +120,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal Type GetClosureType(CompilerScope parent)
         {
-            return NeedsClosure ? parent.NearestHoistedLocals.SelfVariable.Type : typeof(Empty);
+            return NeedsClosure ? parent.NearestHoistedLocals.SelfVariable.Type : null;
         }
 
         /// <summary>
@@ -492,8 +492,7 @@ namespace System.Linq.Expressions.Compiler
 
         private void EmitClosureToVariable(LambdaCompiler lc, HoistedLocals locals)
         {
-            lc.EmitClosureArgument();
-            lc.IL.Emit(OpCodes.Ldfld, lc.EnvironmentType.GetField("Locals"));
+            lc.EmitLocalsStorage();
             AddLocal(lc, locals.SelfVariable);
             EmitSet(locals.SelfVariable);
         }

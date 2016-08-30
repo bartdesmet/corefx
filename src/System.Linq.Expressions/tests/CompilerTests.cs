@@ -16,6 +16,10 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void Test()
         {
+            var c = Expression.Constant(new StrongBox<int>(42));
+            var e = Expression.Lambda<Func<int>>(Expression.Field(c, "Value"));
+            var f = e.Compile();
+            Assert.Equal(42, f());
         }
 
 #if FEATURE_COMPILE
@@ -121,18 +125,24 @@ namespace System.Linq.Expressions.Tests
 
             var t = d.Target;
 
-            var f = t.GetType().GetField("Constants");
-            Assert.NotNull(f);
-
-            var v = f.GetValue(t);
-
             if (expectedCount == 0)
             {
-                Assert.True(v is Empty);
+                Assert.Null(t);
             }
             else
             {
-                var c = v as IRuntimeVariables;
+                var c = t as IRuntimeVariables;
+
+                if (c == null)
+                {
+                    var f = t.GetType().GetField("Constants");
+                    Assert.NotNull(f);
+
+                    var v = f.GetValue(t);
+
+                    c = v as IRuntimeVariables;
+                }
+
                 Assert.NotNull(c);
 
                 Assert.Equal(expectedCount, c.Count);
