@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace System.Linq.Expressions.Compiler
@@ -47,6 +46,12 @@ namespace System.Linq.Expressions.Compiler
             }
         }
 
+        /// <summary>
+        /// Emits code which creates the target for the emitted delegate.
+        /// 
+        /// The target can either be null, an object containing live constants or
+        /// hoisted locals, or a combination thereof.
+        /// </summary>
         private void EmitClosureCreation(LambdaCompiler inner)
         {
             bool closure = inner._scope.NeedsClosure;
@@ -81,7 +86,7 @@ namespace System.Linq.Expressions.Compiler
         /// <summary>
         /// Emits code which creates new instance of the delegateType delegate.
         /// 
-        /// Since the delegate is getting closed over the "Closure" argument, this
+        /// Since the delegate is getting closed over an environment argument, this
         /// cannot be used with virtual/instance methods (inner must be static method)
         /// </summary>
         private void EmitDelegateConstruction(LambdaCompiler inner)
@@ -111,7 +116,6 @@ namespace System.Linq.Expressions.Compiler
         /// May end up creating a wrapper to match the requested delegate type.
         /// </summary>
         /// <param name="lambda">Lambda for which to generate a delegate</param>
-        /// 
         private void EmitDelegateConstruction(LambdaExpression lambda)
         {
             // 1. Create the new compiler
