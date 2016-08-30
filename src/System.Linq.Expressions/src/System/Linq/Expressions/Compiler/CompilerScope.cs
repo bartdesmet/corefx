@@ -174,7 +174,7 @@ namespace System.Linq.Expressions.Compiler
             return parent;
         }
 
-        #region LocalScopeExpression support
+        #region RuntimeVariablesExpression support
 
         internal void EmitVariableAccess(LambdaCompiler lc, ReadOnlyCollection<ParameterExpression> vars)
         {
