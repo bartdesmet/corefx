@@ -10,8 +10,8 @@ namespace System.Linq.Expressions.Compiler
     {
         internal readonly Dictionary<object, CompilerScope> Scopes = new Dictionary<object, CompilerScope>();
         internal readonly Dictionary<LambdaExpression, BoundConstants> Constants = new Dictionary<LambdaExpression, BoundConstants>();
+        internal readonly Dictionary<UnaryExpression, bool> QuoteHasFreeVariable = new Dictionary<UnaryExpression, bool>();
 
-        // Created by VariableBinder
         internal AnalyzedTree()
         {
         }

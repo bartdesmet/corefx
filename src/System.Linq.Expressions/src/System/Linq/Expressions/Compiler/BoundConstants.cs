@@ -56,6 +56,11 @@ namespace System.Linq.Expressions.Compiler
         private readonly List<object> _values = new List<object>();
 
         /// <summary>
+        /// The list of types of constants in the order they appear in the constant array
+        /// </summary>
+        private readonly List<Type> _types = new List<Type>();
+
+        /// <summary>
         /// The index of each constant in the constant array
         /// </summary>
         private readonly Dictionary<object, int> _indexes = new Dictionary<object, int>(ReferenceEqualityComparer<object>.Instance);
@@ -70,6 +75,11 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private readonly Dictionary<TypedConstant, LocalBuilder> _cache = new Dictionary<TypedConstant, LocalBuilder>();
 
+        /// <summary>
+        /// Holds indexes for allocated slots by type
+        /// </summary>
+        private readonly KeyedQueue<Type, int> _slotIndexes = new KeyedQueue<Type, int>();
+
         internal int Count
         {
             get { return _values.Count; }
@@ -78,6 +88,11 @@ namespace System.Linq.Expressions.Compiler
         internal object[] ToArray()
         {
             return _values.ToArray();
+        }
+
+        internal Type GetConstantsType()
+        {
+            return typeof(object[]);
         }
 
         /// <summary>
@@ -90,8 +105,23 @@ namespace System.Linq.Expressions.Compiler
             {
                 _indexes.Add(value, _values.Count);
                 _values.Add(value);
+                _types.Add(type);
             }
             Helpers.IncrementCount(new TypedConstant(value, type), _references);
+        }
+
+        /// <summary>
+        /// Called by VariableBinder. Adds a storage slot type to the list
+        /// and increases the reference count by one
+        /// </summary>
+        internal void Allocate(Type type)
+        {
+            var index = _values.Count;
+
+            _values.Add(null);
+            _types.Add(type);
+
+            _slotIndexes.Enqueue(type, index);
         }
 
         /// <summary>
@@ -112,8 +142,8 @@ namespace System.Linq.Expressions.Compiler
                 lc.IL.Emit(OpCodes.Ldloc, local);
                 return;
             }
-            EmitConstantsArray(lc);
-            EmitConstantFromArray(lc, value, type);
+            EmitConstantsStorage(lc);
+            EmitConstantFromStorage(lc, value, type);
         }
 
         /// <summary>
@@ -139,7 +169,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 return;
             }
-            EmitConstantsArray(lc);
+            EmitConstantsStorage(lc);
 
             // The same lambda can be in multiple places in the tree, so we
             // need to clear any locals from last time.
@@ -155,7 +185,7 @@ namespace System.Linq.Expressions.Compiler
                         lc.IL.Emit(OpCodes.Dup);
                     }
                     LocalBuilder local = lc.IL.DeclareLocal(reference.Key.Type);
-                    EmitConstantFromArray(lc, reference.Key.Value, local.LocalType);
+                    EmitConstantFromStorage(lc, reference.Key.Value, local.LocalType);
                     lc.IL.Emit(OpCodes.Stloc, local);
                     _cache.Add(reference.Key, local);
                 }
@@ -170,7 +200,7 @@ namespace System.Linq.Expressions.Compiler
             return refCount > 2;
         }
 
-        private static void EmitConstantsArray(LambdaCompiler lc)
+        private static void EmitConstantsStorage(LambdaCompiler lc)
         {
             Debug.Assert(lc.CanEmitBoundConstants); // this should've been checked already
 
@@ -178,13 +208,22 @@ namespace System.Linq.Expressions.Compiler
             lc.IL.Emit(OpCodes.Ldfld, lc.EnvironmentType.GetField("Constants"));
         }
 
-        private void EmitConstantFromArray(LambdaCompiler lc, object value, Type type)
+        private void EmitConstantFromStorage(LambdaCompiler lc, object value, Type type)
         {
             int index;
             if (!_indexes.TryGetValue(value, out index))
             {
-                _indexes.Add(value, index = _values.Count);
-                _values.Add(value);
+                if (_slotIndexes.TryDequeue(type, out index))
+                {
+                    _values[index] = value;
+                }
+                else
+                {
+                    // This indicates an internal error, e.g. where LambdaCompiler
+                    // emits live constants which are not accounted for in the
+                    // ConstantAllocator rewrite.
+                    throw ContractUtils.Unreachable;
+                }
             }
 
             lc.IL.EmitInt(index);

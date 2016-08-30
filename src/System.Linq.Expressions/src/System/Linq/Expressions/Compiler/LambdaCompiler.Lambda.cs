@@ -61,7 +61,10 @@ namespace System.Linq.Expressions.Compiler
             // new Closure(constantPool, currentHoistedLocals)
             if (boundConstants)
             {
-                _boundConstants.EmitConstant(this, inner._boundConstants.ToArray(), typeof(object[]));
+                var innerBoundConstants = inner._boundConstants.ToArray();
+                var innerBoundConstantsType = inner._boundConstants.GetConstantsType();
+
+                _boundConstants.EmitConstant(this, innerBoundConstants, innerBoundConstantsType);
             }
             else
             {

@@ -23,9 +23,7 @@ namespace System.Linq.Expressions.Compiler
             // emit the quoted expression as a runtime constant
             EmitConstant(quote.Operand, quote.Type);
 
-            // Heuristic: only emit the tree rewrite logic if we have hoisted
-            // locals.
-            if (_scope.NearestHoistedLocals != null)
+            if (_tree.QuoteHasFreeVariable[quote] && _scope.NearestHoistedLocals != null)
             {
                 // HoistedLocals is internal so emit as System.Object
                 EmitConstant(_scope.NearestHoistedLocals, typeof(object));

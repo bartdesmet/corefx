@@ -229,5 +229,8 @@
     <TargetingPackReference Include="mscorlib" />
     <TargetingPackReference Include="System.Core" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="System\Linq\Expressions\Compiler\ConstantAllocator.cs" />
+  </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
 </Project>

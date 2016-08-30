@@ -201,7 +201,7 @@ namespace System.Linq.Expressions.Compiler
         internal static Delegate Compile(LambdaExpression lambda)
         {
             // 1. Bind lambda
-            AnalyzedTree tree = AnalyzeLambda(ref lambda);
+            AnalyzedTree tree = AnalyzeLambda(ref lambda, true);
 
             // 2. Create lambda compiler
             LambdaCompiler c = new LambdaCompiler(tree, lambda, default(CompilerScope));
@@ -215,14 +215,21 @@ namespace System.Linq.Expressions.Compiler
 
         #endregion
 
-        private static AnalyzedTree AnalyzeLambda(ref LambdaExpression lambda)
+        private static AnalyzedTree AnalyzeLambda(ref LambdaExpression lambda, bool compileToDynamicMethod)
         {
             // Spill the stack for any exception handling blocks or other
             // constructs which require entering with an empty stack
             lambda = StackSpiller.AnalyzeLambda(lambda);
 
+            var tree = new AnalyzedTree();
+
             // Bind any variable references in this lambda
-            return VariableBinder.Bind(lambda);
+            VariableBinder.Bind(lambda, tree);
+
+            // Allocate storage for live constants in this lambda
+            ConstantAllocator.Allocate(lambda, tree, compileToDynamicMethod);
+
+            return tree;
         }
 
         internal LocalBuilder GetLocal(Type type)

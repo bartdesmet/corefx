@@ -572,6 +572,8 @@ namespace System.Linq.Expressions.Compiler
 
             var node = (IDynamicExpression)expr;
 
+            Debug.Assert(node is PartiallyEvaluatedDynamicExpression); // see ConstantAllocator
+
             var site = node.CreateCallSite();
             Type siteType = site.GetType();
 

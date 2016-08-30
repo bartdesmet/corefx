@@ -15,39 +15,19 @@ namespace System.Linq.Expressions.Compiler
     /// </summary>
     internal sealed class VariableBinder : ExpressionVisitor
     {
-        private readonly AnalyzedTree _tree = new AnalyzedTree();
+        private readonly AnalyzedTree _tree;
         private readonly Stack<CompilerScope> _scopes = new Stack<CompilerScope>();
-        private readonly Stack<BoundConstants> _constants = new Stack<BoundConstants>();
         private bool _inQuote;
 
-        internal static AnalyzedTree Bind(LambdaExpression lambda)
+        internal static void Bind(LambdaExpression lambda, AnalyzedTree tree)
         {
-            var binder = new VariableBinder();
+            var binder = new VariableBinder(tree);
             binder.Visit(lambda);
-            return binder._tree;
         }
 
-        private VariableBinder()
+        private VariableBinder(AnalyzedTree tree)
         {
-        }
-
-        protected internal override Expression VisitConstant(ConstantExpression node)
-        {
-            // If we're in Quote, we can ignore constants completely
-            if (_inQuote)
-            {
-                return node;
-            }
-
-            // Constants that can be emitted into IL don't need to be stored on
-            // the delegate
-            if (ILGen.CanEmitConstant(node.Value, node.Type))
-            {
-                return node;
-            }
-
-            _constants.Peek().AddReference(node.Value, node.Type);
-            return node;
+            _tree = tree;
         }
 
         protected internal override Expression VisitUnary(UnaryExpression node)
@@ -69,9 +49,7 @@ namespace System.Linq.Expressions.Compiler
         protected internal override Expression VisitLambda<T>(Expression<T> node)
         {
             _scopes.Push(_tree.Scopes[node] = new CompilerScope(node, true));
-            _constants.Push(_tree.Constants[node] = new BoundConstants());
             Visit(MergeScopes(node));
-            _constants.Pop();
             _scopes.Pop();
             return node;
         }
