@@ -153,12 +153,14 @@ namespace System.Linq.Expressions.Compiler
                 indexerSetterLabels[i] = indexerSetterILGen.DefineLabel();
             }
 
+            var indexOutOfRangeCtor = typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes);
+
             indexerGetterILGen.Emit(OpCodes.Switch, indexerGetterLabels);
-            indexerGetterILGen.Emit(OpCodes.Newobj, typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes));
+            indexerGetterILGen.Emit(OpCodes.Newobj, indexOutOfRangeCtor);
             indexerGetterILGen.Emit(OpCodes.Throw);
 
             indexerSetterILGen.Emit(OpCodes.Switch, indexerSetterLabels);
-            indexerSetterILGen.Emit(OpCodes.Newobj, typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes));
+            indexerSetterILGen.Emit(OpCodes.Newobj, indexOutOfRangeCtor);
             indexerSetterILGen.Emit(OpCodes.Throw);
 
             for (var i = 0; i < arity; i++)
