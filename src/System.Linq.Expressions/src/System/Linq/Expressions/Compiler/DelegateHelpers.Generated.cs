@@ -113,19 +113,12 @@ namespace System.Linq.Expressions.Compiler
 
             var genericParameterNames = new string[arity];
 
-            for (var i = 1; i <= arity; i++)
+            for (var i = 0; i < arity; i++)
             {
-                genericParameterNames[i - 1] = "T" + i;
+                genericParameterNames[i] = "T" + (i + 1);
             }
 
             var genericParameterTypes = builder.DefineGenericParameters(genericParameterNames);
-
-            var fields = new FieldBuilder[arity];
-
-            for (var i = 1; i <= arity; i++)
-            {
-                fields[i - 1] = builder.DefineField("Item" + i, genericParameterTypes[i - 1].AsType(), FieldAttributes.Public);
-            }
 
             builder.AddInterfaceImplementation(typeof(IRuntimeVariables));
 
@@ -143,62 +136,51 @@ namespace System.Linq.Expressions.Compiler
             var indexer = builder.DefineProperty("Item", PropertyAttributes.None, typeof(object), new[] { typeof(int) });
 
             var indexerGetter = builder.DefineMethod("get_Item", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(object), new[] { typeof(int) });
-
-            var indexerGetterILGen = indexerGetter.GetILGenerator();
-
-            indexerGetterILGen.Emit(OpCodes.Ldarg_1);
-
-            var indexerGetterLabels = new Label[arity];
-
-            for (var i = 0; i < arity; i++)
-            {
-                indexerGetterLabels[i] = indexerGetterILGen.DefineLabel();
-            }
-
-            indexerGetterILGen.Emit(OpCodes.Switch, indexerGetterLabels);
-
-            indexerGetterILGen.Emit(OpCodes.Newobj, typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes));
-            indexerGetterILGen.Emit(OpCodes.Throw);
-
-            for (var i = 0; i < arity; i++)
-            {
-                indexerGetterILGen.MarkLabel(indexerGetterLabels[i]);
-                indexerGetterILGen.Emit(OpCodes.Ldarg_0);
-                indexerGetterILGen.Emit(OpCodes.Ldfld, fields[i]);
-                indexerGetterILGen.Emit(OpCodes.Box, genericParameterTypes[i].AsType());
-                indexerGetterILGen.Emit(OpCodes.Ret);
-            }
-
-            indexer.SetGetMethod(indexerGetter);
-
             var indexerSetter = builder.DefineMethod("set_Item", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(void), new[] { typeof(int), typeof(object) });
 
+            var indexerGetterILGen = indexerGetter.GetILGenerator();
             var indexerSetterILGen = indexerSetter.GetILGenerator();
 
+            indexerGetterILGen.Emit(OpCodes.Ldarg_1);
             indexerSetterILGen.Emit(OpCodes.Ldarg_1);
 
+            var indexerGetterLabels = new Label[arity];
             var indexerSetterLabels = new Label[arity];
 
             for (var i = 0; i < arity; i++)
             {
+                indexerGetterLabels[i] = indexerGetterILGen.DefineLabel();
                 indexerSetterLabels[i] = indexerSetterILGen.DefineLabel();
             }
 
-            indexerSetterILGen.Emit(OpCodes.Switch, indexerSetterLabels);
+            indexerGetterILGen.Emit(OpCodes.Switch, indexerGetterLabels);
+            indexerGetterILGen.Emit(OpCodes.Newobj, typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes));
+            indexerGetterILGen.Emit(OpCodes.Throw);
 
+            indexerSetterILGen.Emit(OpCodes.Switch, indexerSetterLabels);
             indexerSetterILGen.Emit(OpCodes.Newobj, typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes));
             indexerSetterILGen.Emit(OpCodes.Throw);
 
             for (var i = 0; i < arity; i++)
             {
+                var type = genericParameterTypes[i].AsType();
+                var field = builder.DefineField("Item" + (i + 1), type, FieldAttributes.Public);
+
+                indexerGetterILGen.MarkLabel(indexerGetterLabels[i]);
+                indexerGetterILGen.Emit(OpCodes.Ldarg_0);
+                indexerGetterILGen.Emit(OpCodes.Ldfld, field);
+                indexerGetterILGen.Emit(OpCodes.Box, type);
+                indexerGetterILGen.Emit(OpCodes.Ret);
+
                 indexerSetterILGen.MarkLabel(indexerSetterLabels[i]);
                 indexerSetterILGen.Emit(OpCodes.Ldarg_0);
                 indexerSetterILGen.Emit(OpCodes.Ldarg_2);
-                indexerSetterILGen.Emit(OpCodes.Unbox_Any, genericParameterTypes[i].AsType());
-                indexerSetterILGen.Emit(OpCodes.Stfld, fields[i]);
+                indexerSetterILGen.Emit(OpCodes.Unbox_Any, type);
+                indexerSetterILGen.Emit(OpCodes.Stfld, field);
                 indexerSetterILGen.Emit(OpCodes.Ret);
             }
 
+            indexer.SetGetMethod(indexerGetter);
             indexer.SetSetMethod(indexerSetter);
 
             return builder.CreateTypeInfo().AsType();
