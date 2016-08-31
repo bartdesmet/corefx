@@ -94,6 +94,7 @@
     <Compile Include="$(CommonPath)\System\Runtime\CompilerServices\TrueReadOnlyCollection.cs">
       <Link>Common\System\Runtime\CompilerServices\TrueReadOnlyCollection.cs</Link>
     </Compile>
+    <Compile Include="System\Dynamic\Utils\ExpressionVisitorUtils.cs" />
     <Compile Include="System\Dynamic\Utils\TypeExtensions.cs" />
     <Compile Include="System\Dynamic\Utils\TypeUtils.cs" />
     <Compile Include="System\Linq\Expressions\BinaryExpression.cs" />
@@ -163,6 +164,7 @@
     <Compile Include="System\Linq\Expressions\Compiler\BoundConstants.cs" />
     <Compile Include="System\Linq\Expressions\Compiler\CompilerScope.cs" />
     <Compile Include="System\Linq\Expressions\Compiler\CompilerScope.Storage.cs" />
+    <Compile Include="System\Linq\Expressions\Compiler\ConstantAllocator.cs" />
     <Compile Include="System\Linq\Expressions\Compiler\HoistedLocals.cs" />
     <Compile Include="System\Linq\Expressions\Compiler\ILGen.cs" />
     <Compile Include="System\Linq\Expressions\Compiler\KeyedQueue.cs" />
@@ -227,9 +229,6 @@
   <ItemGroup Condition="'$(TargetGroup)' == 'net463'">
     <TargetingPackReference Include="mscorlib" />
     <TargetingPackReference Include="System.Core" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="System\Linq\Expressions\Compiler\ConstantAllocator.cs" />
   </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
 </Project>
