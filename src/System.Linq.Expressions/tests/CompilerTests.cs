@@ -16,10 +16,9 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void Test()
         {
-            var c = Expression.Constant(new StrongBox<int>(42));
-            var e = Expression.Lambda<Func<int>>(Expression.Field(c, "Value"));
-            var f = e.Compile();
-            Assert.Equal(42, f());
+            Expression<Func<int, Func<int>>> f = x => () => x;
+            var d = f.Compile();
+            var y = d(42)();
         }
 
 #if FEATURE_COMPILE
