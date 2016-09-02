@@ -79,7 +79,9 @@ namespace System.Linq.Expressions.Compiler
             _environmentType = GetEnvironmentType();
             _hasClosureArgument = true;
 
-            Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(_environmentType);
+            // PERF: See remark in EmitClosureArgument for the use of System.Object as the
+            //       as the first parameter's type rather than _environmentType.
+            Type[] parameterTypes = GetParameterTypes(lambda).AddFirst(typeof(object));
 
             var method = new DynamicMethod(lambda.Name ?? "lambda_method", lambda.ReturnType, parameterTypes, true);
             _method = method;
@@ -116,7 +118,9 @@ namespace System.Linq.Expressions.Compiler
             Type[] paramTypes = GetParameterTypes(lambda);
             if (_hasClosureArgument)
             {
-                paramTypes = paramTypes.AddFirst(_environmentType);
+                // PERF: See remark in EmitClosureArgument for the use of System.Object as the
+                //       as the first parameter's type rather than _environmentType.
+                paramTypes = paramTypes.AddFirst(typeof(object));
             }
 
             method.SetReturnType(lambda.ReturnType);
@@ -335,6 +339,13 @@ namespace System.Linq.Expressions.Compiler
             Debug.Assert(_hasClosureArgument, "must have a Closure argument");
             Debug.Assert(_method.IsStatic, "must be a static method");
             _ilg.EmitLoadArg(0);
+
+            // PERF: If the first argument is a generic type such as CompiledLambdaEnvironment<,>
+            //       or Closure<>, the performance for delegate creation through CreateDelegate
+            //       invoked on DynamicMethod suffers. Passing the argument as object and casting
+            //       it inside the lambda turns out to be faster. EmitClosureToLocal ensures this
+            //       is only done once.
+            _ilg.EmitConvertToType(typeof(object), _environmentType, false);
         }
 
         private Delegate CreateDelegate()
