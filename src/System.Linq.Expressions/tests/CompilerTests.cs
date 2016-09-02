@@ -16,9 +16,13 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void Test()
         {
-            Expression<Func<int, Func<int>>> f = x => () => x;
+            //Expression<Func<int, Func<int>>> f = x => () => x;
+            //var d = f.Compile();
+            //var y = d(42)();
+
+            Expression<Func<int>> f = () => 42;
             var d = f.Compile();
-            var y = d(42)();
+            var y = d();
         }
 
 #if FEATURE_COMPILE
