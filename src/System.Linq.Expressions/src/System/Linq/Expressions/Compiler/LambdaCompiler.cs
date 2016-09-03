@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+//#define TEST
+
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -10,6 +12,10 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Threading;
+
+#if TEST
+using ILGenerator = System.Reflection.Emit.IILGenerator;
+#endif
 
 namespace System.Linq.Expressions.Compiler
 {
@@ -93,7 +99,11 @@ namespace System.Linq.Expressions.Compiler
             // TODO: This API is not available, is there an alternative way to achieve the same.
             // method.ProfileAPICheck = true; 
 
+#if TEST
+            _ilg = new DebuggingILGenerator(method.GetILGenerator());
+#else
             _ilg = method.GetILGenerator();
+#endif
 
             InitializeMethod();
         }
@@ -136,7 +146,11 @@ namespace System.Linq.Expressions.Compiler
             _typeBuilder = (TypeBuilder)method.DeclaringType.GetTypeInfo();
             _method = method;
 
+#if TEST
+            _ilg = new DebuggingILGenerator(method.GetILGenerator());
+#else
             _ilg = method.GetILGenerator();
+#endif
 
             InitializeMethod();
         }
@@ -216,7 +230,7 @@ namespace System.Linq.Expressions.Compiler
             get { return _environmentType; }
         }
 
-        #region Compiler entry points
+#region Compiler entry points
 
         /// <summary>
         /// Compiler entry point
@@ -238,7 +252,7 @@ namespace System.Linq.Expressions.Compiler
             return c.CreateDelegate();
         }
 
-        #endregion
+#endregion
 
         private static AnalyzedTree AnalyzeLambda(ref LambdaExpression lambda, bool compileToDynamicMethod)
         {
