@@ -163,7 +163,7 @@ namespace System.Runtime.CompilerServices
 
             protected override void Store(IRuntimeVariables locals, int index, object value)
             {
-                locals[index] = value; ;
+                locals[index] = value;
             }
         }
 
