@@ -38,7 +38,7 @@ namespace System.Linq.Expressions.Tests
                                             Expression.PostIncrementAssign(i),
                                             Expression.Constant(1)
                                         ),
-                                        x,
+                                        x, // NB: Gets removed due to EmitExpressionAsVoid
                                         Expression.Break(b)
                                     ),
                                     b
