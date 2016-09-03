@@ -20,9 +20,35 @@ namespace System.Linq.Expressions.Tests
             //var d = f.Compile();
             //var y = d(42)();
 
-            Expression<Func<int>> f = () => 42;
-            var d = f.Compile();
-            var y = d();
+            //Expression<Func<int>> f = () => 42;
+            //var d = f.Compile();
+            //var y = d();
+
+            var i = Expression.Parameter(typeof(int));
+            var x = Expression.Parameter(typeof(int));
+            var b = Expression.Label();
+
+            var e = Expression.Lambda<Func<int, Action>>(
+                        Expression.Lambda<Action>(
+                            Expression.Block(
+                                new[] { i },
+                                Expression.Loop(
+                                    Expression.IfThenElse(
+                                        Expression.LessThan(
+                                            Expression.PostIncrementAssign(i),
+                                            Expression.Constant(1)
+                                        ),
+                                        x,
+                                        Expression.Break(b)
+                                    ),
+                                    b
+                                )
+                            )
+                        ),
+                        x
+                    );
+
+            e.Compile();
         }
 
 #if FEATURE_COMPILE
