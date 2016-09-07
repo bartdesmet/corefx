@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Dynamic.Utils;
+using static System.Linq.Expressions.CachedReflectionInfo;
 
 namespace System.Linq.Expressions.Compiler
 {
@@ -172,10 +173,12 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(!ILGen.CanEmitConstant(value, type));
 
+#if FEATURE_COMPILE_TO_METHODBUILDER
             if (!lc.CanEmitBoundConstants)
             {
                 throw Error.CannotCompileConstant(value);
             }
+#endif
 
             LocalBuilder local;
             if (_cache.TryGetValue(new TypedConstant(value, type), out local))
@@ -197,10 +200,12 @@ namespace System.Linq.Expressions.Compiler
             int count = 0;
             foreach (var reference in _references)
             {
+#if FEATURE_COMPILE_TO_METHODBUILDER
                 if (!lc.CanEmitBoundConstants)
                 {
                     throw Error.CannotCompileConstant(reference.Key.Value);
                 }
+#endif
 
                 if (ShouldCache(reference.Value))
                 {
@@ -245,6 +250,9 @@ namespace System.Linq.Expressions.Compiler
 
         private void EmitConstantFromStorage(LambdaCompiler lc, object value, Type type)
         {
+#if FEATURE_COMPILE_TO_METHODBUILDER
+            Debug.Assert(lc.CanEmitBoundConstants); // this should've been checked already
+#endif
             int index;
             if (!_indexes.TryGetValue(value, out index))
             {

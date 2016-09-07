@@ -9,7 +9,7 @@ using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
+using static System.Linq.Expressions.CachedReflectionInfo;
 
 #if TEST
 using ILGenerator = System.Reflection.Emit.IILGenerator;
@@ -100,54 +100,48 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal static void EmitLoadValueIndirect(this ILGenerator il, Type type)
         {
-            ContractUtils.RequiresNotNull(type, nameof(type));
+            Debug.Assert(type != null);
 
-            if (type.GetTypeInfo().IsValueType)
+            switch (type.GetTypeCode())
             {
-                if (type == typeof(int))
-                {
+                case TypeCode.Int32:
                     il.Emit(OpCodes.Ldind_I4);
-                }
-                else if (type == typeof(uint))
-                {
+                    break;
+                case TypeCode.UInt32:
                     il.Emit(OpCodes.Ldind_U4);
-                }
-                else if (type == typeof(short))
-                {
+                    break;
+                case TypeCode.Int16:
                     il.Emit(OpCodes.Ldind_I2);
-                }
-                else if (type == typeof(ushort))
-                {
+                    break;
+                case TypeCode.UInt16:
                     il.Emit(OpCodes.Ldind_U2);
-                }
-                else if (type == typeof(long) || type == typeof(ulong))
-                {
+                    break;
+                case TypeCode.Int64:
+                case TypeCode.UInt64:
                     il.Emit(OpCodes.Ldind_I8);
-                }
-                else if (type == typeof(char))
-                {
+                    break;
+                case TypeCode.Char:
                     il.Emit(OpCodes.Ldind_I2);
-                }
-                else if (type == typeof(bool))
-                {
+                    break;
+                case TypeCode.Boolean:
                     il.Emit(OpCodes.Ldind_I1);
-                }
-                else if (type == typeof(float))
-                {
+                    break;
+                case TypeCode.Single:
                     il.Emit(OpCodes.Ldind_R4);
-                }
-                else if (type == typeof(double))
-                {
+                    break;
+                case TypeCode.Double:
                     il.Emit(OpCodes.Ldind_R8);
-                }
-                else
-                {
-                    il.Emit(OpCodes.Ldobj, type);
-                }
-            }
-            else
-            {
-                il.Emit(OpCodes.Ldind_Ref);
+                    break;
+                default:
+                    if (type.GetTypeInfo().IsValueType)
+                    {
+                        il.Emit(OpCodes.Ldobj, type);
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Ldind_Ref);
+                    }
+                    break;
             }
         }
 
@@ -157,46 +151,42 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal static void EmitStoreValueIndirect(this ILGenerator il, Type type)
         {
-            ContractUtils.RequiresNotNull(type, nameof(type));
+            Debug.Assert(type != null);
 
-            if (type.GetTypeInfo().IsValueType)
+            switch (type.GetTypeCode())
             {
-                if (type == typeof(int))
-                {
+                case TypeCode.Int32:
                     il.Emit(OpCodes.Stind_I4);
-                }
-                else if (type == typeof(short))
-                {
+                    break;
+                case TypeCode.Int16:
                     il.Emit(OpCodes.Stind_I2);
-                }
-                else if (type == typeof(long) || type == typeof(ulong))
-                {
+                    break;
+                case TypeCode.Int64:
+                case TypeCode.UInt64:
                     il.Emit(OpCodes.Stind_I8);
-                }
-                else if (type == typeof(char))
-                {
+                    break;
+                case TypeCode.Char:
                     il.Emit(OpCodes.Stind_I2);
-                }
-                else if (type == typeof(bool))
-                {
+                    break;
+                case TypeCode.Boolean:
                     il.Emit(OpCodes.Stind_I1);
-                }
-                else if (type == typeof(float))
-                {
+                    break;
+                case TypeCode.Single:
                     il.Emit(OpCodes.Stind_R4);
-                }
-                else if (type == typeof(double))
-                {
+                    break;
+                case TypeCode.Double:
                     il.Emit(OpCodes.Stind_R8);
-                }
-                else
-                {
-                    il.Emit(OpCodes.Stobj, type);
-                }
-            }
-            else
-            {
-                il.Emit(OpCodes.Stind_Ref);
+                    break;
+                default:
+                    if (type.GetTypeInfo().IsValueType)
+                    {
+                        il.Emit(OpCodes.Stobj, type);
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Stind_Ref);
+                    }
+                    break;
             }
         }
 
@@ -204,7 +194,7 @@ namespace System.Linq.Expressions.Compiler
 
         internal static void EmitLoadElement(this ILGenerator il, Type type)
         {
-            ContractUtils.RequiresNotNull(type, nameof(type));
+            Debug.Assert(type != null);
 
             if (!type.GetTypeInfo().IsValueType)
             {
@@ -260,7 +250,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal static void EmitStoreElement(this ILGenerator il, Type type)
         {
-            ContractUtils.RequiresNotNull(type, nameof(type));
+            Debug.Assert(type != null);
 
             if (type.GetTypeInfo().IsEnum)
             {
@@ -308,10 +298,10 @@ namespace System.Linq.Expressions.Compiler
 
         internal static void EmitType(this ILGenerator il, Type type)
         {
-            ContractUtils.RequiresNotNull(type, nameof(type));
+            Debug.Assert(type != null);
 
             il.Emit(OpCodes.Ldtoken, type);
-            il.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle"));
+            il.Emit(OpCodes.Call, Type_GetTypeFromHandle);
         }
 
 #endregion
@@ -320,7 +310,7 @@ namespace System.Linq.Expressions.Compiler
 
         internal static void EmitFieldAddress(this ILGenerator il, FieldInfo fi)
         {
-            ContractUtils.RequiresNotNull(fi, nameof(fi));
+            Debug.Assert(fi != null);
 
             if (fi.IsStatic)
             {
@@ -334,7 +324,7 @@ namespace System.Linq.Expressions.Compiler
 
         internal static void EmitFieldGet(this ILGenerator il, FieldInfo fi)
         {
-            ContractUtils.RequiresNotNull(fi, nameof(fi));
+            Debug.Assert(fi != null);
 
             if (fi.IsStatic)
             {
@@ -348,7 +338,7 @@ namespace System.Linq.Expressions.Compiler
 
         internal static void EmitFieldSet(this ILGenerator il, FieldInfo fi)
         {
-            ContractUtils.RequiresNotNull(fi, nameof(fi));
+            Debug.Assert(fi != null);
 
             if (fi.IsStatic)
             {
@@ -363,7 +353,7 @@ namespace System.Linq.Expressions.Compiler
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
         internal static void EmitNew(this ILGenerator il, ConstructorInfo ci)
         {
-            ContractUtils.RequiresNotNull(ci, nameof(ci));
+            Debug.Assert(ci != null);
 
             if (ci.DeclaringType.GetTypeInfo().ContainsGenericParameters)
             {
@@ -376,8 +366,8 @@ namespace System.Linq.Expressions.Compiler
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix")]
         internal static void EmitNew(this ILGenerator il, Type type, Type[] paramTypes)
         {
-            ContractUtils.RequiresNotNull(type, nameof(type));
-            ContractUtils.RequiresNotNull(paramTypes, nameof(paramTypes));
+            Debug.Assert(type != null);
+            Debug.Assert(paramTypes != null);
 
             ConstructorInfo ci = type.GetConstructor(paramTypes);
             if (ci == null) throw Error.TypeDoesNotHaveConstructorForTheSignature();
@@ -395,7 +385,8 @@ namespace System.Linq.Expressions.Compiler
 
         internal static void EmitString(this ILGenerator il, string value)
         {
-            ContractUtils.RequiresNotNull(value, nameof(value));
+            Debug.Assert(value != null);
+
             il.Emit(OpCodes.Ldstr, value);
         }
 
@@ -619,11 +610,11 @@ namespace System.Linq.Expressions.Compiler
                 if (dt != null && dt.GetTypeInfo().IsGenericType)
                 {
                     il.Emit(OpCodes.Ldtoken, dt);
-                    il.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) }));
+                    il.Emit(OpCodes.Call, MethodBase_GetMethodFromHandle_RuntimeMethodHandle_RuntimeTypeHandle);
                 }
                 else
                 {
-                    il.Emit(OpCodes.Call, typeof(MethodBase).GetMethod("GetMethodFromHandle", new Type[] { typeof(RuntimeMethodHandle) }));
+                    il.Emit(OpCodes.Call, MethodBase_GetMethodFromHandle_RuntimeMethodHandle);
                 }
                 if (type != typeof(MethodBase))
                 {
@@ -815,6 +806,37 @@ namespace System.Linq.Expressions.Compiler
                 if (isFromUnsigned)
                     il.Emit(OpCodes.Conv_R_Un);
                 il.Emit(OpCodes.Conv_R8);
+            }
+            else if (typeTo == typeof(Decimal))
+            {
+                // NB: TypeUtils.IsImplicitNumericConversion makes the promise that implicit conversions
+                //     from various integral types and char to decimal are possible. Coalesce allows the
+                //     conversion lambda to be omitted in these cases, so we have to handle this case in
+                //     here as well, by using the op_Implicit operator implementation on System.Decimal
+                //     because there are no opcodes for System.Decimal.
+
+                Debug.Assert(typeFrom != typeTo);
+
+                TypeCode tc = typeFrom.GetTypeCode();
+
+                MethodInfo method = null;
+
+                switch (tc)
+                {
+                    case TypeCode.Byte:   method = Decimal_op_Implicit_Byte;   break;
+                    case TypeCode.SByte:  method = Decimal_op_Implicit_SByte;  break;
+                    case TypeCode.Int16:  method = Decimal_op_Implicit_Int16;  break;
+                    case TypeCode.UInt16: method = Decimal_op_Implicit_UInt16; break;
+                    case TypeCode.Int32:  method = Decimal_op_Implicit_Int32;  break;
+                    case TypeCode.UInt32: method = Decimal_op_Implicit_UInt32; break;
+                    case TypeCode.Int64:  method = Decimal_op_Implicit_Int64;  break;
+                    case TypeCode.UInt64: method = Decimal_op_Implicit_UInt64; break;
+                    case TypeCode.Char:   method = Decimal_op_Implicit_Char;   break;
+                    default:
+                        throw Error.UnhandledConvert(typeTo);
+                }
+
+                il.Emit(OpCodes.Call, method);
             }
             else
             {
@@ -1072,7 +1094,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal static void EmitArray<T>(this ILGenerator il, IList<T> items)
         {
-            ContractUtils.RequiresNotNull(items, nameof(items));
+            Debug.Assert(items != null);
 
             il.EmitInt(items.Count);
             il.Emit(OpCodes.Newarr, typeof(T));
@@ -1086,26 +1108,15 @@ namespace System.Linq.Expressions.Compiler
         }
 
         /// <summary>
-        /// Emits an array of values of count size.  The items are emitted via the callback
-        /// which is provided with the current item index to emit.
+        /// Emits an array of values of count size.
         /// </summary>
-        internal static void EmitArray(this ILGenerator il, Type elementType, int count, Action<int> emit)
+        internal static void EmitArray(this ILGenerator il, Type elementType, int count)
         {
-            ContractUtils.RequiresNotNull(elementType, nameof(elementType));
-            ContractUtils.RequiresNotNull(emit, nameof(emit));
+            Debug.Assert(elementType != null);
             Debug.Assert(count >= 0);
 
             il.EmitInt(count);
             il.Emit(OpCodes.Newarr, elementType);
-            for (int i = 0; i < count; i++)
-            {
-                il.Emit(OpCodes.Dup);
-                il.EmitInt(i);
-
-                emit(i);
-
-                il.EmitStoreElement(elementType);
-            }
         }
 
         /// <summary>
@@ -1115,7 +1126,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal static void EmitArray(this ILGenerator il, Type arrayType)
         {
-            ContractUtils.RequiresNotNull(arrayType, nameof(arrayType));
+            Debug.Assert(arrayType != null);
             Debug.Assert(arrayType.IsArray);
 
             if (arrayType.IsVector())
@@ -1147,13 +1158,13 @@ namespace System.Linq.Expressions.Compiler
                 {
                     int intValue = Decimal.ToInt32(value);
                     il.EmitInt(intValue);
-                    il.EmitNew(typeof(Decimal).GetConstructor(new Type[] { typeof(int) }));
+                    il.EmitNew(Decimal_Ctor_Int32);
                 }
                 else if (Int64.MinValue <= value && value <= Int64.MaxValue)
                 {
                     long longValue = Decimal.ToInt64(value);
                     il.EmitLong(longValue);
-                    il.EmitNew(typeof(Decimal).GetConstructor(new Type[] { typeof(long) }));
+                    il.EmitNew(Decimal_Ctor_Int64);
                 }
                 else
                 {
@@ -1174,7 +1185,7 @@ namespace System.Linq.Expressions.Compiler
             il.EmitInt(bits[2]);
             il.EmitBoolean((bits[3] & 0x80000000) != 0);
             il.EmitByte((byte)(bits[3] >> 16));
-            il.EmitNew(typeof(decimal).GetConstructor(new Type[] { typeof(int), typeof(int), typeof(int), typeof(bool), typeof(byte) }));
+            il.EmitNew(Decimal_Ctor_Int32_Int32_Int32_Bool_Byte);
         }
 
         /// <summary>
@@ -1239,7 +1250,7 @@ namespace System.Linq.Expressions.Compiler
 
                 case TypeCode.Decimal:
                     il.Emit(OpCodes.Ldc_I4_0);
-                    il.Emit(OpCodes.Newobj, typeof(Decimal).GetConstructor(new Type[] { typeof(int) }));
+                    il.Emit(OpCodes.Newobj, Decimal_Ctor_Int32);
                     break;
 
                 default:
@@ -1254,6 +1265,8 @@ namespace System.Linq.Expressions.Compiler
 #if TEST
 namespace System.Reflection.Emit
 {
+    using System.Text;
+
     interface IILGenerator
     {
         void BeginCatchBlock(Type exceptionType);
