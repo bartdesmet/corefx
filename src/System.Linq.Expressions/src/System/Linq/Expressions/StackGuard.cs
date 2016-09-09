@@ -16,13 +16,14 @@ namespace System.Linq.Expressions
 
         public bool TryEnterOnCurrentStack()
         {
-            try
+            if (!RuntimeHelpers.TryEnsureSufficientExecutionStack())
             {
-                RuntimeHelpers.EnsureSufficientExecutionStack();
-            }
-            catch (InsufficientExecutionStackException) when (_executionStackCount < MaxExecutionStackCount)
-            {
-                return false;
+                 if (_executionStackCount < MaxExecutionStackCount)
+                 {
+                     return false;
+                 }
+
+                 throw new InsufficientExecutionStackException();
             }
 
             return true;
