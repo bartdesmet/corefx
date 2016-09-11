@@ -28,6 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CompilerTests.cs" />
+    <Compile Include="DebugViewTests.cs" />
     <Compile Include="Array\ArrayAccessTests.cs" />
     <Compile Include="Array\ArrayArrayIndexTests.cs" />
     <Compile Include="Array\ArrayArrayLengthTests.cs" />
@@ -217,6 +218,9 @@
     <Compile Include="Variables\RuntimeVariablesTests.cs" />
     <Compile Include="Variables\VariableTests.cs" />
     <Compile Include="Visitor\VisitorTests.cs" />
+    <Compile Include="$(CommonTestPath)\System\PlatformDetection.cs">
+      <Link>Common\System\PlatformDetection.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\System.Linq.Expressions.csproj">
