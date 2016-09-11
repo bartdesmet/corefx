@@ -262,34 +262,54 @@ namespace System.Linq.Expressions.Compiler
 
             protected internal override Expression VisitBlock(BlockExpression node)
             {
-                _stack.Push(new HashSet<ParameterExpression>(node.Variables));
+                var count = node.Variables.Count;
+                if (count > 0)
+                {
+                    _stack.Push(new HashSet<ParameterExpression>(node.Variables));
+                }
 
                 Visit(node.Expressions);
 
-                _stack.Pop();
+                if (count > 0)
+                {
+                    _stack.Pop();
+                }
 
                 return node;
             }
 
             protected internal override Expression VisitLambda<T>(Expression<T> node)
             {
-                _stack.Push(new HashSet<ParameterExpression>(node.Parameters));
+                var count = node.Parameters.Count;
+                if (count > 0)
+                {
+                    _stack.Push(new HashSet<ParameterExpression>(node.Parameters));
+                }
 
                 Visit(node.Body);
 
-                _stack.Pop();
+                if (count > 0)
+                {
+                    _stack.Pop();
+                }
 
                 return node;
             }
 
             protected override CatchBlock VisitCatchBlock(CatchBlock node)
             {
-                _stack.Push(new HashSet<ParameterExpression>(new[] { node.Variable }));
+                if (node.Variable != null)
+                {
+                    _stack.Push(new HashSet<ParameterExpression>(new[] { node.Variable }));
+                }
 
                 Visit(node.Filter);
                 Visit(node.Body);
 
-                _stack.Pop();
+                if (node.Variable != null)
+                {
+                    _stack.Pop();
+                }
 
                 return node;
             }
