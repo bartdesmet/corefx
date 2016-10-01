@@ -259,6 +259,7 @@ namespace System.Linq.Expressions.Compiler
                 if (_slotIndexes.TryDequeue(type, out index))
                 {
                     _values[index] = value;
+                    _indexes[value] = index;
                 }
                 else
                 {

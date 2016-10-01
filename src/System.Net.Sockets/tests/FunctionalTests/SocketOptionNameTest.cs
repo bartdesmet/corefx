@@ -18,7 +18,8 @@ namespace System.Net.Sockets.Tests
         {
             get
             {
-                return Capability.SocketsReuseUnicastPortSupport();
+                return Capability.SocketsReuseUnicastPortSupport().HasValue &&
+                    Capability.SocketsReuseUnicastPortSupport().Value;
             }
         }
 
@@ -26,12 +27,12 @@ namespace System.Net.Sockets.Tests
         {
             get
             {
-                return !Capability.SocketsReuseUnicastPortSupport();
+                return Capability.SocketsReuseUnicastPortSupport().HasValue &&
+                    !Capability.SocketsReuseUnicastPortSupport().Value;
             }
         }
 
         [OuterLoop] // TODO: Issue #11345
-        [ActiveIssue(11088, PlatformID.Windows)]
         [ConditionalFact(nameof(NoSocketsReuseUnicastPortSupport))]
         public void ReuseUnicastPort_CreateSocketGetOption_NoSocketsReuseUnicastPortSupport_Throws()
         {
@@ -52,7 +53,6 @@ namespace System.Net.Sockets.Tests
         }
 
         [OuterLoop] // TODO: Issue #11345
-        [ActiveIssue(11088, PlatformID.Windows)]
         [ConditionalFact(nameof(NoSocketsReuseUnicastPortSupport))]
         public void ReuseUnicastPort_CreateSocketSetOption_NoSocketsReuseUnicastPortSupport_Throws()
         {
@@ -232,6 +232,66 @@ namespace System.Net.Sockets.Tests
 
             localPort = (receiveSocket.LocalEndPoint as IPEndPoint).Port;
             return receiveSocket;
+        }
+
+        [Theory]
+        [InlineData(null, null, null, true)]
+        [InlineData(null, null, false, true)]
+        [InlineData(null, false, false, true)]
+        [InlineData(null, true, false, true)]
+        [InlineData(null, true, true, false)]
+        [InlineData(true, null, null, true)]
+        [InlineData(true, null, false, true)]
+        [InlineData(true, null, true, true)]
+        [InlineData(true, false, null, true)]
+        [InlineData(true, false, false, true)]
+        [InlineData(true, false, true, true)]
+        public void ReuseAddress(bool? exclusiveAddressUse, bool? firstSocketReuseAddress, bool? secondSocketReuseAddress, bool expectFailure)
+        {
+            using (Socket a = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+            {
+                if (exclusiveAddressUse.HasValue)
+                {
+                    a.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ExclusiveAddressUse, exclusiveAddressUse.Value);
+                }
+                if (firstSocketReuseAddress.HasValue)
+                {
+                    a.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, firstSocketReuseAddress.Value);
+                }
+
+                a.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+
+                using (Socket b = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+                {
+                    if (secondSocketReuseAddress.HasValue)
+                    {
+                        b.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, secondSocketReuseAddress.Value);
+                    }
+
+                    if (expectFailure)
+                    {
+                        Assert.ThrowsAny<SocketException>(() => b.Bind(a.LocalEndPoint));
+                    }
+                    else
+                    {
+                        b.Bind(a.LocalEndPoint);
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [PlatformSpecific(PlatformID.Windows)]
+        [InlineData(false, null, null, true)]
+        [InlineData(false, null, false, true)]
+        [InlineData(false, false, null, true)]
+        [InlineData(false, false, false, true)]
+        [InlineData(false, true, null, true)]
+        [InlineData(false, true, false, true)]
+        [InlineData(false, true, true, false)]
+        public void ReuseAddress_Windows(bool? exclusiveAddressUse, bool? firstSocketReuseAddress, bool? secondSocketReuseAddress, bool expectFailure)
+        {
+            ReuseAddress(exclusiveAddressUse, firstSocketReuseAddress, secondSocketReuseAddress, expectFailure);
         }
     }
 }

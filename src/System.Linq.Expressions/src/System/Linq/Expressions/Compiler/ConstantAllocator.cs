@@ -191,6 +191,16 @@ namespace System.Linq.Expressions.Compiler
             return base.VisitRuntimeVariables(node);
         }
 
+        protected internal override Expression VisitSwitch(SwitchExpression node)
+        {
+            if (Utils.IsStringHashtableSwitch(node))
+            {
+                Allocate(typeof(StrongBox<Dictionary<string, int>>)); // for switch table lazy field
+            }
+
+            return base.VisitSwitch(node);
+        }
+
         private Expression VisitDynamic(Expression node)
         {
             var expr = (IDynamicExpression)node;

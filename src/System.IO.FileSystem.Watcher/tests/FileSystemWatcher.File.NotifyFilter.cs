@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using XunitPlatformID = Xunit.PlatformID;
 
 namespace System.IO.Tests
 {
@@ -21,7 +22,7 @@ namespace System.IO.Tests
         private const uint DACL_SECURITY_INFORMATION = 0x00000004;
         private const uint SE_FILE_OBJECT = 0x1;
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Theory]
         [MemberData(nameof(FilterTypes))]
         public void FileSystemWatcher_File_NotifyFilter_Attributes(NotifyFilters filter)
         {
@@ -49,7 +50,7 @@ namespace System.IO.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Theory]
         [MemberData(nameof(FilterTypes))]
         public void FileSystemWatcher_File_NotifyFilter_CreationTime(NotifyFilters filter)
         {
@@ -72,7 +73,7 @@ namespace System.IO.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Theory]
         [MemberData(nameof(FilterTypes))]
         public void FileSystemWatcher_File_NotifyFilter_DirectoryName(NotifyFilters filter)
         {
@@ -98,7 +99,7 @@ namespace System.IO.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Theory]
         [MemberData(nameof(FilterTypes))]
         public void FileSystemWatcher_File_NotifyFilter_LastAccessTime(NotifyFilters filter)
         {
@@ -120,7 +121,7 @@ namespace System.IO.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Theory]
         [MemberData(nameof(FilterTypes))]
         public void FileSystemWatcher_File_NotifyFilter_LastWriteTime(NotifyFilters filter)
         {
@@ -142,7 +143,7 @@ namespace System.IO.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Theory]
         [MemberData(nameof(FilterTypes))]
         public void FileSystemWatcher_File_NotifyFilter_Size(NotifyFilters filter)
         {
@@ -169,7 +170,7 @@ namespace System.IO.Tests
 
         [Theory]
         [MemberData(nameof(FilterTypes))]
-        [PlatformSpecific(PlatformID.Windows)]
+        [PlatformSpecific(XunitPlatformID.Windows)]
         public void FileSystemWatcher_File_NotifyFilter_Security(NotifyFilters filter)
         {
             using (var testDirectory = new TempDirectory(GetTestFilePath()))
@@ -208,7 +209,7 @@ namespace System.IO.Tests
         /// <summary>
         /// Tests a changed event on a directory when filtering for LastWrite and FileName.
         /// </summary>
-        [ConditionalFact(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Fact]
         public void FileSystemWatcher_File_NotifyFilter_LastWriteAndFileName()
         {
             using (var testDirectory = new TempDirectory(GetTestFilePath()))
@@ -228,7 +229,7 @@ namespace System.IO.Tests
         /// Tests the watcher behavior when two events - a Modification and a Creation - happen closely
         /// after each other.
         /// </summary>
-        [ConditionalFact(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Fact]
         public void FileSystemWatcher_File_NotifyFilter_ModifyAndCreate()
         {
             using (var testDirectory = new TempDirectory(GetTestFilePath()))
@@ -255,7 +256,7 @@ namespace System.IO.Tests
         /// Tests the watcher behavior when two events - a Modification and a Deletion - happen closely
         /// after each other.
         /// </summary>
-        [ConditionalFact(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/216
+        [Fact]
         public void FileSystemWatcher_File_NotifyFilter_ModifyAndDelete()
         {
             using (var testDirectory = new TempDirectory(GetTestFilePath()))

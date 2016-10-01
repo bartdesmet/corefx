@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Reflection;
+using static System.Linq.Expressions.CachedReflectionInfo;
 
 namespace System.Linq.Expressions
 {
@@ -31,6 +32,60 @@ namespace System.Linq.Expressions
                 value = null;
                 return false;
             }
+        }
+
+        public static bool IsStringSwitch(SwitchExpression node)
+        {
+            // If we have a comparison other than string equality, bail
+            MethodInfo equality = String_op_Equality_String_String;
+            if (equality != null && !equality.IsStatic)
+            {
+                equality = null;
+            }
+
+            if (node.Comparison != equality)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool ShouldEmitHashtableSwitch(SwitchExpression node, out int numberOfTests)
+        {
+            numberOfTests = 0;
+
+            if (!IsStringSwitch(node))
+            {
+                return false;
+            }
+
+            // All test values must be constant.
+            foreach (SwitchCase c in node.Cases)
+            {
+                foreach (Expression t in c.TestValues)
+                {
+                    if (!(t is ConstantExpression))
+                    {
+                        return false;
+                    }
+                    numberOfTests++;
+                }
+            }
+
+            // Must have >= 7 labels for it to be worth it.
+            if (numberOfTests < 7)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool IsStringHashtableSwitch(SwitchExpression node)
+        {
+            int ignored = 0;
+            return ShouldEmitHashtableSwitch(node, out ignored);
         }
     }
 }

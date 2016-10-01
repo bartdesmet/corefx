@@ -19,6 +19,7 @@ namespace System.Collections.Generic
     // circular buffer, so Enqueue can be O(n).  Dequeue is O(1).
     [DebuggerTypeProxy(typeof(QueueDebugView<>))]
     [DebuggerDisplay("Count = {Count}")]
+    [Serializable]
     public class Queue<T> : IEnumerable<T>,
         System.Collections.ICollection,
         IReadOnlyCollection<T>
@@ -28,6 +29,7 @@ namespace System.Collections.Generic
         private int _tail;       // The index at which to enqueue if the queue isn't full.
         private int _size;       // Number of elements.
         private int _version;
+        [NonSerialized]
         private object _syncRoot;
 
         private const int MinimumGrow = 4;
@@ -226,7 +228,9 @@ namespace System.Collections.Generic
         public T Dequeue()
         {
             if (_size == 0)
-                throw new InvalidOperationException(SR.InvalidOperation_EmptyQueue);
+            {
+                ThrowForEmptyQueue();
+            }
 
             T removed = _array[_head];
             _array[_head] = default(T);
@@ -236,15 +240,45 @@ namespace System.Collections.Generic
             return removed;
         }
 
+        public bool TryDequeue(out T result)
+        {
+            if (_size == 0)
+            {
+            	result = default(T);
+            	return false;
+            }
+
+            result = _array[_head];
+            _array[_head] = default(T);
+            MoveNext(ref _head);
+            _size--;
+            _version++;
+            return true;
+        }
+
         // Returns the object at the head of the queue. The object remains in the
         // queue. If the queue is empty, this method throws an 
         // InvalidOperationException.
         public T Peek()
         {
             if (_size == 0)
-                throw new InvalidOperationException(SR.InvalidOperation_EmptyQueue);
-
+            {
+                ThrowForEmptyQueue();
+            }
+            
             return _array[_head];
+        }
+
+        public bool TryPeek(out T result)
+        {
+            if (_size == 0)
+            {
+            	result = default(T);
+            	return false;
+            }
+
+            result = _array[_head];
+            return true;
         }
 
         // Returns true if the queue contains at least one object equal to item.
@@ -326,6 +360,12 @@ namespace System.Collections.Generic
             index = (tmp == _array.Length) ? 0 : tmp;
         }
 
+        private void ThrowForEmptyQueue()
+        {
+            Debug.Assert(_size == 0);
+            throw new InvalidOperationException(SR.InvalidOperation_EmptyQueue);
+        }
+
         public void TrimExcess()
         {
             int threshold = (int)(((double)_array.Length) * 0.9);
@@ -339,6 +379,7 @@ namespace System.Collections.Generic
         // internal version number of the list to ensure that no modifications are
         // made to the list while an enumeration is in progress.
         [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes", Justification = "not an expected scenario")]
+        [Serializable]
         public struct Enumerator : IEnumerator<T>,
             System.Collections.IEnumerator
         {

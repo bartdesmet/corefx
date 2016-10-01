@@ -631,34 +631,8 @@ namespace System.Linq.Expressions.Compiler
 
         private bool TryEmitHashtableSwitch(SwitchExpression node, CompilationFlags flags)
         {
-            // If we have a comparison other than string equality, bail
-            MethodInfo equality = String_op_Equality_String_String;
-            if (equality != null && !equality.IsStatic)
-            {
-                equality = null;
-            }
-
-            if (node.Comparison != equality)
-            {
-                return false;
-            }
-
-            // All test values must be constant.
             int tests = 0;
-            foreach (SwitchCase c in node.Cases)
-            {
-                foreach (Expression t in c.TestValues)
-                {
-                    if (!(t is ConstantExpression))
-                    {
-                        return false;
-                    }
-                    tests++;
-                }
-            }
-
-            // Must have >= 7 labels for it to be worth it.
-            if (tests < 7)
+            if (!Utils.ShouldEmitHashtableSwitch(node, out tests))
             {
                 return false;
             }
@@ -667,7 +641,7 @@ namespace System.Linq.Expressions.Compiler
             // immediately. But that would cause the two code paths to be more
             // different than they really need to be.
             var initializers = new List<ElementInit>(tests);
-            var cases = new List<SwitchCase>(node.Cases.Count);
+            var cases = new ArrayBuilder<SwitchCase>(node.Cases.Count);
 
             int nullCase = -1;
             MethodInfo add = DictionaryOfStringInt32_Add_String_Int32;
@@ -739,11 +713,11 @@ namespace System.Linq.Expressions.Compiler
                     Expression.Assign(switchIndex, Expression.Constant(nullCase)),
                     Expression.IfThenElse(
                         Expression.Call(dictInit, "TryGetValue", null, switchValue, switchIndex),
-                        Expression.Empty(),
+                        Utils.Empty(),
                         Expression.Assign(switchIndex, Expression.Constant(-1))
                     )
                 ),
-                Expression.Switch(node.Type, switchIndex, node.DefaultBody, null, cases)
+                Expression.Switch(node.Type, switchIndex, node.DefaultBody, null, cases.ToReadOnly())
             );
 
             EmitExpression(reduced, flags);

@@ -16,8 +16,10 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="UIHintAttributeTests.cs" />
+    <Compile Include="FilterUIHintAttributeTests.cs" />
+    <Compile Include="DisplayAttributeTests.cs" />
     <Compile Include="ValidationAttributeTestBase.cs" />
-    <Compile Include="AssertEx.cs" />
     <Compile Include="AssociationAttributeTests.cs" />
     <Compile Include="CompareAttributeTests.cs" />
     <Compile Include="CreditCardAttributeTests.cs" />
@@ -43,6 +45,7 @@
     <Compile Include="UrlAttributeTests.cs" />
     <Compile Include="ValidationAttributeTests.cs" />
     <Compile Include="ValidationContextTests.cs" />
+    <Compile Include="ValidationExceptionTests.cs" />
     <Compile Include="ValidationResultTests.cs" />
     <Compile Include="ValidatorTests.cs" />
   </ItemGroup>

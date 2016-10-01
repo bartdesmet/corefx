@@ -335,10 +335,10 @@ namespace System.Linq.Expressions.Compiler
         {
         }
 
-        [ExcludeFromCodeCoverage] // Unreachable
         internal override BlockExpression Rewrite(ReadOnlyCollection<ParameterExpression> variables, Expression[] args)
         {
-            throw ContractUtils.Unreachable;
+            Debug.Assert(variables.Count == 0);
+            return new SpilledExpressionBlock(args); // NB: ConstantAllocator can trigger a rewrite
         }
     }
 }
