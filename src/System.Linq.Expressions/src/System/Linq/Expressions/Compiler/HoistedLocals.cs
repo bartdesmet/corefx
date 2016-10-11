@@ -120,23 +120,26 @@ namespace System.Linq.Expressions.Compiler
 
         internal VariableStorageKind GetStorageKind(ParameterExpression variable)
         {
-            VariableStorageKind kind = (VariableStorageKind)(-1);
+            VariableStorageKind kind;
 
             HoistedLocals locals = this;
 
             while (locals != null)
             {
+                if (variable == locals.SelfVariable)
+                {
+                    return VariableStorageKind.Local;
+                }
+
                 if (locals.Definitions.TryGetValue(variable, out kind))
                 {
-                    break;
+                    return kind;
                 }
 
                 locals = locals.Parent;
             }
 
-            Debug.Assert((int)kind != -1);
-
-            return kind;
+            throw ContractUtils.Unreachable;
         }
     }
 }

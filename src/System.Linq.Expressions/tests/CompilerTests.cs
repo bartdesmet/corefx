@@ -16,6 +16,7 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void Test()
         {
+            /*
             //Expression<Func<int, Func<int>>> f = x => () => x;
             //var d = f.Compile();
             //var y = d(42)();
@@ -47,6 +48,9 @@ namespace System.Linq.Expressions.Tests
                         ),
                         x
                     );
+            */
+
+            var e = (Expression<Func<int, Func<int, Func<int, int>>>>)(x => y => z => x + y + z);
 
             e.Compile();
         }
