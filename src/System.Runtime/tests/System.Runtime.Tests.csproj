@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -10,19 +10,24 @@
     <AssemblyName>System.Runtime.Tests</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1718</NoWarn>
-    <NugetTargetMoniker Condition="'$(NugetTargetMoniker)'==''">.NETStandard,Version=v1.5</NugetTargetMoniker>
+    <NugetTargetMoniker Condition="'$(TargetGroup)' == ''">.NETStandard,Version=v1.7</NugetTargetMoniker>
+    <DefineConstants Condition="'$(TargetGroup)'==''">$(DefineConstants);netstandard17</DefineConstants>
   </PropertyGroup>
   <!-- Default configurations to help VS understand the configurations -->
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'netstandard1.7_Debug|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'netstandard1.7_Release|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'netstandard1.5_Debug|AnyCPU' ">
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'netstandard1.5_Release|AnyCPU' ">
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'netcoreapp1.1_Debug|AnyCPU' ">
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'netcoreapp1.1_Release|AnyCPU' ">
+  </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(CommonTestPath)\System\EnumTypes.cs" >
+    <Compile Include="$(CommonTestPath)\System\EnumTypes.cs">
       <Link>Common\System\EnumTypes.cs</Link>
     </Compile>
     <Compile Include="Helpers.cs" />
@@ -54,11 +59,13 @@
     <Compile Include="System\IntPtrTests.cs" />
     <Compile Include="System\IO\DirectoryNotFoundExceptionTests.cs" />
     <Compile Include="System\IO\DirectoryNotFoundException.InteropTests.cs" />
-    <Compile Include="System\IO\EndOfStreamExceptionTests.cs" />    
+    <Compile Include="System\IO\EndOfStreamExceptionTests.cs" />
     <Compile Include="System\IO\Exceptions.HResults.cs" />
     <Compile Include="System\IO\Exceptions.Utility.cs" />
     <Compile Include="System\IO\FileLoadExceptionTests.cs" />
     <Compile Include="System\IO\FileLoadException.InteropTests.cs" />
+    <Compile Include="System\IO\FileNotFoundException.InteropTests.cs" />
+    <Compile Include="System\IO\FileNotFoundExceptionTests.cs" />
     <Compile Include="System\IO\PathTooLongExceptionTests.cs" />
     <Compile Include="System\IO\PathTooLongException.InteropTests.cs" />
     <Compile Include="System\LazyTests.cs" />
@@ -100,9 +107,24 @@
       <Link>Common\System\PlatformDetection.cs</Link>
     </Compile>
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetGroup)' == 'netstandard1.7'">
+  <ItemGroup Condition="'$(TargetGroup)' == 'netcoreapp1.1'">
+    <Compile Include="System\ArrayTests.netcoreapp1.1.cs" />
+    <Compile Include="System\EnumTests.netcoreapp1.1.cs" />
+    <Compile Include="System\GCTests.netcoreapp1.1.cs" />
+    <Compile Include="System\IntPtrTests.netcoreapp1.1.cs" />
+    <Compile Include="System\LazyTests.netcoreapp1.1.cs" />
+    <Compile Include="System\Runtime\CompilerServices\RuntimeHelpersTests.netcoreapp1.1.cs" />
+    <Compile Include="System\UIntPtrTests.netcoreapp1.1.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetGroup)' != 'netcoreapp1.1'">
+    <Compile Include="System\StringSplitExtensions.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetGroup)' == ''">
     <Compile Include="ArrayTests.netstandard1.7.cs" />
+    <Compile Include="System\DelegateTests.netstandard1.7.cs" />
+    <Compile Include="System\AttributeTests.netstandard1.7.cs" />
     <Compile Include="CompareToTests.cs" />
+    <Compile Include="DBNullTests.netstandard1.7.cs" />
     <Compile Include="DecimalTests.netstandard1.7.cs" />
     <Compile Include="EnumTests.netstandard1.7.cs" />
     <Compile Include="GetTypeCodeTests.cs" />
@@ -114,12 +136,13 @@
     <Compile Include="System\EntryPointNotFoundExceptionTests.cs" />
     <Compile Include="System\ExceptionTests.cs" />
     <Compile Include="System\ExecutionEngineExceptionTests.cs" />
-    <Compile Include="System\GuidTests.netstandard1.7.cs" />    
+    <Compile Include="System\GuidTests.netstandard1.7.cs" />
+    <Compile Include="System\MarshalByRefObjectTests.cs" />
     <Compile Include="System\NotFiniteNumberExceptionTests.cs" />
     <Compile Include="System\StackOverflowExceptionTests.cs" />
     <Compile Include="System\SystemExceptionTests.cs" />
     <Compile Include="System\StringTests.netstandard1.7.cs" />
-    <Compile Include="System\TimeSpanTests.netstandard1.7.cs" />    
+    <Compile Include="System\TimeSpanTests.netstandard1.7.cs" />
     <Compile Include="TimeZoneInfoTests.netstandard1.7.cs" />
     <Compile Include="TimeZoneNotFoundExceptionTests.netstandard1.7.cs" />
     <Compile Include="VersionTests.netstandard1.7.cs" />
@@ -140,13 +163,14 @@
     <Compile Include="System\Reflection\TypeTests.GetInterface.cs" />
     <Compile Include="System\Reflection\TypeTests.GetMember.cs" />
     <Compile Include="System\Reflection\CustomAttributesTestData.cs" />
-    <EmbeddedResource Include="System\Reflection\EmbeddedImage.png" >
+    <EmbeddedResource Include="System\Reflection\EmbeddedImage.png">
       <LogicalName>System.Reflection.Tests.EmbeddedImage.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="System\Reflection\EmbeddedTextFile.txt" >
+    <EmbeddedResource Include="System\Reflection\EmbeddedTextFile.txt">
       <LogicalName>System.Reflection.Tests.EmbeddedTextFile.txt</LogicalName>
     </EmbeddedResource>
     <Compile Include="System\Threading\WaitHandleTests.netstandard1.7.cs" />
+    <Compile Include="Microsoft\Win32\SafeHandles\CriticalHandleZeroOrMinusOneIsInvalid.netstandard1.7.cs" />
     <Compile Include="Microsoft\Win32\SafeHandles\SafeHandleZeroOrMinusOneIsInvalid.netstandard1.7.cs" />
     <Compile Include="System\Reflection\ModuleTests.cs" />
     <Compile Include="System\Reflection\PointerTests.cs" />
@@ -156,6 +180,12 @@
     <Compile Include="$(CommonTestPath)\System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs">
       <Link>System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs</Link>
     </Compile>
+    <Compile Include="System\Runtime\CompilerServices\RuntimeHelpersTests.netstandard1.7.cs" />
+    <Compile Include="System\Attributes.netstandard1.7.cs" />
+    <Compile Include="System\HandleTests.netstandard1.7.cs" />
+    <Compile Include="System\AppContext\AppContext.Switch.cs" />
+    <Compile Include="System\AppContext\AppContext.Switch.Validation.cs" />
+    <Compile Include="System\Reflection\StrongNameKeyPairTests.netstandard1.7.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="project.json" />

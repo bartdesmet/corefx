@@ -27,14 +27,14 @@ namespace System.Net.Sockets.Tests
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(2)]
-        public async Task Connect_DnsEndPoint_Success(int mode)
+        public async Task ConnectAsync_DnsEndPoint_Success(int mode)
         {
             using (TcpClient client = new TcpClient())
             {
                 Assert.False(client.Connected);
 
-                string host = Configuration.Sockets.SocketServer.IdnHost;
-                int port = Configuration.Sockets.SocketServer.Port;
+                string host = System.Net.Test.Common.Configuration.Sockets.SocketServer.IdnHost;
+                int port = System.Net.Test.Common.Configuration.Sockets.SocketServer.Port;
 
                 if (mode == 0)
                 {
@@ -56,6 +56,50 @@ namespace System.Net.Sockets.Tests
                 {
                     byte[] getRequest = Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\n\r\n");
                     await s.WriteAsync(getRequest, 0, getRequest.Length);
+                    Assert.NotEqual(-1, s.ReadByte()); // just verify we successfully get any data back
+                }
+            }
+        }
+
+        [OuterLoop] // TODO: Issue #11345
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void Connect_DnsEndPoint_Success(int mode)
+        {
+            using (TcpClient client = new TcpClient())
+            {
+                Assert.False(client.Connected);
+
+                string host = System.Net.Test.Common.Configuration.Sockets.SocketServer.IdnHost;
+                int port = System.Net.Test.Common.Configuration.Sockets.SocketServer.Port;
+
+                if (mode == 0)
+                {
+                    client.Connect(host, port);
+                }
+                else
+                {
+                    IPAddress[] addresses = Dns.GetHostAddresses(host);
+                    if (mode == 1)
+                    {
+                        client.Connect(addresses[0], port);
+                    }
+                    else
+                    {
+                        client.Connect(addresses, port);
+                    }
+                }
+
+                Assert.True(client.Connected);
+                Assert.NotNull(client.Client);
+                Assert.Same(client.Client, client.Client);
+
+                using (NetworkStream s = client.GetStream())
+                {
+                    byte[] getRequest = Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\n\r\n");
+                    s.Write(getRequest, 0, getRequest.Length);
                     Assert.NotEqual(-1, s.ReadByte()); // just verify we successfully get any data back
                 }
             }
@@ -87,7 +131,7 @@ namespace System.Net.Sockets.Tests
 
         [OuterLoop] // TODO: Issue #11345
         [Fact]
-        [PlatformSpecific(PlatformID.Windows)]
+        [PlatformSpecific(TestPlatforms.Windows)]
         public void ExclusiveAddressUse_NullClient_Windows()
         {
             using (TcpClient client = new TcpClient())
@@ -100,7 +144,7 @@ namespace System.Net.Sockets.Tests
 
         [OuterLoop] // TODO: Issue #11345
         [Fact]
-        [PlatformSpecific(~PlatformID.Windows)]
+        [PlatformSpecific(~TestPlatforms.Windows)]
         public void ExclusiveAddressUse_NullClient_NonWindows()
         {
             using (TcpClient client = new TcpClient())
@@ -122,7 +166,7 @@ namespace System.Net.Sockets.Tests
         }
 
         [Fact]
-        [PlatformSpecific(PlatformID.Windows)]
+        [PlatformSpecific(TestPlatforms.Windows)]
         public void Roundtrip_ExclusiveAddressUse_GetEqualsSet_False()
         {
             using (TcpClient client = new TcpClient())
@@ -134,7 +178,7 @@ namespace System.Net.Sockets.Tests
 
         [OuterLoop] // TODO: Issue #11345
         [Fact]
-        [PlatformSpecific(PlatformID.AnyUnix)]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]
         public void ExclusiveAddressUse_Set_False_NotSupported()
         {
             using (TcpClient client = new TcpClient())
@@ -237,7 +281,7 @@ namespace System.Net.Sockets.Tests
                 client.ReceiveTimeout = 42;
                 client.SendTimeout = 84;
 
-                await client.ConnectAsync(Configuration.Sockets.SocketServer.IdnHost, Configuration.Sockets.SocketServer.Port);
+                await client.ConnectAsync(System.Net.Test.Common.Configuration.Sockets.SocketServer.IdnHost, System.Net.Test.Common.Configuration.Sockets.SocketServer.Port);
 
                 // Verify their values remain as were set before connecting
                 Assert.True(client.LingerState.Enabled);

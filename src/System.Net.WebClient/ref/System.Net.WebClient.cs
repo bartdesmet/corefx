@@ -71,7 +71,7 @@ namespace System.Net
         public byte[] Result { get { throw null; } }
     }
     public delegate void UploadValuesCompletedEventHandler(object sender, System.Net.UploadValuesCompletedEventArgs e);
-    public class WebClient
+    public class WebClient : System.ComponentModel.Component
     {
         public WebClient() { }
         [System.Obsolete("This API supports the .NET Framework infrastructure and is not intended to be used directly from your code.", true)]
@@ -81,7 +81,7 @@ namespace System.Net
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public bool AllowWriteStreamBuffering { get { throw null; } set { } }
         public string BaseAddress { get { throw null; } set { } }
-        //public System.Net.Cache.RequestCachePolicy CachePolicy { get { throw null; } set { } } // TODO: Add back when System.Net.Cache types are available
+        public System.Net.Cache.RequestCachePolicy CachePolicy { get { throw null; } set { } }
         public System.Net.ICredentials Credentials { get { throw null; } set { } }
         public System.Text.Encoding Encoding { get { throw null; } set { } }
         public System.Net.WebHeaderCollection Headers { get { throw null; } set { } }
@@ -210,7 +210,7 @@ namespace System.Net
         public WriteStreamClosedEventArgs() { }
         [System.Obsolete("This API supports the .NET Framework infrastructure and is not intended to be used directly from your code.", true)]
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public System.Exception Error { get { return null; } }
+        public System.Exception Error { get { throw null; } }
     }
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public delegate void WriteStreamClosedEventHandler(object sender, System.Net.WriteStreamClosedEventArgs e);

@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.CodeDom.Compiler;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Reflection;
@@ -23,6 +24,7 @@ namespace System.CodeDom.Tests
             Assert.Equal(provider.GetType(), provider2.GetType());
         }
 
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
         [Fact]
         public void Compilation_NotSupported()
         {
@@ -105,7 +107,7 @@ namespace System.CodeDom.Tests
             // Validate all identifiers are valid
             CodeGenerator.ValidateIdentifiers(c);
 
-            // Generate code 
+            // Generate code
             CodeDomProvider provider = GetProvider();
             string code = GenerateCode(c, provider);
 
@@ -159,7 +161,7 @@ namespace System.CodeDom.Tests
             }
             else
             {
-                Assert.False(true, $"Unknown type: {c.GetType()}");
+                throw new ArgumentException($"Tests not set up for unexpected type: {c.GetType()}");
             }
 
             return sb.ToString();

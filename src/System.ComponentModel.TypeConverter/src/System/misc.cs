@@ -15,40 +15,6 @@ namespace System
         {
             return null;
         }
-
-        public static string AppDomain_CurrentDomain_SetupInformation_LicenseFile()
-        {
-            //(string)AppDomain.CurrentDomain.SetupInformation.LicenseFile;
-            return null;
-        }
-
-        public static IEnumerable<Assembly> AppDomain_CurrentDomain_GetAssemblies()
-        {
-            //AppDomain.CurrentDomain.GetAssemblies()
-            return null;
-        }
-
-        public static Assembly ResourceManager_MainAssembly()
-        {
-            //MainAssembly
-            return null;
-        }
-
-        public static System.Globalization.CultureInfo ResourceManager_GetNeutralResourceLanguage(Assembly assembly)
-        {
-            //GetNeutralResourcesLanguage(MainAssembly) -- from class derived from ResourceManager 
-            return null;
-        }
-
-        public static bool ResourceManager_IgnoreCase()
-        {
-            return false;
-        }
-
-        public static System.Resources.ResourceSet ResourceManager_GetResourceSet(System.Globalization.CultureInfo a, bool b, bool c)
-        {
-            return null;
-        }
     }
 
 
@@ -120,44 +86,5 @@ namespace System
     internal static class HResults
     {
         internal const int License = unchecked((int)0x80131901);
-    }
-}
-
-namespace System.Resources
-{
-    public partial interface IResourceReader : System.Collections.IEnumerable, System.IDisposable
-    {
-        void Close();
-        new System.Collections.IDictionaryEnumerator GetEnumerator();
-    }
-    public partial interface IResourceWriter : System.IDisposable
-    {
-        void AddResource(string name, byte[] value);
-        void AddResource(string name, object value);
-        void AddResource(string name, string value);
-        void Close();
-        void Generate();
-    }
-
-    public partial class ResourceSet : System.Collections.IEnumerable, System.IDisposable
-    {
-        protected System.Resources.IResourceReader Reader;
-        protected System.Collections.Hashtable Table;
-        protected ResourceSet() { }
-        public ResourceSet(System.IO.Stream stream) { }
-        public ResourceSet(System.Resources.IResourceReader reader) { }
-        public ResourceSet(string fileName) { }
-        public virtual void Close() { }
-        public void Dispose() { }
-        protected virtual void Dispose(bool disposing) { }
-        public virtual System.Type GetDefaultReader() { throw null; }
-        public virtual System.Type GetDefaultWriter() { throw null; }
-        public virtual System.Collections.IDictionaryEnumerator GetEnumerator() { throw null; }
-        public virtual object GetObject(string name) { throw null; }
-        public virtual object GetObject(string name, bool ignoreCase) { throw null; }
-        public virtual string GetString(string name) { throw null; }
-        public virtual string GetString(string name, bool ignoreCase) { throw null; }
-        protected virtual void ReadResources() { }
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { throw null; }
     }
 }

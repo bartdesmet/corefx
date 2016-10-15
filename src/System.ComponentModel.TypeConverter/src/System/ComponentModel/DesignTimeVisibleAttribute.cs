@@ -88,9 +88,9 @@ namespace System.ComponentModel
         /// <summary>
         ///    <para>[To be supplied.]</para>
         /// </summary>
-        public /*TODO NETSTANDARD2.0 override*/ bool IsDefaultAttribute()
+        public override bool IsDefaultAttribute()
         {
-            return (this.Visible == Default.Visible);
+            return (Visible == Default.Visible);
         }
     }
 }

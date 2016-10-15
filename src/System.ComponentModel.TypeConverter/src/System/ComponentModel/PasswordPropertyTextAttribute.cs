@@ -85,9 +85,9 @@ namespace System.ComponentModel
         /// <summary>
         ///     Gets a value indicating whether this attribute is set to true by default.
         /// </summary>
-        public /*TODO NETSTANDARD2.0 override*/ bool IsDefaultAttribute()
+        public override bool IsDefaultAttribute()
         {
-            return this.Equals(Default);
+            return Equals(Default);
         }
     }
 }

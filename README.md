@@ -4,6 +4,10 @@ The corefx repo contains the library implementation (called "CoreFX") for [.NET 
 
 [mscorlib]: https://github.com/dotnet/coreclr/tree/master/src/mscorlib
 
+## Source Index
+
+.NET Core now has a source index: https://source.dot.net
+
 ## Build & Test Status
 
 | | Inner Loop | Outer Loop |
@@ -29,7 +33,6 @@ Some of the best ways to contribute are to try things out, file bugs, and join i
 
 Want to get more familiar with what's going on in the code?
 * [Pull requests](https://github.com/dotnet/corefx/pulls): [Open](https://github.com/dotnet/corefx/pulls?q=is%3Aopen+is%3Apr)/[Closed](https://github.com/dotnet/corefx/pulls?q=is%3Apr+is%3Aclosed)
-* [![Backlog](https://img.shields.io/waffle/label/dotnet/corefx/0%20-%20Backlog.svg)](https://github.com/dotnet/corefx/issues?q=is%3Aopen+is%3Aissue+label%3A%220+-+Backlog%22), [![Up Next](https://img.shields.io/waffle/label/dotnet/corefx/1%20-%20Up%20Next.svg)](https://github.com/dotnet/corefx/issues?q=is%3Aopen+is%3Aissue+label%3A%221+-+Up+Next%22) and [![In Progress](https://img.shields.io/waffle/label/dotnet/corefx/2%20-%20In%20Progress.svg)](https://github.com/dotnet/corefx/issues?q=is%3Aopen+is%3Aissue+label%3A%222+-+In+Progress%22) changes
 
 Looking for something to work on? The list of [up-for-grabs issues](https://github.com/dotnet/corefx/labels/up%20for%20grabs) is a great place to start. See some of our guides for more details:
 
@@ -39,7 +42,6 @@ Looking for something to work on? The list of [up-for-grabs issues](https://gith
 
 We've also started to share some of our direction via more higher-level documentation, specifically:
 
-* [Road to RTM](Documentation/project-docs/rtm.md)
 * [How we triage](Documentation/project-docs/triage.md)
 * [Porting to .NET Core](Documentation/project-docs/porting.md)
 

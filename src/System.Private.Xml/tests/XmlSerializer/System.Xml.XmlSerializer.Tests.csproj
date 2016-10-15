@@ -1,5 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
   <PropertyGroup>
     <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
@@ -14,12 +14,7 @@
     <NugetTargetMoniker>.NETStandard,Version=v1.7</NugetTargetMoniker>
     <KeepAllProjectReferences>true</KeepAllProjectReferences>
   </PropertyGroup>
-  <ItemGroup>
-    <TestNugetTargetMoniker Include="$(NugetTargetMoniker)">
-      <Folder>netcoreapp1.1</Folder>
-    </TestNugetTargetMoniker>
-  </ItemGroup>
-  <PropertyGroup Condition="'$(UseContractReferences)' == 'true'" >
+  <PropertyGroup Condition="'$(UseContractReferences)' == 'true'">
     <ProjectJson>Performance/project.json</ProjectJson>
     <ProjectLockJson>Performance/project.lock.json</ProjectLockJson>
   </PropertyGroup>
@@ -34,10 +29,7 @@
     <Compile Include="XmlSerializerTests.Internal.cs" Condition="'$(UseContractReferences)' == ''" />
   </ItemGroup>
   <ItemGroup>
-    <!-- ToDo: Remove these P2P references once packages are updated -->
-    <ProjectReference Include="..\..\..\System.Xml.XmlDocument\pkg\System.Xml.XmlDocument.pkgproj" />
     <ProjectReference Include="..\..\..\System.Xml.XmlSerializer\pkg\System.Xml.XmlSerializer.pkgproj" />
-    <ProjectReference Include="..\..\..\System.Xml.ReaderWriter\pkg\System.Xml.ReaderWriter.pkgproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="project.json" />

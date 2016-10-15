@@ -1,13 +1,19 @@
 {
   "frameworks": {
-    "netstandard1.3": {
+    "netstandard1.7": {
       "dependencies": {
-        "Microsoft.TargetingPack.Private.CoreCLR": "1.2.0-beta-24530-04",
+        "Microsoft.TargetingPack.Private.CoreCLR": "1.2.0-beta-24613-02",
         "Microsoft.TargetingPack.Private.WinRT": "1.0.1"
       },
       "imports": [
         "dotnet5.4"
       ]
+    },
+    "uap10.1": {
+      "dependencies": {
+        "Microsoft.TargetingPack.Private.NETNative": "1.1.0-beta-24607-01",
+        "Microsoft.TargetingPack.Private.WinRT": "1.0.1"
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ using Xunit;
 
 namespace System.Data.SqlClient.Tests
 {
+    [OuterLoop("Takes minutes on some networks")]
     public static class TcpDefaultForAzureTest
     {
         private const string NP = "Named Pipes Provider";
@@ -29,7 +30,7 @@ namespace System.Data.SqlClient.Tests
 
 
         [Fact]
-        [PlatformSpecific(Xunit.PlatformID.Windows)]
+        [PlatformSpecific(TestPlatforms.Windows)]
         public static void NonAzureNoProtocolConnectionTestOnWindows()
         {
             builder.DataSource = InvalidHostname;
@@ -38,7 +39,7 @@ namespace System.Data.SqlClient.Tests
 
 
         [Fact]
-        [PlatformSpecific(Xunit.PlatformID.AnyUnix)]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]
         public static void NonAzureNoProtocolConnectionTestOnUnix()
         {
             builder.DataSource = InvalidHostname;
@@ -55,7 +56,7 @@ namespace System.Data.SqlClient.Tests
 
 
         [Fact]
-        [PlatformSpecific(Xunit.PlatformID.Windows)]
+        [PlatformSpecific(TestPlatforms.Windows)]
         public static void NonAzureNpConnectionTest()
         {
             builder.DataSource = "np:\\\\" + InvalidHostname + "\\pipe\\sql\\query";
@@ -86,7 +87,7 @@ namespace System.Data.SqlClient.Tests
 
 
         [Fact]
-        [PlatformSpecific(Xunit.PlatformID.Windows)]
+        [PlatformSpecific(TestPlatforms.Windows)]
         public static void AzureNpConnectionTest()
         {
             foreach (string extension in AzureExtensions)
