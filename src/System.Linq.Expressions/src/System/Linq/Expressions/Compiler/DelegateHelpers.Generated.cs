@@ -109,37 +109,37 @@ namespace System.Linq.Expressions.Compiler
 
         internal static Type MakeNewClosureType(int arity)
         {
-            var builder = AssemblyGen.DefineClosureType("System.Runtime.CompilerServices.Closure`" + arity);
+            TypeBuilder builder = AssemblyGen.DefineClosureType("System.Runtime.CompilerServices.Closure`" + arity);
 
             var genericParameterNames = new string[arity];
 
-            for (var i = 0; i < arity; i++)
+            for (int i = 0; i < arity; i++)
             {
                 genericParameterNames[i] = "T" + (i + 1);
             }
 
-            var genericParameterTypes = builder.DefineGenericParameters(genericParameterNames);
+            GenericTypeParameterBuilder[] genericParameterTypes = builder.DefineGenericParameters(genericParameterNames);
 
             builder.AddInterfaceImplementation(typeof(IRuntimeVariables));
 
-            var count = builder.DefineProperty("Count", PropertyAttributes.None, typeof(int), Type.EmptyTypes);
+            PropertyBuilder count = builder.DefineProperty("Count", PropertyAttributes.None, typeof(int), Type.EmptyTypes);
 
-            var countGetter = builder.DefineMethod("get_Count", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(int), Type.EmptyTypes);
+            MethodBuilder countGetter = builder.DefineMethod("get_Count", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(int), Type.EmptyTypes);
 
-            var countGetterILGen = countGetter.GetILGenerator();
+            ILGenerator countGetterILGen = countGetter.GetILGenerator();
 
             countGetterILGen.Emit(OpCodes.Ldc_I4, arity);
             countGetterILGen.Emit(OpCodes.Ret);
 
             count.SetGetMethod(countGetter);
 
-            var indexer = builder.DefineProperty("Item", PropertyAttributes.None, typeof(object), new[] { typeof(int) });
+            PropertyBuilder indexer = builder.DefineProperty("Item", PropertyAttributes.None, typeof(object), new[] { typeof(int) });
 
-            var indexerGetter = builder.DefineMethod("get_Item", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(object), new[] { typeof(int) });
-            var indexerSetter = builder.DefineMethod("set_Item", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(void), new[] { typeof(int), typeof(object) });
+            MethodBuilder indexerGetter = builder.DefineMethod("get_Item", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(object), new[] { typeof(int) });
+            MethodBuilder indexerSetter = builder.DefineMethod("set_Item", MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.NewSlot | MethodAttributes.HideBySig | MethodAttributes.SpecialName | MethodAttributes.Final, typeof(void), new[] { typeof(int), typeof(object) });
 
-            var indexerGetterILGen = indexerGetter.GetILGenerator();
-            var indexerSetterILGen = indexerSetter.GetILGenerator();
+            ILGenerator indexerGetterILGen = indexerGetter.GetILGenerator();
+            ILGenerator indexerSetterILGen = indexerSetter.GetILGenerator();
 
             indexerGetterILGen.Emit(OpCodes.Ldarg_1);
             indexerSetterILGen.Emit(OpCodes.Ldarg_1);
@@ -153,7 +153,7 @@ namespace System.Linq.Expressions.Compiler
                 indexerSetterLabels[i] = indexerSetterILGen.DefineLabel();
             }
 
-            var indexOutOfRangeCtor = typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes);
+            ConstructorInfo indexOutOfRangeCtor = typeof(IndexOutOfRangeException).GetConstructor(Type.EmptyTypes);
 
             indexerGetterILGen.Emit(OpCodes.Switch, indexerGetterLabels);
             indexerGetterILGen.Emit(OpCodes.Newobj, indexOutOfRangeCtor);
@@ -163,10 +163,10 @@ namespace System.Linq.Expressions.Compiler
             indexerSetterILGen.Emit(OpCodes.Newobj, indexOutOfRangeCtor);
             indexerSetterILGen.Emit(OpCodes.Throw);
 
-            for (var i = 0; i < arity; i++)
+            for (int i = 0; i < arity; i++)
             {
-                var type = genericParameterTypes[i].AsType();
-                var field = builder.DefineField("Item" + (i + 1), type, FieldAttributes.Public);
+                Type type = genericParameterTypes[i].AsType();
+                FieldBuilder field = builder.DefineField("Item" + (i + 1), type, FieldAttributes.Public);
 
                 indexerGetterILGen.MarkLabel(indexerGetterLabels[i]);
                 indexerGetterILGen.Emit(OpCodes.Ldarg_0);

@@ -74,8 +74,8 @@ namespace System.Linq.Expressions.Compiler
 
             if (boundConstants)
             {
-                var innerBoundConstants = inner._boundConstants.ToObject();
-                var innerBoundConstantsType = inner._boundConstants.GetConstantsType();
+                object innerBoundConstants = inner._boundConstants.ToObject();
+                Type innerBoundConstantsType = inner._boundConstants.GetConstantsType();
 
                 _boundConstants.EmitConstant(this, innerBoundConstants, innerBoundConstantsType);
             }
@@ -181,7 +181,7 @@ namespace System.Linq.Expressions.Compiler
                 i = 0;
             }
 
-            for (var j = 0; j < count; j++, i++)
+            for (int j = 0; j < count; j++, i++)
             {
                 ParameterExpression p = parameters[j];
                 result[i] = p.IsByRef ? p.Type.MakeByRefType() : p.Type;

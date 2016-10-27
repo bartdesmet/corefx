@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Reflection;
@@ -28,7 +27,7 @@ namespace System.Linq.Expressions.Compiler
             }
         }
 
-#region Instruction helpers
+        #region Instruction helpers
 
         internal static void EmitLoadArg(this ILGenerator il, int index)
         {
@@ -298,9 +297,9 @@ namespace System.Linq.Expressions.Compiler
             il.Emit(OpCodes.Call, Type_GetTypeFromHandle);
         }
 
-#endregion
+        #endregion
 
-#region Fields, properties and methods
+        #region Fields, properties and methods
 
         internal static void EmitFieldAddress(this ILGenerator il, FieldInfo fi)
         {
@@ -368,9 +367,9 @@ namespace System.Linq.Expressions.Compiler
             il.EmitNew(ci);
         }
 
-#endregion
+        #endregion
 
-#region Constants
+        #region Constants
 
         internal static void EmitNull(this ILGenerator il)
         {
@@ -704,9 +703,9 @@ namespace System.Linq.Expressions.Compiler
             }
         }
 
-#endregion
+        #endregion
 
-#region Linq Conversions
+        #region Linq Conversions
 
         internal static void EmitConvertToType(this ILGenerator il, Type typeFrom, Type typeTo, bool isChecked)
         {
@@ -1078,9 +1077,9 @@ namespace System.Linq.Expressions.Compiler
             il.Emit(OpCodes.Call, mi);
         }
 
-#endregion
+        #endregion
 
-#region Arrays
+        #region Arrays
 
 #if FEATURE_COMPILE_TO_METHODBUILDER
         /// <summary>
@@ -1142,9 +1141,9 @@ namespace System.Linq.Expressions.Compiler
             }
         }
 
-#endregion
+        #endregion
 
-#region Support for emitting constants
+        #region Support for emitting constants
 
         internal static void EmitDecimal(this ILGenerator il, decimal value)
         {
@@ -1257,219 +1256,3 @@ namespace System.Linq.Expressions.Compiler
 #endregion
     }
 }
-
-#if TEST
-namespace System.Reflection.Emit
-{
-    using System.Text;
-
-    interface IILGenerator
-    {
-        void BeginCatchBlock(Type exceptionType);
-        void BeginExceptFilterBlock();
-        Label BeginExceptionBlock();
-        void BeginFaultBlock();
-        void BeginFinallyBlock();
-        LocalBuilder DeclareLocal(Type localType);
-        LocalBuilder DeclareLocal(Type localType, bool pinned);
-        Label DefineLabel();
-        void Emit(OpCode opcode);
-        void Emit(OpCode opcode, Type cls);
-        void Emit(OpCode opcode, string str);
-        void Emit(OpCode opcode, float arg);
-        void Emit(OpCode opcode, sbyte arg);
-        void Emit(OpCode opcode, MethodInfo meth);
-        void Emit(OpCode opcode, FieldInfo field);
-        void Emit(OpCode opcode, LocalBuilder local);
-        void Emit(OpCode opcode, Label label);
-        void Emit(OpCode opcode, ConstructorInfo con);
-        void Emit(OpCode opcode, long arg);
-        void Emit(OpCode opcode, int arg);
-        void Emit(OpCode opcode, short arg);
-        void Emit(OpCode opcode, double arg);
-        void Emit(OpCode opcode, byte arg);
-        void Emit(OpCode opcode, Label[] labels);
-        void EmitCall(OpCode opcode, MethodInfo methodInfo, Type[] optionalParameterTypes);
-        void EndExceptionBlock();
-        void MarkLabel(Label loc);
-    }
-
-    class DebuggingILGenerator : IILGenerator
-    {
-        private readonly ILGenerator _ilg;
-        private readonly StringBuilder _sb;
-
-        public DebuggingILGenerator(ILGenerator ilg)
-        {
-            _ilg = ilg;
-            _sb = new StringBuilder();
-        }
-
-        public void BeginCatchBlock(Type exceptionType)
-        {
-            _sb.AppendLine($"BeginCatchBlock({exceptionType.FullName})");
-            _ilg.BeginCatchBlock(exceptionType);
-        }
-
-        public void BeginExceptFilterBlock()
-        {
-            _sb.AppendLine($"BeginExceptFilterBlock()");
-            _ilg.BeginExceptFilterBlock();
-        }
-
-        public Label BeginExceptionBlock()
-        {
-            var res = _ilg.BeginExceptionBlock();
-            _sb.AppendLine($"BeginExceptionBlock() => {res.GetHashCode()}");
-            return res;
-        }
-
-        public void BeginFaultBlock()
-        {
-            _sb.AppendLine($"BeginFaultBlock()");
-            _ilg.BeginFaultBlock();
-        }
-
-        public void BeginFinallyBlock()
-        {
-            _sb.AppendLine($"BeginFinallyBlock()");
-            _ilg.BeginFinallyBlock();
-        }
-
-        public LocalBuilder DeclareLocal(Type localType)
-        {
-            var res = _ilg.DeclareLocal(localType);
-            _sb.AppendLine($"DeclareLocal({localType.FullName}) => {res.GetHashCode()}");
-            return res;
-        }
-
-        public LocalBuilder DeclareLocal(Type localType, bool pinned)
-        {
-            var res = _ilg.DeclareLocal(localType, pinned);
-            _sb.AppendLine($"DeclareLocal({localType.FullName}, {pinned}) => {res.GetHashCode()}");
-            return res;
-        }
-
-        public Label DefineLabel()
-        {
-            var res = _ilg.DefineLabel();
-            _sb.AppendLine($"DefineLabel() => {res.GetHashCode()}");
-            return res;
-        }
-
-        public void Emit(OpCode opcode)
-        {
-            _sb.AppendLine($"Emit({opcode})");
-            _ilg.Emit(opcode);
-        }
-
-        public void Emit(OpCode opcode, short arg)
-        {
-            _sb.AppendLine($"Emit({opcode}, {arg})");
-            _ilg.Emit(opcode, arg);
-        }
-
-        public void Emit(OpCode opcode, byte arg)
-        {
-            _sb.AppendLine($"Emit({opcode}, {arg})");
-            _ilg.Emit(opcode, arg);
-        }
-
-        public void Emit(OpCode opcode, Label[] labels)
-        {
-            _sb.AppendLine($"Emit({opcode}, {string.Join(", ", labels.Map(l => l.GetHashCode()))})");
-            _ilg.Emit(opcode, labels);
-        }
-
-        public void Emit(OpCode opcode, double arg)
-        {
-            _sb.AppendLine($"Emit({opcode}, {arg})");
-            _ilg.Emit(opcode, arg);
-        }
-
-        public void Emit(OpCode opcode, int arg)
-        {
-            _sb.AppendLine($"Emit({opcode}, {arg})");
-            _ilg.Emit(opcode, arg);
-        }
-
-        public void Emit(OpCode opcode, MethodInfo meth)
-        {
-            _sb.AppendLine($"Emit({opcode}, {meth})");
-            _ilg.Emit(opcode, meth);
-        }
-
-        public void Emit(OpCode opcode, FieldInfo field)
-        {
-            _sb.AppendLine($"Emit({opcode}, {field})");
-            _ilg.Emit(opcode, field);
-        }
-
-        public void Emit(OpCode opcode, Label label)
-        {
-            _sb.AppendLine($"Emit({opcode}, {label.GetHashCode()})");
-            _ilg.Emit(opcode, label);
-        }
-
-        public void Emit(OpCode opcode, ConstructorInfo con)
-        {
-            _sb.AppendLine($"Emit({opcode}, {con})");
-            _ilg.Emit(opcode, con);
-        }
-
-        public void Emit(OpCode opcode, long arg)
-        {
-            _sb.AppendLine($"Emit({opcode}, {arg})");
-            _ilg.Emit(opcode, arg);
-        }
-
-        public void Emit(OpCode opcode, LocalBuilder local)
-        {
-            _sb.AppendLine($"Emit({opcode}, {local.GetHashCode()})");
-            _ilg.Emit(opcode, local);
-        }
-
-        public void Emit(OpCode opcode, float arg)
-        {
-            _sb.AppendLine($"Emit({opcode}, {arg})");
-            _ilg.Emit(opcode, arg);
-        }
-
-        public void Emit(OpCode opcode, sbyte arg)
-        {
-            _sb.AppendLine($"Emit({opcode}, {arg})");
-            _ilg.Emit(opcode, arg);
-        }
-
-        public void Emit(OpCode opcode, string str)
-        {
-            _sb.AppendLine($"Emit({opcode}, {str})");
-            _ilg.Emit(opcode, str);
-        }
-
-        public void Emit(OpCode opcode, Type cls)
-        {
-            _sb.AppendLine($"Emit({opcode}, {cls.FullName})");
-            _ilg.Emit(opcode, cls);
-        }
-
-        public void EmitCall(OpCode opcode, MethodInfo methodInfo, Type[] optionalParameterTypes)
-        {
-            _sb.AppendLine($"EmitCall({opcode}, {methodInfo}, {string.Join(", ", optionalParameterTypes.Map(t => t.FullName))})");
-            _ilg.EmitCall(opcode, methodInfo, optionalParameterTypes);
-        }
-
-        public void EndExceptionBlock()
-        {
-            _sb.AppendLine($"EndExceptionBlock()");
-            _ilg.EndExceptionBlock();
-        }
-
-        public void MarkLabel(Label loc)
-        {
-            _sb.AppendLine($"MarkLabel({loc.GetHashCode()})");
-            _ilg.MarkLabel(loc);
-        }
-    }
-}
-#endif

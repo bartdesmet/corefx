@@ -98,7 +98,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         internal object ToObject()
         {
-            var type = GetConstantsType();
+            Type type = GetConstantsType();
 
             if (type == null)
             {
@@ -155,7 +155,7 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(_constantsType == null);
 
-            var index = _values.Count;
+            int index = _values.Count;
 
             _values.Add(null);
             _types.Add(type);

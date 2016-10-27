@@ -63,7 +63,7 @@ namespace System.Linq.Expressions.Compiler
 
                 _inInvocation = true;
 
-                var res = base.VisitInvocation(node);
+                Expression res = base.VisitInvocation(node);
 
                 Debug.Assert(!_inInvocation); // flag should be cleared by VisitLambda<T>
 
@@ -92,7 +92,7 @@ namespace System.Linq.Expressions.Compiler
 
             if (!inInvocation)
             {
-                var constants = _constants.Pop();
+                BoundConstants constants = _constants.Pop();
 
                 _tree.Constants[res] = constants;
 
@@ -103,7 +103,7 @@ namespace System.Linq.Expressions.Compiler
                         Allocate(typeof(MethodInfo)); // for DynamicMethod case in EmitDelegateConstruction
                     }
 
-                    var type = constants.GetConstantsType();
+                    Type type = constants.GetConstantsType();
 
                     if (type != null)
                     {
@@ -205,7 +205,7 @@ namespace System.Linq.Expressions.Compiler
         {
             var expr = (IDynamicExpression)node;
 
-            var newArgs = ExpressionVisitorUtils.VisitArguments(this, expr);
+            Expression[] newArgs = ExpressionVisitorUtils.VisitArguments(this, expr);
             if (newArgs != null)
             {
                 node = expr.Rewrite(newArgs);
@@ -218,8 +218,8 @@ namespace System.Linq.Expressions.Compiler
 
             var result = new PartiallyEvaluatedDynamicExpression(expr);
 
-            var site = result.CreateCallSite();
-            var siteType = site.GetType();
+            object site = result.CreateCallSite();
+            Type siteType = site.GetType();
 
             Allocate(siteType); // for site used in site.Target.Invoke(site, args)
 
@@ -242,7 +242,7 @@ namespace System.Linq.Expressions.Compiler
             _constants.Peek().Allocate(type);
         }
 
-        class FreeVariableScanner : ExpressionVisitor
+        private sealed class FreeVariableScanner : ExpressionVisitor
         {
             private readonly Stack<HashSet<ParameterExpression>> _stack = new Stack<HashSet<ParameterExpression>>();
             private bool _hasFreeVariable;
@@ -272,7 +272,7 @@ namespace System.Linq.Expressions.Compiler
 
             protected internal override Expression VisitBlock(BlockExpression node)
             {
-                var count = node.Variables.Count;
+                int count = node.Variables.Count;
                 if (count > 0)
                 {
                     _stack.Push(new HashSet<ParameterExpression>(node.Variables));
@@ -290,7 +290,7 @@ namespace System.Linq.Expressions.Compiler
 
             protected internal override Expression VisitLambda<T>(Expression<T> node)
             {
-                var count = node.Parameters.Count;
+                int count = node.Parameters.Count;
                 if (count > 0)
                 {
                     _stack.Push(new HashSet<ParameterExpression>(node.Parameters));
@@ -326,7 +326,7 @@ namespace System.Linq.Expressions.Compiler
 
             protected internal override Expression VisitParameter(ParameterExpression node)
             {
-                foreach (var frame in _stack)
+                foreach (HashSet<ParameterExpression> frame in _stack)
                 {
                     if (frame.Contains(node))
                     {

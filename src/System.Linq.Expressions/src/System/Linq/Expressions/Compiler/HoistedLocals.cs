@@ -74,7 +74,7 @@ namespace System.Linq.Expressions.Compiler
 
             Variables = vars;
 
-            var n = vars.Count;
+            int n = vars.Count;
 
             Debug.Assert(n > 0);
 
@@ -86,9 +86,9 @@ namespace System.Linq.Expressions.Compiler
                 ParameterExpression var = vars[i];
                 indexes.Add(var, i);
 
-                var type = var.Type;
+                Type type = var.Type;
 
-                var storage = GetStorageKind(var);
+                VariableStorageKind storage = GetStorageKind(var);
                 if ((storage & VariableStorageKind.Quoted) != 0)
                 {
                     type = typeof(StrongBox<>).MakeGenericType(type);
@@ -97,7 +97,7 @@ namespace System.Linq.Expressions.Compiler
                 types[i] = type;
             }
 
-            var closureType = DelegateHelpers.GetClosureType(types);
+            Type closureType = DelegateHelpers.GetClosureType(types);
 
             SelfVariable = Expression.Variable(closureType, null);
             Indexes = new ReadOnlyDictionary<Expression, int>(indexes);
