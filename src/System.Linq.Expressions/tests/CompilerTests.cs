@@ -16,6 +16,14 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void Test()
         {
+            //StackSpillerTests.Spill_Optimizations_RuntimeVariables1();
+            //StackSpillerTests.Spill_Optimizations_RuntimeVariables2();
+            //StackSpillerTests.Spill_Optimizations_StaticReadOnlyField();
+            //StackSpillerTests.Spill_Optimizations_LiteralField();
+            //StackSpillerTests.Spill_Optimizations_Default();
+            //StackSpillerTests.Spill_Optimizations_Constant();
+
+
             /*
             //Expression<Func<int, Func<int>>> f = x => () => x;
             //var d = f.Compile();
@@ -269,28 +277,26 @@ namespace System.Linq.Expressions.Tests
             Expression<Func<Func<int>>> f = () => () => 42;
 
             f.VerifyIL(
-                @".method class [System.Private.CoreLib]System.Func`1<int32> ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure)
+                @".method class [System.Private.CoreLib]System.Func`1<int32> ::lambda_method(object)
                   {
                     .maxstack 3
-                  
+
                     IL_0000: ldarg.0    
-                    IL_0001: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::Constants
-                    IL_0006: ldc.i4.0   
-                    IL_0007: ldelem.ref 
-                    IL_0008: castclass  class [System.Private.CoreLib]System.Reflection.MethodInfo
-                    IL_000d: ldtoken    class [System.Private.CoreLib]System.Func`1<int32>
-                    IL_0012: call       class [System.Private.CoreLib]System.Type class [System.Private.CoreLib]System.Type::GetTypeFromHandle(valuetype [System.Private.CoreLib]System.RuntimeTypeHandle)
-                    IL_0017: ldnull     
-                    IL_0018: callvirt   instance class [System.Private.CoreLib]System.Delegate class [System.Private.CoreLib]System.Reflection.MethodInfo::CreateDelegate(class [System.Private.CoreLib]System.Type,object)
-                    IL_001d: castclass  class [System.Private.CoreLib]System.Func`1<int32>
-                    IL_0022: ret        
+                    IL_0001: castclass  class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<class [System.Private.CoreLib]System.Reflection.MethodInfo>
+                    IL_0006: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<class [System.Private.CoreLib]System.Reflection.MethodInfo>::Item1
+                    IL_000b: ldtoken    class [System.Private.CoreLib]System.Func`1<int32>
+                    IL_0010: call       class [System.Private.CoreLib]System.Type class [System.Private.CoreLib]System.Type::GetTypeFromHandle(valuetype [System.Private.CoreLib]System.RuntimeTypeHandle)
+                    IL_0015: ldnull     
+                    IL_0016: callvirt   instance class [System.Private.CoreLib]System.Delegate class [System.Private.CoreLib]System.Reflection.MethodInfo::CreateDelegate(class [System.Private.CoreLib]System.Type,object)
+                    IL_001b: castclass  class [System.Private.CoreLib]System.Func`1<int32>
+                    IL_0020: ret        
                   }
-                  
+
                   // closure.Constants[0]
-                  .method int32 ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure)
+                  .method int32 ::lambda_method(object)
                   {
                     .maxstack 1
-                  
+
                     IL_0000: ldc.i4.s   42
                     IL_0002: ret        
                   }",
@@ -303,53 +309,43 @@ namespace System.Linq.Expressions.Tests
             Expression<Func<int, Func<int>>> f = x => () => x;
 
             f.VerifyIL(
-                @".method class [System.Private.CoreLib]System.Func`1<int32> ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,int32)
+                @".method class [System.Private.CoreLib]System.Func`1<int32> ::lambda_method(object,int32)
                   {
-                    .maxstack 8
+                    .maxstack 4
                     .locals init (
-                      [0] object[]
+                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
                     )
                   
-                    IL_0000: ldc.i4.1   
-                    IL_0001: newarr     object
-                    IL_0006: dup        
-                    IL_0007: ldc.i4.0   
-                    IL_0008: ldarg.1    
-                    IL_0009: newobj     instance void class [System.Runtime]System.Runtime.CompilerServices.StrongBox`1<int32>::.ctor(int32)
-                    IL_000e: stelem.ref 
-                    IL_000f: stloc.0    
-                    IL_0010: ldarg.0    
-                    IL_0011: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::Constants
-                    IL_0016: ldc.i4.0   
-                    IL_0017: ldelem.ref 
-                    IL_0018: castclass  class [System.Private.CoreLib]System.Reflection.MethodInfo
-                    IL_001d: ldtoken    class [System.Private.CoreLib]System.Func`1<int32>
-                    IL_0022: call       class [System.Private.CoreLib]System.Type class [System.Private.CoreLib]System.Type::GetTypeFromHandle(valuetype [System.Private.CoreLib]System.RuntimeTypeHandle)
-                    IL_0027: ldnull     
-                    IL_0028: ldloc.0    
-                    IL_0029: newobj     instance void class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::.ctor(object[],object[])
-                    IL_002e: callvirt   instance class [System.Private.CoreLib]System.Delegate class [System.Private.CoreLib]System.Reflection.MethodInfo::CreateDelegate(class [System.Private.CoreLib]System.Type,object)
-                    IL_0033: castclass  class [System.Private.CoreLib]System.Func`1<int32>
-                    IL_0038: ret        
+                    IL_0000: newobj     instance void class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::.ctor()
+                    IL_0005: dup        
+                    IL_0006: ldarg.1    
+                    IL_0007: stfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::Item1
+                    IL_000c: stloc.0    
+                    IL_000d: ldarg.0    
+                    IL_000e: castclass  class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<class [System.Private.CoreLib]System.Reflection.MethodInfo>
+                    IL_0013: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<class [System.Private.CoreLib]System.Reflection.MethodInfo>::Item1
+                    IL_0018: ldtoken    class [System.Private.CoreLib]System.Func`1<int32>
+                    IL_001d: call       class [System.Private.CoreLib]System.Type class [System.Private.CoreLib]System.Type::GetTypeFromHandle(valuetype [System.Private.CoreLib]System.RuntimeTypeHandle)
+                    IL_0022: ldloc.0    
+                    IL_0023: callvirt   instance class [System.Private.CoreLib]System.Delegate class [System.Private.CoreLib]System.Reflection.MethodInfo::CreateDelegate(class [System.Private.CoreLib]System.Type,object)
+                    IL_0028: castclass  class [System.Private.CoreLib]System.Func`1<int32>
+                    IL_002d: ret        
                   }
                   
                   // closure.Constants[0]
-                  .method int32 ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure)
+                  .method int32 ::lambda_method(object)
                   {
-                    .maxstack 2
+                    .maxstack 1
                     .locals init (
-                      [0] object[]
+                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
                     )
                   
                     IL_0000: ldarg.0    
-                    IL_0001: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::Locals
+                    IL_0001: castclass  class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>
                     IL_0006: stloc.0    
                     IL_0007: ldloc.0    
-                    IL_0008: ldc.i4.0   
-                    IL_0009: ldelem.ref 
-                    IL_000a: castclass  class [System.Runtime]System.Runtime.CompilerServices.StrongBox`1<int32>
-                    IL_000f: ldfld      class [System.Runtime]System.Runtime.CompilerServices.StrongBox`1<int32>::Value
-                    IL_0014: ret        
+                    IL_0008: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::Item1
+                    IL_000d: ret        
                   }",
                 appendInnerLambdas: true);
         }
@@ -360,55 +356,45 @@ namespace System.Linq.Expressions.Tests
             Expression<Func<int, Func<int, int>>> f = x => y => x + y;
 
             f.VerifyIL(
-                @".method class [System.Private.CoreLib]System.Func`2<int32,int32> ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,int32)
+                @".method class [System.Private.CoreLib]System.Func`2<int32,int32> ::lambda_method(object,int32)
                   {
-                    .maxstack 8
+                    .maxstack 4
                     .locals init (
-                      [0] object[]
+                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
                     )
                   
-                    IL_0000: ldc.i4.1   
-                    IL_0001: newarr     object
-                    IL_0006: dup        
-                    IL_0007: ldc.i4.0   
-                    IL_0008: ldarg.1    
-                    IL_0009: newobj     instance void class [System.Runtime]System.Runtime.CompilerServices.StrongBox`1<int32>::.ctor(int32)
-                    IL_000e: stelem.ref 
-                    IL_000f: stloc.0    
-                    IL_0010: ldarg.0    
-                    IL_0011: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::Constants
-                    IL_0016: ldc.i4.0   
-                    IL_0017: ldelem.ref 
-                    IL_0018: castclass  class [System.Private.CoreLib]System.Reflection.MethodInfo
-                    IL_001d: ldtoken    class [System.Private.CoreLib]System.Func`2<int32,int32>
-                    IL_0022: call       class [System.Private.CoreLib]System.Type class [System.Private.CoreLib]System.Type::GetTypeFromHandle(valuetype [System.Private.CoreLib]System.RuntimeTypeHandle)
-                    IL_0027: ldnull     
-                    IL_0028: ldloc.0    
-                    IL_0029: newobj     instance void class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::.ctor(object[],object[])
-                    IL_002e: callvirt   instance class [System.Private.CoreLib]System.Delegate class [System.Private.CoreLib]System.Reflection.MethodInfo::CreateDelegate(class [System.Private.CoreLib]System.Type,object)
-                    IL_0033: castclass  class [System.Private.CoreLib]System.Func`2<int32,int32>
-                    IL_0038: ret        
+                    IL_0000: newobj     instance void class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::.ctor()
+                    IL_0005: dup        
+                    IL_0006: ldarg.1    
+                    IL_0007: stfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::Item1
+                    IL_000c: stloc.0    
+                    IL_000d: ldarg.0    
+                    IL_000e: castclass  class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<class [System.Private.CoreLib]System.Reflection.MethodInfo>
+                    IL_0013: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<class [System.Private.CoreLib]System.Reflection.MethodInfo>::Item1
+                    IL_0018: ldtoken    class [System.Private.CoreLib]System.Func`2<int32,int32>
+                    IL_001d: call       class [System.Private.CoreLib]System.Type class [System.Private.CoreLib]System.Type::GetTypeFromHandle(valuetype [System.Private.CoreLib]System.RuntimeTypeHandle)
+                    IL_0022: ldloc.0    
+                    IL_0023: callvirt   instance class [System.Private.CoreLib]System.Delegate class [System.Private.CoreLib]System.Reflection.MethodInfo::CreateDelegate(class [System.Private.CoreLib]System.Type,object)
+                    IL_0028: castclass  class [System.Private.CoreLib]System.Func`2<int32,int32>
+                    IL_002d: ret        
                   }
                   
                   // closure.Constants[0]
-                  .method int32 ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,int32)
+                  .method int32 ::lambda_method(object,int32)
                   {
                     .maxstack 2
                     .locals init (
-                      [0] object[]
+                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
                     )
                   
                     IL_0000: ldarg.0    
-                    IL_0001: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::Locals
+                    IL_0001: castclass  class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>
                     IL_0006: stloc.0    
                     IL_0007: ldloc.0    
-                    IL_0008: ldc.i4.0   
-                    IL_0009: ldelem.ref 
-                    IL_000a: castclass  class [System.Runtime]System.Runtime.CompilerServices.StrongBox`1<int32>
-                    IL_000f: ldfld      class [System.Runtime]System.Runtime.CompilerServices.StrongBox`1<int32>::Value
-                    IL_0014: ldarg.1    
-                    IL_0015: add        
-                    IL_0016: ret        
+                    IL_0008: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::Item1
+                    IL_000d: ldarg.1    
+                    IL_000e: add        
+                    IL_000f: ret        
                   }",
                 appendInnerLambdas: true);
         }

@@ -33,11 +33,12 @@ namespace System.Linq.Expressions.Tests
 
             if (appendInnerLambdas)
             {
-                var closure = (Closure)d.Target;
+                var closure = (IRuntimeVariables)d.Target;
 
-                int i = 0;
-                foreach (object constant in closure.Constants)
+                for (int i = 0; i < closure.Count; i++)
                 {
+                    object constant = closure[i];
+
                     var innerMethod = constant as DynamicMethod;
                     if (innerMethod != null)
                     {

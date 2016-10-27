@@ -464,7 +464,7 @@ namespace System.Linq.Expressions.Tests
                 );
             
             e.VerifyIL(@"
-                .method void ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,int32[])
+                .method void ::lambda_method(object,int32[])
                 {
                   .maxstack 4
                   .locals init (
@@ -522,7 +522,7 @@ namespace System.Linq.Expressions.Tests
                 );
 
             e.VerifyIL(@"
-                .method void ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,int32[])
+                .method void ::lambda_method(object,int32[])
                 {
                   .maxstack 4
                   .locals init (
@@ -578,7 +578,7 @@ namespace System.Linq.Expressions.Tests
                 );
 
             e.VerifyIL(@"
-                .method float64 ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure)
+                .method float64 ::lambda_method(object)
                 {
                   .maxstack 3
                   .locals init (
@@ -627,7 +627,7 @@ namespace System.Linq.Expressions.Tests
                 );
 
             e.VerifyIL(@"
-                .method string ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure)
+                .method string ::lambda_method(object)
                 {
                   .maxstack 3
                   .locals init (
@@ -678,7 +678,7 @@ namespace System.Linq.Expressions.Tests
                 );
 
             e.VerifyIL(@"
-                .method void ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>)
+                .method void ::lambda_method(object,class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>)
                 {
                   .maxstack 4
                   .locals init (
@@ -739,63 +739,58 @@ namespace System.Linq.Expressions.Tests
                 );
 
             e.VerifyIL(@"
-                .method void ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>,int32)
+                .method void ::lambda_method(object,class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>,int32)
                 {
-                  .maxstack 10
+                  .maxstack 7
                   .locals init (
-                    [0] object[],
+                    [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>,
                     [1] class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>,
                     [2] int32,
                     [3] int32
                   )
 
                   // Hoist `x` to a closure in V_0
-                  IL_0000: ldc.i4.1   
-                  IL_0001: newarr     object
-                  IL_0006: dup        
-                  IL_0007: ldc.i4.0   
-                  IL_0008: ldarg.2    
-                  IL_0009: newobj     instance void class [System.Runtime]System.Runtime.CompilerServices.StrongBox`1<int32>::.ctor(int32)
-                  IL_000e: stelem.ref 
-                  IL_000f: stloc.0    
+                  IL_0000: newobj     instance void class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::.ctor()
+                  IL_0005: dup        
+                  IL_0006: ldarg.2    
+                  IL_0007: stfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::Item1
+                  IL_000c: stloc.0    
 
                   // Save target (`f`) into V_1
-                  IL_0010: ldarg.1    
-                  IL_0011: stloc.1    
+                  IL_000d: ldarg.1    
+                  IL_000e: stloc.1    
 
                   // Save arg1 (`try { 2 } finally {}`) into V_2
                   .try
                   {
-                    IL_0012: ldc.i4.2   
-                    IL_0013: stloc.3    
-                    IL_0014: leave      IL_001a
+                    IL_000f: ldc.i4.2   
+                    IL_0010: stloc.3    
+                    IL_0011: leave      IL_0017
                   }
                   finally
                   {
-                    IL_0019: endfinally 
+                    IL_0016: endfinally 
                   }
-                  IL_001a: ldloc.3    
-                  IL_001b: stloc.2   
+                  IL_0017: ldloc.3    
+                  IL_0018: stloc.2   
 
                   // Load target from V_1 
-                  IL_001c: ldloc.1    
+                  IL_0019: ldloc.1    
 
                   // <OPTIMIZATION> Load arg0 (`RuntimeVariables`) by calling RuntimeOps.CreateRuntimeVariables </OPTIMIZATION>
-                  IL_001d: ldloc.0    
-                  IL_001e: ldarg.0    
-                  IL_001f: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure::Constants
-                  IL_0024: ldc.i4.0   
-                  IL_0025: ldelem.ref 
-                  IL_0026: castclass  int64[]
-                  IL_002b: call       class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables class [System.Linq.Expressions]System.Runtime.CompilerServices.RuntimeOps::CreateRuntimeVariables(object[],int64[])
+                  IL_001a: ldloc.0    
+                  IL_001b: ldarg.0    
+                  IL_001c: castclass  class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int64[]>
+                  IL_0021: ldfld      class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int64[]>::Item1
+                  IL_0026: call       class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables class [System.Linq.Expressions]System.Runtime.CompilerServices.RuntimeOps::CreateRuntimeVariables(class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int64[])
 
                   // Load arg1 from V_2
-                  IL_0030: ldloc.2    
+                  IL_002b: ldloc.2    
 
                   // Evaluate `target(arg0, arg1)` delegate invocation
-                  IL_0031: callvirt   instance void class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>::Invoke(class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32)
+                  IL_002c: callvirt   instance void class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>::Invoke(class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32)
 
-                  IL_0036: ret        
+                  IL_0031: ret        
                 }"
             );
         }
