@@ -17,6 +17,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'net46_Debug|AnyCPU'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'net46_Release|AnyCPU'" />
   <ItemGroup Condition="'$(TargetGroup)' != 'net463'">
+    <Compile Include="System\Net\NetworkInformation\NetworkInformationAccess.cs" />
+    <Compile Include="System\Net\NetworkInformation\NetworkInformationPermission.cs" />
+    <Compile Include="System\Net\NetworkInformation\NetworkInformationPermissionAttribute.cs" />
     <Compile Include="System\Security\CodeAccessPermission.cs" />
     <Compile Include="System\Security\ISecurityPolicyEncodable.cs" />
     <Compile Include="System\Security\IStackWalk.cs" />
@@ -103,7 +106,6 @@
     <Compile Include="System\Security\Policy\IMembershipCondition.cs" />
     <Compile Include="System\Security\Policy\NetCodeGroup.cs" />
     <Compile Include="System\Security\Policy\PermissionRequestEvidence.cs" />
-    <Compile Include="System\Security\SecurityCriticalScope.cs" />
     <Compile Include="System\Security\SecurityElement.cs" />
     <Compile Include="System\Security\SecurityManager.cs" />
     <Compile Include="System\Security\SecurityState.cs" />

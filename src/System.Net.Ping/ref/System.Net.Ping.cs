@@ -39,6 +39,7 @@ namespace System.Net.NetworkInformation
     {
         public Ping() { }
         public event System.Net.NetworkInformation.PingCompletedEventHandler PingCompleted { add { } remove { } }
+        protected override void Dispose(bool disposing) { }
         protected void OnPingCompleted(System.Net.NetworkInformation.PingCompletedEventArgs e) { }
         public PingReply Send(string hostNameOrAddress) { throw null; }
         public PingReply Send(string hostNameOrAddress, int timeout) { throw null; }
@@ -76,6 +77,7 @@ namespace System.Net.NetworkInformation
     {
         public PingException(string message) { }
         public PingException(string message, System.Exception innerException) { }
+        protected PingException(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
     }
     public partial class PingOptions
     {

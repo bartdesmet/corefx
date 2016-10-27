@@ -88,11 +88,7 @@
     <Compile Include="InstanceDescriptorTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\pkg\System.ComponentModel.TypeConverter.pkgproj">
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="project.json" />
+    <ProjectReference Include="..\pkg\System.ComponentModel.TypeConverter.pkgproj"/>
   </ItemGroup>
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
 </Project>

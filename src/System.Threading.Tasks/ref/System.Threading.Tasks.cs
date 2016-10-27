@@ -28,7 +28,7 @@
 
 namespace System
 {
-    public partial class OperationCanceledException : System.Exception
+    public partial class OperationCanceledException : System.SystemException
     {
         public OperationCanceledException() { }
         public OperationCanceledException(string message) { }
@@ -36,6 +36,7 @@ namespace System
         public OperationCanceledException(string message, System.Exception innerException, System.Threading.CancellationToken token) { }
         public OperationCanceledException(string message, System.Threading.CancellationToken token) { }
         public OperationCanceledException(System.Threading.CancellationToken token) { }
+        protected OperationCanceledException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public System.Threading.CancellationToken CancellationToken { get { throw null; } }
     }
 }

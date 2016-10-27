@@ -118,10 +118,49 @@ namespace System.Security.Cryptography.X509Certificates.Tests
 
 #if netstandard17
         [Fact]
+        public static void TestSerializeDeserialize_DER()
+        {
+            byte[] expectedThumbPrint = new byte[]
+            {
+                0x10, 0x8e, 0x2b, 0xa2, 0x36, 0x32, 0x62, 0x0c,
+                0x42, 0x7c, 0x57, 0x0b, 0x6d, 0x9d, 0xb5, 0x1a,
+                0xc3, 0x13, 0x87, 0xfe,
+            };
+
+            Action<X509Certificate2> assert = (c) =>
+            {
+                IntPtr h = c.Handle;
+                Assert.NotEqual(IntPtr.Zero, h);
+                byte[] actualThumbprint = c.GetCertHash();
+                Assert.Equal(expectedThumbPrint, actualThumbprint);
+            };
+
+            using (X509Certificate2 c = new X509Certificate2(TestData.MsCertificate))
+            {
+                assert(c);
+                using (X509Certificate2 c2 = System.Runtime.Serialization.Formatters.Tests.BinaryFormatterHelpers.Clone(c))
+                {
+                    assert(c2);
+                }
+            }
+        }
+
+        [Fact]
         public static void TestCopyConstructor_NoPal()
         {
             using (var c1 = new X509Certificate2())
             using (var c2 = new X509Certificate2(c1))
+            {
+                VerifyDefaultConstructor(c1);
+                VerifyDefaultConstructor(c2);
+            }
+        }
+
+        [Fact]
+        public static void TestSerializeDeserialize_NoPal()
+        {
+            using (var c1 = new X509Certificate2())
+            using (var c2 = System.Runtime.Serialization.Formatters.Tests.BinaryFormatterHelpers.Clone(c1))
             {
                 VerifyDefaultConstructor(c1);
                 VerifyDefaultConstructor(c2);
@@ -320,5 +359,57 @@ namespace System.Security.Cryptography.X509Certificates.Tests
                 Assert.Equal("error:0D07803A:asn1 encoding routines:ASN1_ITEM_EX_D2I:nested asn1 error", ex.Message);
             }
         }
+
+        [Fact]
+        public static void InvalidStorageFlags()
+        {
+            byte[] nonEmptyBytes = new byte[1];
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate(nonEmptyBytes, string.Empty, (X509KeyStorageFlags)0xFF));
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate(string.Empty, string.Empty, (X509KeyStorageFlags)0xFF));
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate2(nonEmptyBytes, string.Empty, (X509KeyStorageFlags)0xFF));
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate2(string.Empty, string.Empty, (X509KeyStorageFlags)0xFF));
+
+            // No test is performed here for the ephemeral flag failing downlevel, because the live
+            // binary is always used by default, meaning it doesn't know EphemeralKeySet doesn't exist.
+        }
+
+#if netcoreapp11
+        [Fact]
+        public static void InvalidStorageFlags_PersistedEphemeral()
+        {
+            const X509KeyStorageFlags PersistedEphemeral =
+                X509KeyStorageFlags.EphemeralKeySet | X509KeyStorageFlags.PersistKeySet;
+
+            byte[] nonEmptyBytes = new byte[1];
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate(nonEmptyBytes, string.Empty, PersistedEphemeral));
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate(string.Empty, string.Empty, PersistedEphemeral));
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate2(nonEmptyBytes, string.Empty, PersistedEphemeral));
+
+            Assert.Throws<ArgumentException>(
+                "keyStorageFlags",
+                () => new X509Certificate2(string.Empty, string.Empty, PersistedEphemeral));
+        }
+#endif
     }
 }

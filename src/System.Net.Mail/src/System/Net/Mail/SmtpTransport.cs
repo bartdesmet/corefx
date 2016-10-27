@@ -9,12 +9,6 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace System.Net.Mail
 {
-    internal enum SupportedAuth
-    {
-        None = 0,
-        Login = 1
-    };
-
     internal class SmtpTransport
     {
         internal const int DefaultPort = 25;
@@ -131,7 +125,7 @@ namespace System.Net.Mail
             {
                 _connection = new SmtpConnection(this, _client, _credentials, _authenticationModules);
                 _connection.Timeout = _timeout;
-                if (WebEventSource.Log.IsEnabled()) WebEventSource.Log.Associate(this, _connection);
+                if (MailEventSource.Log.IsEnabled()) MailEventSource.Log.Associate(this, _connection);
 
                 if (EnableSsl)
                 {
@@ -155,9 +149,9 @@ namespace System.Net.Mail
             {
                 _connection = new SmtpConnection(this, _client, _credentials, _authenticationModules);
                 _connection.Timeout = _timeout;
-                if (WebEventSource.Log.IsEnabled())
+                if (MailEventSource.Log.IsEnabled())
                 {
-                    WebEventSource.Log.Associate(this, _connection);
+                    MailEventSource.Log.Associate(this, _connection);
                 }
                 if (EnableSsl)
                 {
@@ -211,11 +205,6 @@ namespace System.Net.Mail
                 throw new ArgumentNullException(nameof(recipients));
             }
 
-            if (GlobalLog.IsEnabled && recipients.Count > 0)
-            {
-                GlobalLog.Assert("SmtpTransport::BeginSendMail()|recepients.Count <= 0");
-            }
-
             SendMailAsyncResult result = new SendMailAsyncResult(_connection, sender, recipients,
                 allowUnicode, _connection.DSNEnabled ? deliveryNotify : null,
                 callback, state);
@@ -263,10 +252,6 @@ namespace System.Net.Mail
                 throw new ArgumentNullException(nameof(recipients));
             }
 
-            if (GlobalLog.IsEnabled && recipients.Count > 0)
-            {
-                GlobalLog.Assert("SmtpTransport::SendMail()|recepients.Count <= 0");
-            }
             MailCommand.Send(_connection, SmtpCommands.Mail, sender, allowUnicode);
             _failedRecipientExceptions.Clear();
 

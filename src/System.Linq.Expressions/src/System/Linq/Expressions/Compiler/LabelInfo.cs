@@ -2,16 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-//#define TEST
-
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Reflection.Emit;
-
-#if TEST
-using ILGenerator = System.Reflection.Emit.IILGenerator;
-#endif
 
 namespace System.Linq.Expressions.Compiler
 {
@@ -71,20 +65,14 @@ namespace System.Linq.Expressions.Compiler
             _canReturn = canReturn;
         }
 
-        internal bool CanReturn
-        {
-            get { return _canReturn; }
-        }
+        internal bool CanReturn => _canReturn;
 
         /// <summary>
         /// Indicates if it is legal to emit a "branch" instruction based on
         /// currently available information. Call the Reference method before 
         /// using this property.
         /// </summary>
-        internal bool CanBranch
-        {
-            get { return _opCode != OpCodes.Leave; }
-        }
+        internal bool CanBranch => _opCode != OpCodes.Leave;
 
         internal void Reference(LabelScopeInfo block)
         {
@@ -116,7 +104,7 @@ namespace System.Linq.Expressions.Compiler
             // Once defined, validate all jumps
             if (_definitions.Count == 1)
             {
-                foreach (var r in _references)
+                foreach (LabelScopeInfo r in _references)
                 {
                     ValidateJump(r);
                 }

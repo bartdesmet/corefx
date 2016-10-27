@@ -162,8 +162,9 @@ namespace System.IO
         public EndOfStreamException() { }
         public EndOfStreamException(string message) { }
         public EndOfStreamException(string message, System.Exception innerException) { }
+        protected EndOfStreamException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
     }
-    public sealed partial class InvalidDataException : System.Exception
+    public sealed partial class InvalidDataException : System.SystemException
     {
         public InvalidDataException() { }
         public InvalidDataException(string message) { }
@@ -303,7 +304,7 @@ namespace System.IO
         public override System.Threading.Tasks.Task WriteLineAsync(char[] buffer, int index, int count) { throw null; }
         public override System.Threading.Tasks.Task WriteLineAsync(string value) { throw null; }
     }
-    public abstract partial class TextReader : System.IDisposable
+    public abstract partial class TextReader : System.MarshalByRefObject,  System.IDisposable
     {
         public static readonly System.IO.TextReader Null;
         protected TextReader() { }
@@ -320,8 +321,9 @@ namespace System.IO
         public virtual System.Threading.Tasks.Task<string> ReadLineAsync() { throw null; }
         public virtual string ReadToEnd() { throw null; }
         public virtual System.Threading.Tasks.Task<string> ReadToEndAsync() { throw null; }
+        public static System.IO.TextReader Synchronized(System.IO.TextReader reader) { throw null; }
     }
-    public abstract partial class TextWriter : System.IDisposable
+    public abstract partial class TextWriter : System.MarshalByRefObject ,System.IDisposable
     {
         protected char[] CoreNewLine;
         public static readonly System.IO.TextWriter Null;
@@ -335,6 +337,7 @@ namespace System.IO
         protected virtual void Dispose(bool disposing) { }
         public virtual void Flush() { }
         public virtual System.Threading.Tasks.Task FlushAsync() { throw null; }
+        public static System.IO.TextWriter Synchronized(System.IO.TextWriter writer) { throw null; }
         public virtual void Write(bool value) { }
         public abstract void Write(char value);
         public virtual void Write(char[] buffer) { }

@@ -48,12 +48,15 @@ namespace System.Net
         public CookieCollection() { }
         public int Count { get { throw null; } }
         public System.Net.Cookie this[string name] { get { throw null; } }
-        bool System.Collections.ICollection.IsSynchronized { get { throw null; } }
-        object System.Collections.ICollection.SyncRoot { get { throw null; } }
+        public System.Net.Cookie this[int index] { get { throw null; } }
+        public bool IsSynchronized { get { throw null; } }
+        public object SyncRoot { get { throw null; } }
         public void Add(System.Net.Cookie cookie) { }
         public void Add(System.Net.CookieCollection cookies) { }
         public System.Collections.IEnumerator GetEnumerator() { throw null; }
-        void System.Collections.ICollection.CopyTo(System.Array array, int index) { }
+        public void CopyTo(System.Array array, int index) { }
+        public void CopyTo(Cookie[] array, int index) { }
+        public bool IsReadOnly { get { throw null; } }
     }
     public partial class CookieContainer
     {
@@ -70,10 +73,17 @@ namespace System.Net
         public string GetCookieHeader(System.Uri uri) { throw null; }
         public System.Net.CookieCollection GetCookies(System.Uri uri) { throw null; }
         public void SetCookies(System.Uri uri, string cookieHeader) { }
+        public CookieContainer(int capacity) { }
+        public CookieContainer(int capacity, int perDomainCapacity, int maxCookieSize) { }
+        public void Add(CookieCollection cookies) { }
+        public void Add(Cookie cookie) { }
     }
-    public partial class CookieException : System.FormatException
+    public partial class CookieException : System.FormatException, System.Runtime.Serialization.ISerializable
     {
         public CookieException() { }
+        protected CookieException(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
+        public override void GetObjectData(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
+        void System.Runtime.Serialization.ISerializable.GetObjectData(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
     }
     public partial class CredentialCache : System.Collections.IEnumerable, System.Net.ICredentials, System.Net.ICredentialsByHost
     {
@@ -205,6 +215,8 @@ namespace System.Net
         public static System.Net.IPAddress Parse(string ipString) { throw null; }
         public override string ToString() { throw null; }
         public static bool TryParse(string ipString, out System.Net.IPAddress address) { throw null; }
+        [Obsolete("This property has been deprecated. It is address family dependent. Please use IPAddress.Equals method to perform comparisons.http://go.microsoft.com/fwlink/?linkid=14202")]
+        public long Address { get { throw null; } set { } }
     }
     public partial class IPEndPoint : System.Net.EndPoint
     {
@@ -253,6 +265,26 @@ namespace System.Net
     {
         protected TransportContext() { }
         public abstract System.Security.Authentication.ExtendedProtection.ChannelBinding GetChannelBinding(System.Security.Authentication.ExtendedProtection.ChannelBindingKind kind);
+    }
+}
+namespace System.Net.Cache
+{
+    public enum RequestCacheLevel
+    {
+        Default = 0,
+        BypassCache = 1,
+        CacheOnly = 2,
+        CacheIfAvailable = 3,
+        Revalidate = 4,
+        Reload = 5,
+        NoCacheNoStore = 6
+    }
+    public class RequestCachePolicy
+    {
+        public RequestCachePolicy() { }
+        public RequestCachePolicy(System.Net.Cache.RequestCacheLevel level) { }
+        public System.Net.Cache.RequestCacheLevel Level { get { throw null; } }
+        public override string ToString() { throw null; }
     }
 }
 namespace System.Net.NetworkInformation
@@ -374,10 +406,12 @@ namespace System.Net.Sockets
         VersionNotSupported = 10092,
         WouldBlock = 10035,
     }
-    public partial class SocketException : System.Exception
+    public partial class SocketException : System.ComponentModel.Win32Exception
     {
         public SocketException() { }
         public SocketException(int errorCode) { }
+        protected SocketException(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
+        public override int ErrorCode { get { throw null; } }
         public override string Message { get { throw null; } }
         public System.Net.Sockets.SocketError SocketErrorCode { get { throw null; } }
     }
