@@ -99,7 +99,7 @@ namespace System.Linq.Expressions.Compiler
 
             Type closureType = DelegateHelpers.GetClosureType(types);
 
-            SelfVariable = Expression.Variable(closureType, null);
+            SelfVariable = Expression.Variable(closureType, name: null);
             Indexes = new ReadOnlyDictionary<Expression, int>(indexes);
         }
 

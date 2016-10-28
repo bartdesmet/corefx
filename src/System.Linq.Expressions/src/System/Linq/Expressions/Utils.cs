@@ -24,7 +24,7 @@ namespace System.Linq.Expressions
 
             try
             {
-                value = fi.GetValue(null);
+                value = fi.GetValue(obj: null);
                 return true;
             }
             catch
