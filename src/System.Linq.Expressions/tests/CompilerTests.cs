@@ -13,56 +13,6 @@ namespace System.Linq.Expressions.Tests
 {
     public static class CompilerTests
     {
-        [Fact]
-        public static void Test()
-        {
-            //StackSpillerTests.Spill_Optimizations_RuntimeVariables1();
-            //StackSpillerTests.Spill_Optimizations_RuntimeVariables2();
-            //StackSpillerTests.Spill_Optimizations_StaticReadOnlyField();
-            //StackSpillerTests.Spill_Optimizations_LiteralField();
-            //StackSpillerTests.Spill_Optimizations_Default();
-            //StackSpillerTests.Spill_Optimizations_Constant();
-
-
-            /*
-            //Expression<Func<int, Func<int>>> f = x => () => x;
-            //var d = f.Compile();
-            //var y = d(42)();
-
-            //Expression<Func<int>> f = () => 42;
-            //var d = f.Compile();
-            //var y = d();
-
-            var i = Expression.Parameter(typeof(int));
-            var x = Expression.Parameter(typeof(int));
-            var b = Expression.Label();
-
-            var e = Expression.Lambda<Func<int, Action>>(
-                        Expression.Lambda<Action>(
-                            Expression.Block(
-                                new[] { i },
-                                Expression.Loop(
-                                    Expression.IfThenElse(
-                                        Expression.LessThan(
-                                            Expression.PostIncrementAssign(i),
-                                            Expression.Constant(1)
-                                        ),
-                                        x, // NB: Gets removed due to EmitExpressionAsVoid
-                                        Expression.Break(b)
-                                    ),
-                                    b
-                                )
-                            )
-                        ),
-                        x
-                    );
-            */
-
-            var e = (Expression<Func<int, Func<int, Func<int, int>>>>)(x => y => z => x + y + z);
-
-            e.Compile();
-        }
-
         [Theory]
         [ClassData(typeof(CompilationTypes))]
         [OuterLoop("Takes over a minute to complete")]

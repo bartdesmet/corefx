@@ -824,7 +824,7 @@ namespace System.Linq.Expressions.Tests
             Assert.Equal(7, d((a, b, c) => a + b * c, 1, 2, 3));
 
             e.VerifyIL(@"
-                .method int32 ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,class [System.Private.CoreLib]System.Func`4<int32,int32,int32,int32>,int32,int32,int32)
+                .method int32 ::lambda_method(object,class [System.Private.CoreLib]System.Func`4<int32,int32,int32,int32>,int32,int32,int32)
                 {
                   .maxstack 5
                   .locals init (
@@ -902,7 +902,7 @@ namespace System.Linq.Expressions.Tests
             Assert.Equal(10, d(1, 2, 3, 4));
 
             e.VerifyIL(@"
-                .method int32 ::lambda_method(class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure,int32,int32,int32,int32)
+                .method int32 ::lambda_method(object,int32,int32,int32,int32)
                 {
                   .maxstack 3
                   .locals init (
