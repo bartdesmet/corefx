@@ -263,7 +263,7 @@ namespace System.Linq.Expressions.Tests
                   {
                     .maxstack 4
                     .locals init (
-                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
+                      [0] class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>
                     )
                   
                     IL_0000: newobj     instance void class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::.ctor()
@@ -287,7 +287,7 @@ namespace System.Linq.Expressions.Tests
                   {
                     .maxstack 1
                     .locals init (
-                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
+                      [0] class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>
                     )
                   
                     IL_0000: ldarg.0    
@@ -310,7 +310,7 @@ namespace System.Linq.Expressions.Tests
                   {
                     .maxstack 4
                     .locals init (
-                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
+                      [0] class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>
                     )
                   
                     IL_0000: newobj     instance void class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>::.ctor()
@@ -334,7 +334,7 @@ namespace System.Linq.Expressions.Tests
                   {
                     .maxstack 2
                     .locals init (
-                      [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>
+                      [0] class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>
                     )
                   
                     IL_0000: ldarg.0    

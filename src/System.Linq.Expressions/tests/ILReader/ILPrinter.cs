@@ -12,7 +12,27 @@ namespace System.Linq.Expressions.Tests
 {
     static class ILPrinter
     {
-        private static CachedTypeFactory s_typeFactory = new CachedTypeFactory(typeof(IStrongBox), typeof(StrongBox<>));
+        private static readonly CachedTypeFactory s_typeFactory = 
+            new CachedTypeFactory(
+                typeof(IStrongBox),
+                typeof(StrongBox<>),
+                typeof(Closure<>),
+                typeof(Closure<,>),
+                typeof(Closure<,,>),
+                typeof(Closure<,,,>),
+                typeof(Closure<,,,,>),
+                typeof(Closure<,,,,,>),
+                typeof(Closure<,,,,,,>),
+                typeof(Closure<,,,,,,,>),
+                typeof(Closure<,,,,,,,,>),
+                typeof(Closure<,,,,,,,,,>),
+                typeof(Closure<,,,,,,,,,,>),
+                typeof(Closure<,,,,,,,,,,,>),
+                typeof(Closure<,,,,,,,,,,,,>),
+                typeof(Closure<,,,,,,,,,,,,,>),
+                typeof(Closure<,,,,,,,,,,,,,,>),
+                typeof(Closure<,,,,,,,,,,,,,,,>)
+            );
 
         private static ITypeFactory GetTypeFactory(Expression expression)
         {

@@ -743,7 +743,7 @@ namespace System.Linq.Expressions.Tests
                 {
                   .maxstack 7
                   .locals init (
-                    [0] class [System.Linq.Expressions.Tests]Unknown`1<int32>,
+                    [0] class [System.Linq.Expressions]System.Runtime.CompilerServices.Closure`1<int32>,
                     [1] class [System.Private.CoreLib]System.Action`2<class [System.Linq.Expressions]System.Runtime.CompilerServices.IRuntimeVariables,int32>,
                     [2] int32,
                     [3] int32
