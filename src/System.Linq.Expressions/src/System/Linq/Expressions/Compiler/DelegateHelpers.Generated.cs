@@ -3,6 +3,8 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Dynamic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -186,6 +188,22 @@ namespace System.Linq.Expressions.Compiler
             indexer.SetSetMethod(indexerSetter);
 
             return builder.CreateTypeInfo().AsType();
+        }
+
+        internal static TypeInfo NextTypeInfo(Type initialArg)
+        {
+            lock (_DelegateCache)
+            {
+                return NextTypeInfo(initialArg, _DelegateCache);
+            }
+        }
+
+        internal static TypeInfo GetNextTypeInfo(Type initialArg, TypeInfo curTypeInfo)
+        {
+            lock (_DelegateCache)
+            {
+                return NextTypeInfo(initialArg, curTypeInfo);
+            }
         }
     }
 }
