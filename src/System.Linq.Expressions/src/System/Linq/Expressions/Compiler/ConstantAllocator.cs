@@ -290,6 +290,9 @@ namespace System.Linq.Expressions.Compiler
 
             protected internal override Expression VisitLambda<T>(Expression<T> node)
             {
+                // TODO: Eliminate the use of Parameters once https://github.com/dotnet/corefx/pull/13133
+                //       is merged in.
+
                 int count = node.Parameters.Count;
                 if (count > 0)
                 {
@@ -340,7 +343,7 @@ namespace System.Linq.Expressions.Compiler
         }
     }
 
-    class PartiallyEvaluatedDynamicExpression : Expression, IDynamicExpression
+    internal sealed class PartiallyEvaluatedDynamicExpression : Expression, IDynamicExpression
     {
         private readonly IDynamicExpression _node;
         private readonly object _site;
