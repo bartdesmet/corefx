@@ -16,16 +16,16 @@ namespace System.Linq.Expressions.Compiler
     //    (string s) => () => s
     //
     // We wish to generate the outer as:
-    // 
+    //
     //      Func<string> OuterMethod(CompiledLambdaEnvironment<Empty, object[]> closure, string s)
     //      {
     //          Closure<string> locals = new Closure<string>();
     //          locals.Item1 = s;
     //          return ((DynamicMethod)closure.Constants[0]).CreateDelegate(typeof(Func<string>), new CompiledLambdaEnvironment<Closure<string>, object[]>(null, locals));
     //      }
-    //      
+    //
     // ... and the inner as:
-    // 
+    //
     //      string InnerMethod(CompiledLambdaEnvironment<Closure<string>, object[]> closure)
     //      {
     //          Closure<string> locals = closure.Locals;
@@ -38,10 +38,10 @@ namespace System.Linq.Expressions.Compiler
     /// <summary>
     /// Stores information about locals and arguments that are hoisted into
     /// the closure array because they're referenced in an inner lambda.
-    /// 
+    ///
     /// This class is sometimes emitted as a runtime constant for internal
     /// use to hoist variables/parameters in quoted expressions
-    /// 
+    ///
     /// Invariant: this class stores no mutable state
     /// </summary>
     internal sealed class HoistedLocals

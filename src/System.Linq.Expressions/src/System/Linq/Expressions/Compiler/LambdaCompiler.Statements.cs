@@ -248,7 +248,7 @@ namespace System.Linq.Expressions.Compiler
             Type result = node.Comparison.GetParametersCached()[1].ParameterType.GetNonRefType();
             if (node.IsLifted)
             {
-                result = TypeUtils.GetNullableType(result);
+                result = result.GetNullableType();
             }
             return result;
         }
@@ -284,7 +284,7 @@ namespace System.Linq.Expressions.Compiler
                 Value = value;
                 Default = @default;
                 Type = Node.SwitchValue.Type;
-                IsUnsigned = TypeUtils.IsUnsigned(Type);
+                IsUnsigned = Type.IsUnsigned();
                 TypeCode code = Type.GetTypeCode();
                 Is64BitSwitch = code == TypeCode.UInt64 || code == TypeCode.Int64;
             }
@@ -569,7 +569,7 @@ namespace System.Linq.Expressions.Compiler
                 return;
             }
 
-            // 
+            //
             // If we're switching off of Int64/UInt64, we need more guards here
             // because we'll have to narrow the switch value to an Int32, and
             // we can't do that unless the value is in the right range.
@@ -651,14 +651,14 @@ namespace System.Linq.Expressions.Compiler
                 {
                     if (t.Value != null)
                     {
-                        initializers.Add(Expression.ElementInit(add, t, Expression.Constant(i)));
+                        initializers.Add(Expression.ElementInit(add, t, Utils.Constant(i)));
                     }
                     else
                     {
                         nullCase = i;
                     }
                 }
-                cases.UncheckedAdd(Expression.SwitchCase(node.Cases[i].Body, Expression.Constant(i)));
+                cases.UncheckedAdd(Expression.SwitchCase(node.Cases[i].Body, Utils.Constant(i)));
             }
 
             // Create the field to hold the lazily initialized dictionary
@@ -674,7 +674,7 @@ namespace System.Linq.Expressions.Compiler
                     Expression.ListInit(
                         Expression.New(
                             DictionaryOfStringInt32_Ctor_Int32,
-                            Expression.Constant(initializers.Count)
+                            Utils.Constant(initializers.Count)
                         ),
                         initializers
                     )
@@ -710,11 +710,11 @@ namespace System.Linq.Expressions.Compiler
                 Expression.Assign(switchValue, node.SwitchValue),
                 Expression.IfThenElse(
                     Expression.Equal(switchValue, Expression.Constant(null, typeof(string))),
-                    Expression.Assign(switchIndex, Expression.Constant(nullCase)),
+                    Expression.Assign(switchIndex, Utils.Constant(nullCase)),
                     Expression.IfThenElse(
                         Expression.Call(dictInit, "TryGetValue", null, switchValue, switchIndex),
-                        Utils.Empty(),
-                        Expression.Assign(switchIndex, Expression.Constant(-1))
+                        Utils.Empty,
+                        Expression.Assign(switchIndex, Utils.Constant(-1))
                     )
                 ),
                 Expression.Switch(node.Type, switchIndex, node.DefaultBody, null, cases.ToReadOnly())
@@ -887,7 +887,7 @@ namespace System.Linq.Expressions.Compiler
             }
 
             // emit filter block. Filter blocks are untyped so we need to do
-            // the type check ourselves.  
+            // the type check ourselves.
             Label endFilter = _ilg.DefineLabel();
             Label rightType = _ilg.DefineLabel();
 
@@ -908,7 +908,7 @@ namespace System.Linq.Expressions.Compiler
             EmitExpression(cb.Filter);
             PopLabelBlock(LabelScopeKind.Filter);
 
-            // begin the catch, clear the exception, we've 
+            // begin the catch, clear the exception, we've
             // already saved it
             _ilg.MarkLabel(endFilter);
             _ilg.BeginCatchBlock(exceptionType: null);
