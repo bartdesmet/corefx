@@ -163,8 +163,7 @@ namespace System.Linq.Expressions.Compiler
 
         private static Type[] GetParameterTypes(LambdaExpression lambda, Type firstType)
         {
-            Collections.ObjectModel.ReadOnlyCollection<ParameterExpression> parameters = lambda.Parameters;
-            int count = parameters.Count;
+            int count = lambda.ParameterCount;
 
             Type[] result;
             int i;
@@ -183,7 +182,7 @@ namespace System.Linq.Expressions.Compiler
 
             for (int j = 0; j < count; j++, i++)
             {
-                ParameterExpression p = parameters[j];
+                ParameterExpression p = lambda.GetParameter(j);
                 result[i] = p.IsByRef ? p.Type.MakeByRefType() : p.Type;
             }
 
@@ -224,9 +223,9 @@ namespace System.Linq.Expressions.Compiler
                 //
                 // If any arguments were ByRef, the address is on the stack and
                 // we'll be storing it into the variable, which has a ref type.
-                for (int i = _lambda.Parameters.Count - 1; i >= 0; i--)
+                for (int i = _lambda.ParameterCount - 1; i >= 0; i--)
                 {
-                    _scope.EmitSet(_lambda.Parameters[i]);
+                    _scope.EmitSet(_lambda.GetParameter(i));
                 }
             }
 
