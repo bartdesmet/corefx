@@ -29,16 +29,25 @@ namespace System.Diagnostics
         public int HandleCount { get { throw null; } }
         public IntPtr MainWindowHandle { get { throw null; } }
         public string MainWindowTitle { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.NonpagedSystemMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int NonpagedSystemMemorySize { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int PagedMemorySize { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PagedSystemMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int PagedSystemMemorySize { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakPagedMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakPagedMemorySize { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakVirtualMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakVirtualMemorySize { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PeakWorkingSet64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int PeakWorkingSet { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.PrivateMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int PrivateMemorySize { get { throw null; } }
         public bool Responding { get { throw null; } }
         public System.ComponentModel.ISynchronizeInvoke SynchronizingObject { get { throw null; } set { } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.VirtualMemorySize64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int VirtualMemorySize { get { throw null; } }
+        [ObsoleteAttribute("This property has been deprecated.  Please use System.Diagnostics.Process.WorkingSet64 instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
         public int WorkingSet { get { throw null; } }
         public void Close() { }
         public bool CloseMainWindow() { throw null; }
@@ -107,6 +116,10 @@ namespace System.Diagnostics
         public static System.Diagnostics.Process Start(System.Diagnostics.ProcessStartInfo startInfo) { throw null; }
         public static System.Diagnostics.Process Start(string fileName) { throw null; }
         public static System.Diagnostics.Process Start(string fileName, string arguments) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Diagnostics.Process Start(string fileName, string userName, System.Security.SecureString password, string domain) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Diagnostics.Process Start(string fileName, string arguments, string userName, System.Security.SecureString password, string domain) { throw null; }
         public void WaitForExit() { }
         public bool WaitForExit(int milliseconds) { throw null; }
     }
@@ -151,6 +164,8 @@ namespace System.Diagnostics
         public System.Collections.Generic.IDictionary<string, string> Environment { get { throw null; } }
         public string FileName { get { throw null; } set { } }
         public bool LoadUserProfile { get { throw null; } set { } }
+        [System.CLSCompliant(false)]
+        public System.Security.SecureString Password { get { throw null; } set { } }
         public bool RedirectStandardError { get { throw null; } set { } }
         public bool RedirectStandardInput { get { throw null; } set { } }
         public bool RedirectStandardOutput { get { throw null; } set { } }
@@ -159,6 +174,14 @@ namespace System.Diagnostics
         public string UserName { get { throw null; } set { } }
         public bool UseShellExecute { get { throw null; } set { } }
         public string WorkingDirectory { get { throw null; } set { } }
+        public bool ErrorDialog { get { throw null; } set { } }
+        public System.IntPtr ErrorDialogParentHandle { get { throw null; } set { } }
+        [System.ComponentModel.DefaultValueAttribute(null)]
+        public string Verb { get { throw null; } set { } }
+        public string[] Verbs { get { throw null; } }
+        [System.ComponentModel.DefaultValueAttribute(null)]
+        public System.Diagnostics.ProcessWindowStyle WindowStyle { get { throw null ; } set { } }
+        public System.Collections.Specialized.StringDictionary EnvironmentVariables { get { throw null; } }
     }
     public partial class ProcessThread : System.ComponentModel.Component
     {

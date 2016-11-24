@@ -11,7 +11,7 @@ namespace System.Linq.Expressions.Compiler
         /// <summary>
         /// Rewrite the expression
         /// </summary>
-        /// 
+        ///
         /// <param name="node">Expression to rewrite</param>
         /// <param name="stack">State of the stack before the expression is emitted.</param>
         /// <returns>Rewritten expression.</returns>
@@ -95,7 +95,7 @@ namespace System.Linq.Expressions.Compiler
                     result = RewriteInvocationExpression(node, stack);
                     break;
                 case ExpressionType.Lambda:
-                    result = RewriteLambdaExpression(node, stack);
+                    result = RewriteLambdaExpression(node);
                     break;
                 case ExpressionType.ListInit:
                     result = RewriteListInitExpression(node, stack);
@@ -121,7 +121,7 @@ namespace System.Linq.Expressions.Compiler
                     result = RewriteBlockExpression(node, stack);
                     break;
                 case ExpressionType.Dynamic:
-                    result = RewriteDynamicExpression(node, stack);
+                    result = RewriteDynamicExpression(node);
                     break;
                 case ExpressionType.Extension:
                     result = RewriteExtensionExpression(node, stack);
@@ -177,7 +177,7 @@ namespace System.Linq.Expressions.Compiler
                     result = RewriteExpression(node.ReduceAndCheck(), stack);
                     if (result.Action == RewriteAction.None)
                     {
-                        // it's at least Copy because we reduced the node
+                        // It's at least Copy because we reduced the node.
                         result = new Result(result.Action | RewriteAction.Copy, result.Node);
                     }
 
@@ -190,4 +190,3 @@ namespace System.Linq.Expressions.Compiler
         }
     }
 }
-

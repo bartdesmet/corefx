@@ -215,7 +215,7 @@ namespace System.Net
         public static System.Net.IPAddress Parse(string ipString) { throw null; }
         public override string ToString() { throw null; }
         public static bool TryParse(string ipString, out System.Net.IPAddress address) { throw null; }
-        [Obsolete("This property has been deprecated. It is address family dependent. Please use IPAddress.Equals method to perform comparisons.http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This property has been deprecated. It is address family dependent. Please use IPAddress.Equals method to perform comparisons. http://go.microsoft.com/fwlink/?linkid=14202")]
         public long Address { get { throw null; } set { } }
     }
     public partial class IPEndPoint : System.Net.EndPoint
@@ -455,6 +455,11 @@ namespace System.Security.Authentication
         Md5 = 32771,
         None = 0,
         Sha1 = 32772,
+#if netcoreapp11
+        Sha256 = 32780,
+        Sha384 = 32781,
+        Sha512 = 32782
+#endif
     }
     [System.FlagsAttribute]
     public enum SslProtocols
@@ -467,6 +472,8 @@ namespace System.Security.Authentication
         Tls = 192,
         Tls11 = 768,
         Tls12 = 3072,
+        [Obsolete("This value has been deprecated.  It is no longer supported. http://go.microsoft.com/fwlink/?linkid=14202")]
+        Default = Ssl3 | Tls
     }
 }
 namespace System.Security.Authentication.ExtendedProtection

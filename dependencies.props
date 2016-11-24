@@ -9,19 +9,26 @@
     <DisableProjectNTfsAutoUpgrade Condition="'$(DisableProjectNTfsAutoUpgrade)'==''">false</DisableProjectNTfsAutoUpgrade>
   </PropertyGroup>
 
+  <!-- For detailed explanation of the reference versions see:
+
+        https://github.com/dotnet/buildtools/blob/master/Documentation/project-nuget-dependencies.md
+        https://github.com/dotnet/buildtools/blob/master/Documentation/annotated-dependency-props.md
+
+       These ref versions are pulled from https://github.com/dotnet/versions.
+  -->
   <PropertyGroup>
-    <CoreFxCurrentRef>0e12effd3cb1b542b73855cc9b58b68a3bc3ac76</CoreFxCurrentRef>
-    <CoreClrCurrentRef>38d1c7fcb04d14a4d5935c1eadc3157e259e8bb6</CoreClrCurrentRef>
-    <ExternalCurrentRef>8b682a386109c5934bcc6d21b40fb86f6782521b</ExternalCurrentRef>
-    <ProjectNTfsCurrentRef>0e12effd3cb1b542b73855cc9b58b68a3bc3ac76</ProjectNTfsCurrentRef>
+    <CoreFxCurrentRef>10ae672d2e13fb79101a4991f2643cca01208075</CoreFxCurrentRef>
+    <CoreClrCurrentRef>385899ff890b8cc828b5ebdcac581d0eee48984f</CoreClrCurrentRef>
+    <ExternalCurrentRef>b39262591214edb67a7510174e7b14e548dac84f</ExternalCurrentRef>
+    <ProjectNTfsCurrentRef>e73381e602eece9960df74a9392d93d78fd91515</ProjectNTfsCurrentRef>
   </PropertyGroup>
 
   <!-- Auto-upgraded properties for each build info dependency. -->
   <PropertyGroup>
-    <CoreFxExpectedPrerelease>beta-24701-01</CoreFxExpectedPrerelease>
-    <CoreClrExpectedPrerelease>beta-24628-03</CoreClrExpectedPrerelease>
-    <ExternalExpectedPrerelease>beta-24628-00</ExternalExpectedPrerelease>
-    <ProjectNTfsExpectedPrerelease>beta-24701-00</ProjectNTfsExpectedPrerelease>
+    <CoreFxExpectedPrerelease>beta-24721-02</CoreFxExpectedPrerelease>
+    <CoreClrExpectedPrerelease>beta-24724-03</CoreClrExpectedPrerelease>
+    <ExternalExpectedPrerelease>beta-24723-00</ExternalExpectedPrerelease>
+    <ProjectNTfsExpectedPrerelease>beta-24724-00</ProjectNTfsExpectedPrerelease>
   </PropertyGroup>
 
   <!-- Full package version strings that are used in other parts of the build. -->
@@ -94,7 +101,7 @@
     </StaticDependency>
 
     <StaticDependency Include="Microsoft.TargetingPack.Private.WinRT">
-      <Version>1.0.2</Version>
+      <Version>1.0.3</Version>
     </StaticDependency>
 
     <XUnitDependency Include="xunit"/>

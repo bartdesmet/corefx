@@ -87,7 +87,7 @@ namespace System.Linq.Expressions.Compiler
             switch (node.NodeType)
             {
                 case ExpressionType.Assign:
-                    EmitAssign((BinaryExpression)node, CompilationFlags.EmitAsVoidType);
+                    EmitAssign((AssignBinaryExpression)node, CompilationFlags.EmitAsVoidType);
                     break;
                 case ExpressionType.Block:
                     Emit((BlockExpression)node, UpdateEmitAsTypeFlag(flags, CompilationFlags.EmitAsVoidType));
@@ -244,8 +244,10 @@ namespace System.Linq.Expressions.Compiler
             EmitGetIndexCall(node, objectType);
         }
 
-        private void EmitIndexAssignment(BinaryExpression node, CompilationFlags flags)
+        private void EmitIndexAssignment(AssignBinaryExpression node, CompilationFlags flags)
         {
+            Debug.Assert(!node.IsByRef);
+
             var index = (IndexExpression)node.Left;
 
             CompilationFlags emitAs = flags & CompilationFlags.EmitAsTypeMask;
@@ -372,7 +374,7 @@ namespace System.Linq.Expressions.Compiler
                 Debug.Assert(obj != null);
                 EmitInstance(obj, out objectType);
             }
-            // if the obj has a value type, its address is passed to the method call so we cannot destroy the 
+            // if the obj has a value type, its address is passed to the method call so we cannot destroy the
             // stack by emitting a tail call
             if (obj != null && obj.Type.GetTypeInfo().IsValueType)
             {
@@ -403,7 +405,7 @@ namespace System.Linq.Expressions.Compiler
                 // This automatically boxes value types if necessary.
                 _ilg.Emit(OpCodes.Constrained, objectType);
             }
-            // The method call can be a tail call if 
+            // The method call can be a tail call if
             // 1) the method call is the last instruction before Ret
             // 2) the method does not have any ByRef parameters, refer to ECMA-335 Partition III Section 2.4.
             //    "Verification requires that no managed pointers are passed to the method being called, since
@@ -474,7 +476,7 @@ namespace System.Linq.Expressions.Compiler
             //
             // We never need to generate a non-virtual call to a virtual method on a reference type because
             // expression trees do not support "base.Foo()" style calling.
-            // 
+            //
             // We could do an optimization here for the case where we know that the object is a non-null
             // reference type and the method is a non-virtual instance method.  For example, if we had
             // (new Foo()).Bar() for instance method Bar we don't need the null check so we could do a
@@ -690,12 +692,20 @@ namespace System.Linq.Expressions.Compiler
             _ilg.Emit(OpCodes.Cgt_Un);
         }
 
-        private void EmitVariableAssignment(BinaryExpression node, CompilationFlags flags)
+        private void EmitVariableAssignment(AssignBinaryExpression node, CompilationFlags flags)
         {
             var variable = (ParameterExpression)node.Left;
             CompilationFlags emitAs = flags & CompilationFlags.EmitAsTypeMask;
 
-            EmitExpression(node.Right);
+            if (node.IsByRef)
+            {
+                EmitAddress(node.Right, node.Right.Type);
+            }
+            else
+            {
+                EmitExpression(node.Right);
+            }
+
             if (emitAs != CompilationFlags.EmitAsVoidType)
             {
                 _ilg.Emit(OpCodes.Dup);
@@ -723,10 +733,10 @@ namespace System.Linq.Expressions.Compiler
 
         private void EmitAssignBinaryExpression(Expression expr)
         {
-            EmitAssign((BinaryExpression)expr, CompilationFlags.EmitAsDefaultType);
+            EmitAssign((AssignBinaryExpression)expr, CompilationFlags.EmitAsDefaultType);
         }
 
-        private void EmitAssign(BinaryExpression node, CompilationFlags emitAs)
+        private void EmitAssign(AssignBinaryExpression node, CompilationFlags emitAs)
         {
             switch (node.Left.NodeType)
             {
@@ -766,8 +776,10 @@ namespace System.Linq.Expressions.Compiler
             _scope.EmitVariableAccess(this, node.Variables);
         }
 
-        private void EmitMemberAssignment(BinaryExpression node, CompilationFlags flags)
+        private void EmitMemberAssignment(AssignBinaryExpression node, CompilationFlags flags)
         {
+            Debug.Assert(!node.IsByRef);
+
             MemberExpression lvalue = (MemberExpression)node.Left;
             MemberInfo member = lvalue.Member;
 
@@ -860,7 +872,20 @@ namespace System.Linq.Expressions.Compiler
         {
             type = instance.Type;
 
-            if (type.GetTypeInfo().IsValueType)
+            // NB: Instance can be a ByRef type due to stack spilling introducing ref locals for
+            //     accessing an instance of a value type. In that case, we don't have to take the
+            //     address of the instance anymore; we just load the ref local.
+
+            if (type.IsByRef)
+            {
+                type = type.GetElementType();
+
+                Debug.Assert(instance.NodeType == ExpressionType.Parameter);
+                Debug.Assert(type.GetTypeInfo().IsValueType);
+
+                EmitExpression(instance);
+            }
+            else if (type.GetTypeInfo().IsValueType)
             {
                 EmitAddress(instance, type);
             }
@@ -1119,7 +1144,7 @@ namespace System.Linq.Expressions.Compiler
             }
             for (int i = 0, n = variables.Count; i < n; i++)
             {
-                if (!TypeUtils.AreReferenceAssignable(variables[i].Type, TypeUtils.GetNonNullableType(arguments[i].Type)))
+                if (!TypeUtils.AreReferenceAssignable(variables[i].Type, arguments[i].Type.GetNonNullableType()))
                 {
                     throw Error.ArgumentTypesMustMatch();
                 }
@@ -1129,7 +1154,7 @@ namespace System.Linq.Expressions.Compiler
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
         private void EmitLift(ExpressionType nodeType, Type resultType, MethodCallExpression mc, ParameterExpression[] paramList, Expression[] argList)
         {
-            Debug.Assert(TypeUtils.AreEquivalent(TypeUtils.GetNonNullableType(resultType), TypeUtils.GetNonNullableType(mc.Type)));
+            Debug.Assert(TypeUtils.AreEquivalent(resultType.GetNonNullableType(), mc.Type.GetNonNullableType()));
 
             switch (nodeType)
             {
@@ -1146,7 +1171,7 @@ namespace System.Linq.Expressions.Compiler
                         {
                             ParameterExpression v = paramList[i];
                             Expression arg = argList[i];
-                            if (TypeUtils.IsNullableType(arg.Type))
+                            if (arg.Type.IsNullableType())
                             {
                                 _scope.AddLocal(this, v);
                                 EmitAddress(arg, arg.Type);
@@ -1175,14 +1200,14 @@ namespace System.Linq.Expressions.Compiler
                             _ilg.Emit(OpCodes.Brtrue, exitNull);
                         }
                         EmitMethodCallExpression(mc);
-                        if (TypeUtils.IsNullableType(resultType) && !TypeUtils.AreEquivalent(resultType, mc.Type))
+                        if (resultType.IsNullableType() && !TypeUtils.AreEquivalent(resultType, mc.Type))
                         {
                             ConstructorInfo ci = resultType.GetConstructor(new Type[] { mc.Type });
                             _ilg.Emit(OpCodes.Newobj, ci);
                         }
                         _ilg.Emit(OpCodes.Br_S, exit);
                         _ilg.MarkLabel(exitNull);
-                        if (TypeUtils.AreEquivalent(resultType, TypeUtils.GetNullableType(mc.Type)))
+                        if (TypeUtils.AreEquivalent(resultType, mc.Type.GetNullableType()))
                         {
                             if (resultType.GetTypeInfo().IsValueType)
                             {
@@ -1217,7 +1242,7 @@ namespace System.Linq.Expressions.Compiler
                 case ExpressionType.Equal:
                 case ExpressionType.NotEqual:
                     {
-                        if (TypeUtils.AreEquivalent(resultType, TypeUtils.GetNullableType(mc.Type)))
+                        if (TypeUtils.AreEquivalent(resultType, mc.Type.GetNullableType()))
                         {
                             goto default;
                         }
@@ -1237,7 +1262,7 @@ namespace System.Linq.Expressions.Compiler
                             ParameterExpression v = paramList[i];
                             Expression arg = argList[i];
                             _scope.AddLocal(this, v);
-                            if (TypeUtils.IsNullableType(arg.Type))
+                            if (arg.Type.IsNullableType())
                             {
                                 EmitAddress(arg, arg.Type);
                                 _ilg.Emit(OpCodes.Dup);
@@ -1283,7 +1308,7 @@ namespace System.Linq.Expressions.Compiler
                         _ilg.Emit(OpCodes.Brtrue, exitAnyNull);
 
                         EmitMethodCallExpression(mc);
-                        if (TypeUtils.IsNullableType(resultType) && !TypeUtils.AreEquivalent(resultType, mc.Type))
+                        if (resultType.IsNullableType() && !TypeUtils.AreEquivalent(resultType, mc.Type))
                         {
                             ConstructorInfo ci = resultType.GetConstructor(new Type[] { mc.Type });
                             _ilg.Emit(OpCodes.Newobj, ci);

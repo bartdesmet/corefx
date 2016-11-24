@@ -173,11 +173,11 @@ namespace System.Linq.Expressions
         }
 
         /// <summary>
-        /// Makes a copy of this node replacing the args with the provided values.  The 
+        /// Makes a copy of this node replacing the args with the provided values.  The
         /// number of the args needs to match the number of the current block.
-        /// 
+        ///
         /// This helper is provided to allow re-writing of nodes to not depend on the specific optimized
-        /// subclass of DynamicExpression which is being used. 
+        /// subclass of DynamicExpression which is being used.
         /// </summary>
         internal virtual DynamicExpression Rewrite(Expression[] args)
         {
@@ -1009,11 +1009,7 @@ namespace System.Linq.Expressions
                 )
             );
 
-            Type delegateType = info.DelegateType;
-            if (delegateType == null)
-            {
-                delegateType = info.MakeDelegateType(returnType, arg0);
-            }
+            Type delegateType = info.DelegateType ?? info.MakeDelegateType(returnType, arg0);
 
             return DynamicExpression.Make(returnType, delegateType, binder, arg0);
         }
@@ -1052,11 +1048,7 @@ namespace System.Linq.Expressions
                 )
             );
 
-            Type delegateType = info.DelegateType;
-            if (delegateType == null)
-            {
-                delegateType = info.MakeDelegateType(returnType, arg0, arg1);
-            }
+            Type delegateType = info.DelegateType ?? info.MakeDelegateType(returnType, arg0, arg1);
 
             return DynamicExpression.Make(returnType, delegateType, binder, arg0, arg1);
         }
@@ -1100,11 +1092,7 @@ namespace System.Linq.Expressions
                 )
             );
 
-            Type delegateType = info.DelegateType;
-            if (delegateType == null)
-            {
-                delegateType = info.MakeDelegateType(returnType, arg0, arg1, arg2);
-            }
+            Type delegateType = info.DelegateType ?? info.MakeDelegateType(returnType, arg0, arg1, arg2);
 
             return DynamicExpression.Make(returnType, delegateType, binder, arg0, arg1, arg2);
         }
@@ -1153,11 +1141,7 @@ namespace System.Linq.Expressions
                 )
             );
 
-            Type delegateType = info.DelegateType;
-            if (delegateType == null)
-            {
-                delegateType = info.MakeDelegateType(returnType, arg0, arg1, arg2, arg3);
-            }
+            Type delegateType = info.DelegateType ?? info.MakeDelegateType(returnType, arg0, arg1, arg2, arg3);
 
             return DynamicExpression.Make(returnType, delegateType, binder, arg0, arg1, arg2, arg3);
         }

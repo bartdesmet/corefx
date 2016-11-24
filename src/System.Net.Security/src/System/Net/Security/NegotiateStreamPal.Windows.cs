@@ -20,7 +20,7 @@ namespace System.Net.Security
     //
     // This is part of the NegotiateStream PAL.
     //
-    internal static class NegotiateStreamPal
+    internal static partial class NegotiateStreamPal
     {
         internal static IIdentity GetIdentity(NTAuthentication context)
         {
@@ -87,110 +87,11 @@ namespace System.Net.Security
             return negotiationInfoClass?.AuthenticationPackage;
         }
 
-        internal static int QueryMaxTokenSize(string package)
-        {
-            return SSPIWrapper.GetVerifyPackageInfo(GlobalSSPI.SSPIAuth, package, true).MaxToken;
-        }
-
         internal static string QueryContextClientSpecifiedSpn(SafeDeleteContext securityContext)
         {
             return SSPIWrapper.QueryContextAttributes(GlobalSSPI.SSPIAuth, securityContext, Interop.SspiCli.ContextAttribute.SECPKG_ATTR_CLIENT_SPECIFIED_TARGET) as string;
         }
-
-        internal static SafeFreeCredentials AcquireDefaultCredential(string package, bool isServer)
-        {
-            return SSPIWrapper.AcquireDefaultCredential(
-                GlobalSSPI.SSPIAuth,
-                package,
-                (isServer ? Interop.SspiCli.CredentialUse.SECPKG_CRED_INBOUND : Interop.SspiCli.CredentialUse.SECPKG_CRED_OUTBOUND));
-        }
-
-        internal unsafe static SafeFreeCredentials AcquireCredentialsHandle(string package, bool isServer, NetworkCredential credential)
-        {
-            SafeSspiAuthDataHandle authData = null;
-            try
-            {
-                Interop.SECURITY_STATUS result = Interop.SspiCli.SspiEncodeStringsAsAuthIdentity(
-                    credential.UserName, credential.Domain,
-                    credential.Password, out authData);
-
-                if (result != Interop.SECURITY_STATUS.OK)
-                {
-                    if (NetEventSource.IsEnabled) NetEventSource.Error(null, SR.Format(SR.net_log_operation_failed_with_error, nameof(Interop.SspiCli.SspiEncodeStringsAsAuthIdentity), $"0x{(int)result:X}"));
-                    throw new Win32Exception((int)result);
-                }
-
-                return SSPIWrapper.AcquireCredentialsHandle(GlobalSSPI.SSPIAuth,
-                    package, (isServer ? Interop.SspiCli.CredentialUse.SECPKG_CRED_INBOUND : Interop.SspiCli.CredentialUse.SECPKG_CRED_OUTBOUND), ref authData);
-            }
-            finally
-            {
-                if (authData != null)
-                {
-                    authData.Dispose();
-                }
-            }
-        }
-
-        internal static SecurityStatusPal InitializeSecurityContext(
-            SafeFreeCredentials credentialsHandle,
-            ref SafeDeleteContext securityContext,
-            string spn,
-            ContextFlagsPal requestedContextFlags,
-            SecurityBuffer[] inSecurityBufferArray,
-            SecurityBuffer outSecurityBuffer,
-            ref ContextFlagsPal contextFlags)
-        {
-            Interop.SspiCli.ContextFlags outContextFlags = Interop.SspiCli.ContextFlags.Zero;
-            Interop.SECURITY_STATUS winStatus = (Interop.SECURITY_STATUS)SSPIWrapper.InitializeSecurityContext(
-                GlobalSSPI.SSPIAuth,
-                credentialsHandle,
-                ref securityContext,
-                spn,
-                ContextFlagsAdapterPal.GetInteropFromContextFlagsPal(requestedContextFlags),
-                Interop.SspiCli.Endianness.SECURITY_NETWORK_DREP,
-                inSecurityBufferArray,
-                outSecurityBuffer,
-                ref outContextFlags);
-
-            contextFlags = ContextFlagsAdapterPal.GetContextFlagsPalFromInterop(outContextFlags);
-            return SecurityStatusAdapterPal.GetSecurityStatusPalFromInterop(winStatus);
-        }
-
-        internal static SecurityStatusPal CompleteAuthToken(
-            ref SafeDeleteContext securityContext,
-            SecurityBuffer[] inSecurityBufferArray)
-        {
-            Interop.SECURITY_STATUS winStatus = (Interop.SECURITY_STATUS)SSPIWrapper.CompleteAuthToken(
-                GlobalSSPI.SSPIAuth,
-                ref securityContext,
-                inSecurityBufferArray);
-            return SecurityStatusAdapterPal.GetSecurityStatusPalFromInterop(winStatus);
-        }
-
-        internal static SecurityStatusPal AcceptSecurityContext(
-            SafeFreeCredentials credentialsHandle,
-            ref SafeDeleteContext securityContext,
-            ContextFlagsPal requestedContextFlags,
-            SecurityBuffer[] inSecurityBufferArray,
-            SecurityBuffer outSecurityBuffer,
-            ref ContextFlagsPal contextFlags)
-        {
-            Interop.SspiCli.ContextFlags outContextFlags = Interop.SspiCli.ContextFlags.Zero;
-            Interop.SECURITY_STATUS winStatus = (Interop.SECURITY_STATUS)SSPIWrapper.AcceptSecurityContext(
-                GlobalSSPI.SSPIAuth,
-                credentialsHandle,
-                ref securityContext,
-                ContextFlagsAdapterPal.GetInteropFromContextFlagsPal(requestedContextFlags),
-                Interop.SspiCli.Endianness.SECURITY_NETWORK_DREP,
-                inSecurityBufferArray,
-                outSecurityBuffer,
-                ref outContextFlags);
-
-            contextFlags = ContextFlagsAdapterPal.GetContextFlagsPalFromInterop(outContextFlags);
-            return SecurityStatusAdapterPal.GetSecurityStatusPalFromInterop(winStatus);
-        }
-
+        
         internal static void ValidateImpersonationLevel(TokenImpersonationLevel impersonationLevel)
         {
             if (impersonationLevel != TokenImpersonationLevel.Identification &&
@@ -199,11 +100,6 @@ namespace System.Net.Security
             {
                 throw new ArgumentOutOfRangeException(nameof(impersonationLevel), impersonationLevel.ToString(), SR.net_auth_supported_impl_levels);
             }
-        }
-
-        internal static Win32Exception CreateExceptionFromError(SecurityStatusPal statusCode)
-        {
-            return new Win32Exception((int)SecurityStatusAdapterPal.GetInteropFromSecurityStatusPal(statusCode));
         }
 
         internal static int Encrypt(

@@ -170,10 +170,9 @@ namespace System.Linq.Expressions.Interpreter
                         Indent();
                     }
 
-                    Instruction instruction = instructions[i];
                     InstructionList.DebugView.InstructionView instructionView = instructionViews[i];
 
-                    sb.AppendFormat(string.Format(CultureInfo.InvariantCulture, "{0}IP_{1}: {2}", _indent, i.ToString().PadLeft(4, '0'), instructionView.GetValue())).AppendLine();
+                    sb.AppendFormat(CultureInfo.InvariantCulture, "{0}IP_{1}: {2}", _indent, i.ToString().PadLeft(4, '0'), instructionView.GetValue()).AppendLine();
                 }
 
                 EmitExits(sb, instructions.Length);
@@ -258,7 +257,7 @@ namespace System.Linq.Expressions.Interpreter
                     }
                 }
 
-#if FEATURE_MAKE_RUN_METHODS    
+#if FEATURE_MAKE_RUN_METHODS
                 if (DelegateHelpers.MakeDelegate(paramTypes) == delegateType)
                 {
                     name = "Make" + name + paramInfos.Length;

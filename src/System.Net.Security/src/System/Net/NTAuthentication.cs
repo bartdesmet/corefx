@@ -12,44 +12,12 @@ using System.Threading;
 
 namespace System.Net
 {
-    internal class NTAuthentication
+    internal partial class NTAuthentication
     {
         static private ContextCallback s_InitializeCallback = new ContextCallback(InitializeCallback);
-
-        private bool _isServer;
-
-        private SafeFreeCredentials _credentialsHandle;
-        private SafeDeleteContext _securityContext;
-        private string _spn;
         private string _clientSpecifiedSpn;
-
-        private int _tokenSize;
-        private ContextFlagsPal _requestedContextFlags;
-        private ContextFlagsPal _contextFlags;
-
-        private bool _isCompleted;
         private string _protocolName;
         private string _lastProtocolName;
-        private string _package;
-
-        private ChannelBinding _channelBinding;
-
-        // If set, no more calls should be made.
-        internal bool IsCompleted
-        {
-            get
-            {
-                return _isCompleted;
-            }
-        }
-
-        internal bool IsValidContext
-        {
-            get
-            {
-                return !(_securityContext == null || _securityContext.IsInvalid);
-            }
-        }
 
         internal string AssociatedName
         {
@@ -188,14 +156,6 @@ namespace System.Net
             }
         }
 
-        //
-        // This overload does not attempt to impersonate because the caller either did it already or the original thread context is still preserved.
-        //
-        internal NTAuthentication(bool isServer, string package, NetworkCredential credential, string spn, ContextFlagsPal requestedContextFlags, ChannelBinding channelBinding)
-        {
-            Initialize(isServer, package, credential, spn, requestedContextFlags, channelBinding);
-        }
-
         private class InitializeCallbackContext
         {
             internal InitializeCallbackContext(NTAuthentication thisPtr, bool isServer, string package, NetworkCredential credential, string spn, ContextFlagsPal requestedContextFlags, ChannelBinding channelBinding)
@@ -224,36 +184,6 @@ namespace System.Net
             context.ThisPtr.Initialize(context.IsServer, context.Package, context.Credential, context.Spn, context.RequestedContextFlags, context.ChannelBinding);
         }
 
-        private void Initialize(bool isServer, string package, NetworkCredential credential, string spn, ContextFlagsPal requestedContextFlags, ChannelBinding channelBinding)
-        {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(this, package, spn, requestedContextFlags);
-
-            _tokenSize = NegotiateStreamPal.QueryMaxTokenSize(package);
-            _isServer = isServer;
-            _spn = spn;
-            _securityContext = null;
-            _requestedContextFlags = requestedContextFlags;
-            _package = package;
-            _channelBinding = channelBinding;
-
-            if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"Peer SPN-> '{_spn}'");
-
-            //
-            // Check if we're using DefaultCredentials.
-            //
-
-            Debug.Assert(CredentialCache.DefaultCredentials == CredentialCache.DefaultNetworkCredentials);
-            if (credential == CredentialCache.DefaultCredentials)
-            {
-                if (NetEventSource.IsEnabled) NetEventSource.Info(this, "using DefaultCredentials");
-                _credentialsHandle = NegotiateStreamPal.AcquireDefaultCredential(package, _isServer);
-            }
-            else
-            {
-                _credentialsHandle = NegotiateStreamPal.AcquireCredentialsHandle(package, _isServer, credential);
-            }
-        }
-
         internal SafeDeleteContext GetContext(out SecurityStatusPal status)
         {
             status = new SecurityStatusPal(SecurityStatusPalErrorCode.OK);
@@ -274,137 +204,6 @@ namespace System.Net
             }
 
             return _securityContext;
-        }
-
-        internal void CloseContext()
-        {
-            if (_securityContext != null && !_securityContext.IsClosed)
-            {
-                _securityContext.Dispose();
-            }
-        }
-
-        // Accepts an incoming binary security blob and returns an outgoing binary security blob.
-        internal byte[] GetOutgoingBlob(byte[] incomingBlob, bool throwOnError, out SecurityStatusPal statusCode)
-        {
-            if (NetEventSource.IsEnabled) NetEventSource.Enter(this, incomingBlob);
-
-            var list = new List<SecurityBuffer>(2);
-
-            if (incomingBlob != null)
-            {
-                list.Add(new SecurityBuffer(incomingBlob, SecurityBufferType.SECBUFFER_TOKEN));
-            }
-            
-            if (_channelBinding != null)
-            {
-                list.Add(new SecurityBuffer(_channelBinding));
-            }
-
-            SecurityBuffer[] inSecurityBufferArray = null;
-            if (list.Count > 0)
-            {
-                inSecurityBufferArray = list.ToArray();
-            }
-
-            var outSecurityBuffer = new SecurityBuffer(_tokenSize, SecurityBufferType.SECBUFFER_TOKEN);
-
-            bool firstTime = _securityContext == null;
-            try
-            {
-                if (!_isServer)
-                {
-                    // client session
-                    statusCode = NegotiateStreamPal.InitializeSecurityContext(
-                        _credentialsHandle,
-                        ref _securityContext,
-                        _spn,
-                        _requestedContextFlags,
-                        inSecurityBufferArray,
-                        outSecurityBuffer,
-                        ref _contextFlags);
-
-                    if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"SSPIWrapper.InitializeSecurityContext() returns statusCode:0x{((int)statusCode.ErrorCode):x8} ({statusCode})");
-
-                    if (statusCode.ErrorCode == SecurityStatusPalErrorCode.CompleteNeeded)
-                    {
-                        var inSecurityBuffers = new SecurityBuffer[1];
-                        inSecurityBuffers[0] = outSecurityBuffer;
-
-                        statusCode = NegotiateStreamPal.CompleteAuthToken(ref _securityContext, inSecurityBuffers);
-
-                        if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"SSPIWrapper.CompleteAuthToken() returns statusCode:0x{((int)statusCode.ErrorCode):x8} ({statusCode})");
-                        
-                        outSecurityBuffer.token = null;
-                    }
-                }
-                else
-                {
-                    // Server session.
-                    statusCode = NegotiateStreamPal.AcceptSecurityContext(
-                        _credentialsHandle,
-                        ref _securityContext,
-                        _requestedContextFlags,
-                        inSecurityBufferArray,
-                        outSecurityBuffer,
-                        ref _contextFlags);
-
-                    if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"SSPIWrapper.AcceptSecurityContext() returns statusCode:0x{((int)statusCode.ErrorCode):x8} ({statusCode})");
-                }
-            }
-            finally
-            {
-                //
-                // Assuming the ISC or ASC has referenced the credential on the first successful call,
-                // we want to decrement the effective ref count by "disposing" it.
-                // The real dispose will happen when the security context is closed.
-                // Note if the first call was not successful the handle is physically destroyed here.
-                //
-                if (firstTime && _credentialsHandle != null)
-                {
-                    _credentialsHandle.Dispose();
-                }
-            }
-
-
-            if (NegoState.IsError(statusCode))
-            {
-                CloseContext();
-                _isCompleted = true;
-                if (throwOnError)
-                {
-                    Exception exception = NegotiateStreamPal.CreateExceptionFromError(statusCode);
-                    if (NetEventSource.IsEnabled) NetEventSource.Exit(this, exception);
-                    throw exception;
-                }
-
-                if (NetEventSource.IsEnabled) NetEventSource.Exit(this, $"null statusCode:0x{((int)statusCode.ErrorCode):x8} ({statusCode})");
-                return null;
-            }
-            else if (firstTime && _credentialsHandle != null)
-            {
-                // Cache until it is pushed out by newly incoming handles.
-                SSPIHandleCache.CacheCredential(_credentialsHandle);
-            }
-
-            // The return value will tell us correctly if the handshake is over or not
-            if (statusCode.ErrorCode == SecurityStatusPalErrorCode.OK)
-            {
-                // Success.
-                _isCompleted = true;
-            }
-            else if (NetEventSource.IsEnabled)
-            {
-                // We need to continue.
-                if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"need continue statusCode:0x{((int)statusCode.ErrorCode):x8} ({statusCode}) _securityContext:{_securityContext}");
-            }
-
-            if (NetEventSource.IsEnabled)
-            {
-                if (NetEventSource.IsEnabled) NetEventSource.Exit(this, $"IsCompleted: {IsCompleted}");
-            }
-
-            return outSecurityBuffer.token;
         }
 
         internal int Encrypt(byte[] buffer, int offset, int count, ref byte[] output, uint sequenceNumber)

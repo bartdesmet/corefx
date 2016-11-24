@@ -20,6 +20,14 @@ namespace Microsoft.Win32.SafeHandles
         public override bool IsInvalid { [System.Security.SecurityCriticalAttribute]get { throw null; } }
     }
     [System.Security.SecurityCriticalAttribute]
+    public sealed partial class SafeFileHandle : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public SafeFileHandle(System.IntPtr preexistingHandle, bool ownsHandle) : base(default(bool)) { }
+        public override bool IsInvalid { [System.Security.SecurityCriticalAttribute]get { throw null; } }
+        [System.Security.SecurityCriticalAttribute]
+        protected override bool ReleaseHandle() { throw null; }
+    }
+    [System.Security.SecurityCriticalAttribute]
     public abstract partial class SafeHandleMinusOneIsInvalid : System.Runtime.InteropServices.SafeHandle
     {
         protected SafeHandleMinusOneIsInvalid(bool ownsHandle) : base(System.IntPtr.Zero, ownsHandle) { }
@@ -75,15 +83,17 @@ namespace System
         public static string BaseDirectory { get { throw null; } }
         public static void SetSwitch(string switchName, bool isEnabled) { }
         public static bool TryGetSwitch(string switchName, out bool isEnabled) { throw null; }
+#if netcoreapp11
         public static string TargetFrameworkName { get { throw null; } }
         public static object GetData(string name) { throw null; }
+#endif
     }
     
     public partial class EntryPointNotFoundException : System.TypeLoadException
     {
         public EntryPointNotFoundException() { }
         public EntryPointNotFoundException(string message) { }
-        public EntryPointNotFoundException(string message, Exception innerException) { }
+        public EntryPointNotFoundException(string message, Exception inner) { }
         protected EntryPointNotFoundException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 
@@ -131,6 +141,7 @@ namespace System
         protected SystemException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 
+    [ObsoleteAttribute("This type previously indicated an unspecified fatal error in the runtime. The runtime no longer raises this exception so this type is obsolete.")]
     public sealed partial class ExecutionEngineException : System.SystemException
     {
         public ExecutionEngineException() { }
@@ -1070,7 +1081,7 @@ namespace System
         public DuplicateWaitObjectException() { }
         public DuplicateWaitObjectException(string parameterName) { }
         public DuplicateWaitObjectException(string parameterName, string message) { }
-        public DuplicateWaitObjectException(string message, System.Exception inner) { }
+        public DuplicateWaitObjectException(string message, System.Exception innerException) { }
         protected DuplicateWaitObjectException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
     public abstract partial class Enum : System.ValueType, System.IComparable, System.IConvertible, System.IFormattable
@@ -2204,6 +2215,20 @@ namespace System
         public static bool TryParseExact(string input, string[] formats, System.IFormatProvider formatProvider, System.Globalization.TimeSpanStyles styles, out System.TimeSpan result) { throw null; }
         public static bool TryParseExact(string input, string[] formats, System.IFormatProvider formatProvider, out System.TimeSpan result) { throw null; }
     }
+    [ObsoleteAttribute("System.TimeZone has been deprecated.  Please investigate the use of System.TimeZoneInfo instead.")]
+    public abstract partial class TimeZone
+    {
+        protected TimeZone() { }
+        public static System.TimeZone CurrentTimeZone { get { throw null; } }
+        public abstract string DaylightName { get; }
+        public abstract string StandardName { get; }
+        public abstract System.Globalization.DaylightTime GetDaylightChanges(int year);
+        public abstract System.TimeSpan GetUtcOffset(System.DateTime time);
+        public virtual bool IsDaylightSavingTime(System.DateTime time) { throw null; }
+        public static bool IsDaylightSavingTime(System.DateTime time, System.Globalization.DaylightTime daylightTimes) { throw null; }
+        public virtual System.DateTime ToLocalTime(System.DateTime time) { throw null; }
+        public virtual System.DateTime ToUniversalTime(System.DateTime time) { throw null; }
+    }
     public sealed partial class TimeZoneInfo : System.IEquatable<System.TimeZoneInfo>, System.Runtime.Serialization.ISerializable, System.Runtime.Serialization.IDeserializationCallback
     {
         internal TimeZoneInfo() { }
@@ -2219,6 +2244,9 @@ namespace System
         public static System.DateTime ConvertTime(System.DateTime dateTime, System.TimeZoneInfo destinationTimeZone) { throw null; }
         public static System.DateTime ConvertTime(System.DateTime dateTime, System.TimeZoneInfo sourceTimeZone, System.TimeZoneInfo destinationTimeZone) { throw null; }
         public static System.DateTimeOffset ConvertTime(System.DateTimeOffset dateTimeOffset, System.TimeZoneInfo destinationTimeZone) { throw null; }
+        public static System.DateTime ConvertTimeBySystemTimeZoneId(System.DateTime dateTime, string destinationTimeZoneId) { throw null; }
+        public static System.DateTime ConvertTimeBySystemTimeZoneId(System.DateTime dateTime, string sourceTimeZoneId, string destinationTimeZoneId) { throw null; }
+        public static System.DateTimeOffset ConvertTimeBySystemTimeZoneId(System.DateTimeOffset dateTimeOffset, string destinationTimeZoneId) { throw null; }
         public static System.DateTime ConvertTimeFromUtc(System.DateTime dateTime, System.TimeZoneInfo destinationTimeZone) { throw null; }
         public static System.DateTime ConvertTimeToUtc(System.DateTime dateTime) { throw null; }
         public static System.DateTime ConvertTimeToUtc(System.DateTime dateTime, System.TimeZoneInfo sourceTimeZone) { throw null; }
@@ -2462,7 +2490,7 @@ namespace System
         public bool IsCOMObject { get { throw null; } }
         public virtual bool IsConstructedGenericType { get { throw null; } }
         public bool IsContextful { get { throw null; } }
-        public bool IsEnum { get { throw null; } }
+        public virtual bool IsEnum { get { throw null; } }
         public bool IsExplicitLayout { get { throw null; } }
         public virtual bool IsGenericParameter { get { throw null; } }
         public virtual bool IsGenericType { get { throw null; } }
@@ -2500,7 +2528,7 @@ namespace System
         public System.Reflection.ConstructorInfo TypeInitializer { get { throw null; } }
         public abstract System.Type UnderlyingSystemType { get; }
         public override bool Equals(object o) { throw null; }
-        public bool Equals(System.Type o) { throw null; }
+        public virtual bool Equals(System.Type o) { throw null; }
         public virtual System.Type[] FindInterfaces(System.Reflection.TypeFilter filter, object filterCriteria) { throw null; }
         public virtual System.Reflection.MemberInfo[] FindMembers(System.Reflection.MemberTypes memberType, System.Reflection.BindingFlags bindingAttr, System.Reflection.MemberFilter filter, object filterCriteria) { throw null; }
         public virtual int GetArrayRank() { throw null; }
@@ -2654,7 +2682,7 @@ namespace System
     {
         public TypeUnloadedException() { }
         public TypeUnloadedException(string message) { }
-        public TypeUnloadedException(string message, System.Exception inner) { }
+        public TypeUnloadedException(string message, System.Exception innerException) { }
         protected TypeUnloadedException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
     [System.CLSCompliantAttribute(false)]
@@ -2863,10 +2891,10 @@ namespace System
         protected Uri(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
         public Uri(string uriString) { }
         public Uri(string uriString, System.UriKind uriKind) { }
-        [System.ObsoleteAttribute]
+        [System.ObsoleteAttribute("The constructor has been deprecated. Please use new Uri(string). The dontEscape parameter is deprecated and is always false. http://go.microsoft.com/fwlink/?linkid=14202")]
         public Uri(string uriString, bool dontEscape) { }
         public Uri(System.Uri baseUri, string relativeUri) { }
-        [System.ObsoleteAttribute("dontEscape is always false")]
+        [System.ObsoleteAttribute("The constructor has been deprecated. Please new Uri(Uri, string). The dontEscape parameter is deprecated and is always false. http://go.microsoft.com/fwlink/?linkid=14202")]
         public Uri(System.Uri baseUri, string relativeUri, bool dontEscape) { }
         public Uri(System.Uri baseUri, System.Uri relativeUri) { }
         public string AbsolutePath { get { throw null; } }
@@ -2899,10 +2927,10 @@ namespace System
         protected virtual void CheckSecurity() { }
         public static int Compare(System.Uri uri1, System.Uri uri2, System.UriComponents partsToCompare, System.UriFormat compareFormat, System.StringComparison comparisonType) { throw null; }
         public override bool Equals(object comparand) { throw null; }
-        [System.ObsoleteAttribute]
+        [System.ObsoleteAttribute("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual void Escape() { }
         public static string EscapeDataString(string stringToEscape) { throw null; }
-        [System.ObsoleteAttribute]
+        [System.ObsoleteAttribute("The method has been deprecated. Please use GetComponents() or static EscapeUriString() to escape a Uri component or a string. http://go.microsoft.com/fwlink/?linkid=14202")]
         protected static string EscapeString(string str) { throw null; }
         public static string EscapeUriString(string stringToEscape) { throw null; }
         public static int FromHex(char digit) { throw null; }
@@ -2913,29 +2941,29 @@ namespace System
         protected void GetObjectData(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
         public static string HexEscape(char character) { throw null; }
         public static char HexUnescape(string pattern, ref int index) { throw null; }
-        [System.ObsoleteAttribute]
+        [System.ObsoleteAttribute("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual bool IsBadFileSystemCharacter(char character) { throw null; }
-        [System.ObsoleteAttribute]
+        [System.ObsoleteAttribute("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
         protected static bool IsExcludedCharacter(char character) { throw null; }
         public static bool IsHexDigit(char character) { throw null; }
         public static bool IsHexEncoding(string pattern, int index) { throw null; }
-        [System.ObsoleteAttribute]
+        [System.ObsoleteAttribute("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual bool IsReservedCharacter(char character) { throw null; }
         public bool IsWellFormedOriginalString() { throw null; }
         public static bool IsWellFormedUriString(string uriString, System.UriKind uriKind) { throw null; }
-        [System.ObsoleteAttribute("Use MakeRelativeUri(Uri uri) instead.")]
+        [System.ObsoleteAttribute("The method has been deprecated. Please use MakeRelativeUri(Uri uri). http://go.microsoft.com/fwlink/?linkid=14202")]
         public string MakeRelative(System.Uri toUri) { throw null; }
         public System.Uri MakeRelativeUri(System.Uri uri) { throw null; }
         public static bool operator ==(System.Uri uri1, System.Uri uri2) { throw null; }
         public static bool operator !=(System.Uri uri1, System.Uri uri2) { throw null; }
-        [System.ObsoleteAttribute("The method has been deprecated. It is not used by the system.")]
+        [System.ObsoleteAttribute("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual void Parse() { }
         void System.Runtime.Serialization.ISerializable.GetObjectData(System.Runtime.Serialization.SerializationInfo serializationInfo, System.Runtime.Serialization.StreamingContext streamingContext) { }
         public override string ToString() { throw null; }
         public static bool TryCreate(string uriString, System.UriKind uriKind, out System.Uri result) { throw null; }
         public static bool TryCreate(System.Uri baseUri, string relativeUri, out System.Uri result) { throw null; }
         public static bool TryCreate(System.Uri baseUri, System.Uri relativeUri, out System.Uri result) { throw null; }
-        [System.ObsoleteAttribute]
+        [System.ObsoleteAttribute("The method has been deprecated. Please use GetComponents() or static UnescapeDataString() to unescape a Uri component or a string. http://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual string Unescape(string path) { throw null; }
         public static string UnescapeDataString(string stringToUnescape) { throw null; }
     }
@@ -3152,6 +3180,7 @@ namespace System.Runtime.ConstrainedExecution
         public System.Runtime.ConstrainedExecution.Cer Cer { get { throw null; } }
         public System.Runtime.ConstrainedExecution.Consistency ConsistencyGuarantee { get { throw null; } }
     }
+    [AttributeUsage(AttributeTargets.Constructor | AttributeTargets.Method, Inherited = false)]
     public sealed partial class PrePrepareMethodAttribute : System.Attribute
     {
         public PrePrepareMethodAttribute() { }
@@ -3160,16 +3189,14 @@ namespace System.Runtime.ConstrainedExecution
 
 namespace System.Runtime.InteropServices
 {
-    [System.Security.SecurityCriticalAttribute]
     public abstract partial class CriticalHandle : System.Runtime.ConstrainedExecution.CriticalFinalizerObject, System.IDisposable
     {
         protected System.IntPtr handle;
         protected CriticalHandle(System.IntPtr invalidHandleValue) { }
         public bool IsClosed { get { throw null; } }
         public abstract bool IsInvalid { get; }
-        [System.Security.SecuritySafeCriticalAttribute]
+        public void Close() { }
         public void Dispose() { }
-        [System.Security.SecurityCriticalAttribute]
         protected virtual void Dispose(bool disposing) { }
         ~CriticalHandle() { }
         protected abstract bool ReleaseHandle();
@@ -4136,6 +4163,7 @@ namespace System.Globalization
         public virtual int LastIndexOf(string source, string value, int startIndex, int count, System.Globalization.CompareOptions options) { throw null; }
         void System.Runtime.Serialization.IDeserializationCallback.OnDeserialization(object sender) { }
         public override string ToString() { throw null; }
+        public SortVersion Version { get { throw null; } }
     }
     public sealed partial class DateTimeFormatInfo : System.ICloneable, System.IFormatProvider
     {
@@ -4267,6 +4295,7 @@ namespace System.Globalization
         public CultureInfo(string name, bool useUserOverride) { }
         public virtual System.Globalization.Calendar Calendar { get { throw null; } }
         public virtual System.Globalization.CompareInfo CompareInfo { get { throw null; } }
+        public System.Globalization.CultureTypes CultureTypes { get { throw null; } }
         public static System.Globalization.CultureInfo CurrentCulture { get { throw null; } set { } }
         public static System.Globalization.CultureInfo CurrentUICulture { get { throw null; } set { } }
         public virtual System.Globalization.DateTimeFormatInfo DateTimeFormat { get { throw null; } set { } }
@@ -4274,10 +4303,12 @@ namespace System.Globalization
         public static System.Globalization.CultureInfo DefaultThreadCurrentUICulture { get { throw null; } set { } }
         public virtual string DisplayName { get { throw null; } }
         public virtual string EnglishName { get { throw null; } }
+        public string IetfLanguageTag { get { throw null; } }
         public static System.Globalization.CultureInfo InstalledUICulture { get { throw null; } }
         public static System.Globalization.CultureInfo InvariantCulture { get { throw null; } }
         public virtual bool IsNeutralCulture { get { throw null; } }
         public bool IsReadOnly { get { throw null; } }
+        public virtual int KeyboardLayoutId { get { throw null; } }
         public virtual int LCID { get { throw null; } }
         public virtual string Name { get { throw null; } }
         public virtual string NativeName { get { throw null; } }
@@ -4293,6 +4324,7 @@ namespace System.Globalization
         public virtual object Clone() { throw null; }
         public static System.Globalization.CultureInfo CreateSpecificCulture(string name) { throw null; }
         public override bool Equals(object value) { throw null; }
+        public System.Globalization.CultureInfo GetConsoleFallbackUICulture() { throw null; }
         public static System.Globalization.CultureInfo GetCultureInfo(int culture) { throw null; }
         public static System.Globalization.CultureInfo GetCultureInfo(string name) { throw null; }
         public static System.Globalization.CultureInfo GetCultureInfo(string name, string altName) { throw null; }
@@ -4303,6 +4335,20 @@ namespace System.Globalization
         public static System.Globalization.CultureInfo ReadOnly(System.Globalization.CultureInfo ci) { throw null; }
         public override string ToString() { throw null; }
     }
+    public sealed partial class IdnMapping
+    {
+        public IdnMapping() { }
+        public bool AllowUnassigned { get { throw null; } set { } }
+        public bool UseStd3AsciiRules { get { throw null; } set { } }
+        public override bool Equals(object obj) { throw null; }
+        public string GetAscii(string unicode) { throw null; }
+        public string GetAscii(string unicode, int index) { throw null; }
+        public string GetAscii(string unicode, int index, int count) { throw null; }
+        public override int GetHashCode() { throw null; }
+        public string GetUnicode(string ascii) { throw null; }
+        public string GetUnicode(string ascii, int index) { throw null; }
+        public string GetUnicode(string ascii, int index, int count) { throw null; }
+    }    
     public partial class CultureNotFoundException : System.ArgumentException, System.Runtime.Serialization.ISerializable
     {
         public CultureNotFoundException() { }
@@ -4323,12 +4369,14 @@ namespace System.Globalization
     public enum CultureTypes
     {
         AllCultures = 7,
+        [ObsoleteAttribute("This value has been deprecated.  Please use other values in CultureTypes.")]
         FrameworkCultures = 64,
         InstalledWin32Cultures = 4,
         NeutralCultures = 1,
         ReplacementCultures = 16,
         SpecificCultures = 2,
         UserCustomCulture = 8,
+        [ObsoleteAttribute("This value has been deprecated.  Please use other values in CultureTypes.")]
         WindowsOnlyCultures = 32,
     }
     public enum UnicodeCategory
@@ -4449,6 +4497,45 @@ namespace System.IO
         ReadWrite = 3,
         Write = 2,
     }
+    public enum FileMode
+    {
+        Append = 6,
+        Create = 2,
+        CreateNew = 1,
+        Open = 3,
+        OpenOrCreate = 4,
+        Truncate = 5,
+    }
+    [System.FlagsAttribute]
+    public enum FileShare
+    {
+        Delete = 4,
+        Inheritable = 16,
+        None = 0,
+        Read = 1,
+        ReadWrite = 3,
+        Write = 2,
+    }
+    [System.FlagsAttribute]
+    public enum FileAttributes
+    {
+        Archive = 32,
+        Compressed = 2048,
+        Device = 64,
+        Directory = 16,
+        Encrypted = 16384,
+        Hidden = 2,
+        IntegrityStream = 32768,
+        Normal = 128,
+        NoScrubData = 131072,
+        NotContentIndexed = 8192,
+        Offline = 4096,
+        ReadOnly = 1,
+        ReparsePoint = 1024,
+        SparseFile = 512,
+        System = 4,
+        Temporary = 256,
+    }
     public partial class FileLoadException : System.IO.IOException
     {
         public FileLoadException() { }
@@ -4457,6 +4544,7 @@ namespace System.IO
         public FileLoadException(string message, string fileName) { }
         public FileLoadException(string message, string fileName, System.Exception inner) { }
         protected FileLoadException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+        public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public string FileName { get { throw null; } }
         public string FusionLog { get { throw null; } }
         public override string Message { get { throw null; } }
@@ -4473,6 +4561,7 @@ namespace System.IO
         public string FileName { get { throw null; } }
         public string FusionLog { get { throw null; } }
         public override string Message { get { throw null; } }
+        public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public override string ToString() { throw null; }
     }
     public enum HandleInheritability
@@ -4548,6 +4637,66 @@ namespace System.IO
         public virtual System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
         public virtual void WriteByte(byte value) { }
     }
+    public partial class FileStream : System.IO.Stream
+    {
+        [Obsolete("This constructor has been deprecated.  Please use new FileStream(SafeFileHandle handle, FileAccess access) instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        public FileStream(IntPtr handle, FileAccess access) { }
+        [Obsolete("This constructor has been deprecated.  Please use new FileStream(SafeFileHandle handle, FileAccess access) instead, and optionally make a new SafeFileHandle with ownsHandle=false if needed.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        public FileStream(IntPtr handle, FileAccess access, bool ownsHandle) { }
+        [Obsolete("This constructor has been deprecated.  Please use new FileStream(SafeFileHandle handle, FileAccess access, int bufferSize) instead, and optionally make a new SafeFileHandle with ownsHandle=false if needed.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        public FileStream(IntPtr handle, FileAccess access, bool ownsHandle, int bufferSize) { }
+        [Obsolete("This constructor has been deprecated.  Please use new FileStream(SafeFileHandle handle, FileAccess access, int bufferSize, bool isAsync) instead, and optionally make a new SafeFileHandle with ownsHandle=false if needed.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        public FileStream(IntPtr handle, FileAccess access, bool ownsHandle, int bufferSize, bool isAsync) { }
+        public FileStream(Microsoft.Win32.SafeHandles.SafeFileHandle handle, System.IO.FileAccess access) { }
+        public FileStream(Microsoft.Win32.SafeHandles.SafeFileHandle handle, System.IO.FileAccess access, int bufferSize) { }
+        public FileStream(Microsoft.Win32.SafeHandles.SafeFileHandle handle, System.IO.FileAccess access, int bufferSize, bool isAsync) { }
+        public FileStream(string path, System.IO.FileMode mode) { }
+        public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access) { }
+        public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share) { }
+        public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, int bufferSize) { }
+        public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, int bufferSize, bool useAsync) { }
+        public FileStream(string path, System.IO.FileMode mode, System.IO.FileAccess access, System.IO.FileShare share, int bufferSize, System.IO.FileOptions options) { }
+        public override bool CanRead { get { throw null; } }
+        public override bool CanSeek { get { throw null; } }
+        public override bool CanWrite { get { throw null; } }
+        [Obsolete("This property has been deprecated.  Please use FileStream's SafeFileHandle property instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        public virtual System.IntPtr Handle { get { throw null; } }
+        public virtual bool IsAsync { get { throw null; } }
+        public override long Length { get { throw null; } }
+        public string Name { get { throw null; } }
+        public override long Position { get { throw null; } set { } }
+        public virtual Microsoft.Win32.SafeHandles.SafeFileHandle SafeFileHandle { get { throw null; } }
+        protected override void Dispose(bool disposing) { }
+        ~FileStream() { }
+        public override void Flush() { }
+        public virtual void Flush(bool flushToDisk) { }
+        public override System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override int Read(byte[] array, int offset, int count) { throw null; }
+        public override System.Threading.Tasks.Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback callback, object state) { throw null; }
+        public override int EndRead(IAsyncResult asyncResult) { throw null; }
+        public virtual void Lock(long position, long length) { }
+        public override int ReadByte() { throw null; }
+        public override long Seek(long offset, System.IO.SeekOrigin origin) { throw null; }
+        public override void SetLength(long value) { }
+        public override void Write(byte[] array, int offset, int count) { }
+        public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count, AsyncCallback callback, object state) { throw null; }
+        public override void EndWrite(IAsyncResult asyncResult) { }
+        public override void WriteByte(byte value) { }
+        public virtual void Unlock(long position, long length) { }
+    }
+    [System.FlagsAttribute]
+    public enum FileOptions
+    {
+        Asynchronous = 1073741824,
+        DeleteOnClose = 67108864,
+        Encrypted = 16384,
+        None = 0,
+        RandomAccess = 268435456,
+        SequentialScan = 134217728,
+        WriteThrough = -2147483648,
+    }
 }
 namespace System.Reflection
 {
@@ -4562,6 +4711,7 @@ namespace System.Reflection
         protected Assembly() { }
         public virtual System.Collections.Generic.IEnumerable<System.Reflection.CustomAttributeData> CustomAttributes { get { throw null; } }
         public virtual System.Collections.Generic.IEnumerable<System.Reflection.TypeInfo> DefinedTypes { get; }
+        public virtual string EscapedCodeBase { get { throw null; } }
         public virtual System.Collections.Generic.IEnumerable<System.Type> ExportedTypes { get { throw null; } }
         public virtual MethodInfo EntryPoint { get { throw null; } }
         public virtual string FullName { get { throw null; } }
@@ -4579,6 +4729,9 @@ namespace System.Reflection
         public static bool operator !=(System.Reflection.Assembly left, System.Reflection.Assembly right) { throw null; }
         public static System.Reflection.Assembly GetAssembly(System.Type type) { throw null; }
         public static System.Reflection.Assembly GetCallingAssembly() { throw null; }
+        public virtual System.IO.FileStream GetFile(string name) { throw null; }
+        public virtual System.IO.FileStream[] GetFiles() { throw null; }
+        public virtual System.IO.FileStream[] GetFiles(bool getResourceModules) { throw null; }
         public override int GetHashCode() { throw null; }
         public virtual System.Reflection.ManifestResourceInfo GetManifestResourceInfo(string resourceName) { throw null; }
         public virtual string[] GetManifestResourceNames() { throw null; }
@@ -4597,11 +4750,11 @@ namespace System.Reflection
         public static System.Reflection.Assembly Load(System.Reflection.AssemblyName assemblyRef) { throw null; }
         public static System.Reflection.Assembly Load(string assemblyString) { throw null; }
         public static System.Reflection.Assembly LoadFile(String path) { throw null; }
-        public static System.Reflection.Assembly LoadFrom(String path) { throw null; }
+        public static System.Reflection.Assembly LoadFrom(String assemblyFile) { throw null; }
         public static Assembly LoadFrom(string assemblyFile, byte[] hashValue, System.Configuration.Assemblies.AssemblyHashAlgorithm hashAlgorithm) { throw null; }
         public System.Reflection.Module LoadModule(String moduleName, byte[] rawModule) { throw null; }
-        public System.Reflection.Module LoadModule(String moduleName, byte[] rawModule, byte[] rawSymbolStore) { throw null; }
-        [ObsoleteAttribute("This method has been deprecated. Please use Assembly.Load() instead.")]
+        public virtual System.Reflection.Module LoadModule(String moduleName, byte[] rawModule, byte[] rawSymbolStore) { throw null; }
+        [ObsoleteAttribute("This method has been deprecated. Please use Assembly.Load() instead. http://go.microsoft.com/fwlink/?linkid=14202")]
         public static Assembly LoadWithPartialName(string partialName) { throw null; }
         public static System.Reflection.Assembly GetEntryAssembly() { throw null; }
         public static System.Reflection.Assembly GetExecutingAssembly() { throw null; }
@@ -4696,11 +4849,14 @@ namespace System.Reflection
     public sealed partial class AssemblyFlagsAttribute : System.Attribute
     {
         [System.CLSCompliantAttribute(false)]
+        [ObsoleteAttribute("This constructor has been deprecated. Please use AssemblyFlagsAttribute(AssemblyNameFlags) instead. http://go.microsoft.com/fwlink/?linkid=14202")]
         public AssemblyFlagsAttribute(uint flags) { }
+        [ObsoleteAttribute("This constructor has been deprecated. Please use AssemblyFlagsAttribute(AssemblyNameFlags) instead. http://go.microsoft.com/fwlink/?linkid=14202")]
         public AssemblyFlagsAttribute(int assemblyFlags) { }
         public AssemblyFlagsAttribute(System.Reflection.AssemblyNameFlags assemblyFlags) { }
         public int AssemblyFlags { get { throw null; } }
         [System.CLSCompliantAttribute(false)]
+        [ObsoleteAttribute("This property has been deprecated. Please use AssemblyFlags instead. http://go.microsoft.com/fwlink/?linkid=14202")]
         public uint Flags { get { throw null; } }
     }
     [System.AttributeUsageAttribute((System.AttributeTargets)(1), Inherited = false)]
@@ -4736,6 +4892,7 @@ namespace System.Reflection
         public System.Reflection.AssemblyContentType ContentType { get { throw null; } set { } }
         public System.Globalization.CultureInfo CultureInfo { get { throw null; } set { } }
         public string CultureName { get { throw null; } set { } }
+        public string EscapedCodeBase { get { throw null; } }
         public System.Reflection.AssemblyNameFlags Flags { get { throw null; } set { } }
         public string FullName { get { throw null; } }
         public System.Configuration.Assemblies.AssemblyHashAlgorithm HashAlgorithm { get { throw null; } set { } }
@@ -5220,6 +5377,7 @@ namespace System.Reflection
         public bool IsStatic { get { throw null; } }
         public bool IsVirtual { get { throw null; } }
         public virtual bool IsSecurityCritical { get { throw null; } }
+        public virtual bool IsSecuritySafeCritical { get { throw null; } }
         public virtual bool IsSecurityTransparent { get { throw null; } }
         public abstract System.RuntimeMethodHandle MethodHandle { get; }
         public virtual System.Reflection.MethodImplAttributes MethodImplementationFlags { get { throw null; } }
@@ -5660,6 +5818,7 @@ namespace System.Reflection
     public partial class StrongNameKeyPair : System.Runtime.Serialization.IDeserializationCallback, System.Runtime.Serialization.ISerializable
     {
         public StrongNameKeyPair(byte[] keyPairArray) { }
+        public StrongNameKeyPair(System.IO.FileStream keyPairFile) { }
         protected StrongNameKeyPair(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public StrongNameKeyPair(string keyPairContainer) { }
         public byte[] PublicKey { [System.Security.SecuritySafeCriticalAttribute]get { throw null; } }
@@ -6009,7 +6168,7 @@ namespace System.Runtime.ExceptionServices
     {
         public HandleProcessCorruptedStateExceptionsAttribute() { }
     }
-    public sealed partial class FirstChanceExceptionEventArgs : EventArgs
+    public partial class FirstChanceExceptionEventArgs : EventArgs
     {
         public FirstChanceExceptionEventArgs(Exception exception) { }
         public Exception Exception { get { throw null; } }
@@ -6141,6 +6300,8 @@ namespace System.Runtime.Serialization
     {
         [CLSCompliant(false)]
         public SerializationInfo(Type type, IFormatterConverter converter) { }
+        [CLSCompliant(false)]
+        public SerializationInfo(Type type, IFormatterConverter converter, bool requireSameTokenInPartialTrust) { }
         public string AssemblyName { get { throw null; } set { } }
         public string FullTypeName { get { throw null; } set { } }
         public int MemberCount { get { throw null; } }
@@ -6245,6 +6406,19 @@ namespace System.Runtime.Versioning
         public string FrameworkName { get { throw null; } }
     }
 }
+namespace System.Security.Cryptography
+{
+    public partial class CryptographicException : System.SystemException
+    {
+        public CryptographicException() { }
+        public CryptographicException(int hr) { }
+        protected CryptographicException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
+        public CryptographicException(string message) { }
+        public CryptographicException(string message, System.Exception inner) { }
+        public CryptographicException(string format, string insert) { }
+    }
+}
+
 namespace System.Security
 {
     [System.AttributeUsageAttribute((System.AttributeTargets)(1), AllowMultiple=false, Inherited=false)]

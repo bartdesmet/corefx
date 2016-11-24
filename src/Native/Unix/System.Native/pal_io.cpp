@@ -6,9 +6,7 @@
 #include "pal_errno.h"
 #include "pal_io.h"
 #include "pal_utilities.h"
-#if !HAVE_READDIR_R
 #include "pal_safecrt.h"
-#endif
 
 #include <assert.h>
 #include <errno.h>
@@ -809,9 +807,18 @@ extern "C" Error SystemNative_Poll(PollEvent* pollEvents, uint32_t eventCount, i
         return PAL_EINVAL;
     }
 
-    size_t bufferSize = sizeof(pollfd) * static_cast<size_t>(eventCount);
+    size_t bufferSize;
+    if (!multiply_s(sizeof(pollfd), static_cast<size_t>(eventCount), &bufferSize))
+    {
+        return SystemNative_ConvertErrorPlatformToPal(EOVERFLOW);        
+    }
+
     bool useStackBuffer = bufferSize <= 2048;
     pollfd* pollfds = reinterpret_cast<pollfd*>(useStackBuffer ? alloca(bufferSize) : malloc(bufferSize));
+    if (pollfds == nullptr)
+    {
+        return PAL_ENOMEM;
+    }
 
     for (uint32_t i = 0; i < eventCount; i++)
     {
@@ -1163,4 +1170,23 @@ extern "C" char* SystemNative_RealPath(const char* path)
 {
     assert(path != nullptr);
     return realpath(path, nullptr);
+}
+
+extern "C" int32_t SystemNative_LockFileRegion(intptr_t fd, int64_t offset, int64_t length, int16_t lockType)
+{
+    if (offset < 0 || length < 0) 
+    {
+        errno = EINVAL;
+        return -1;
+    }
+    
+    struct flock lockArgs;
+    lockArgs.l_type = lockType;
+    lockArgs.l_whence = SEEK_SET;
+    lockArgs.l_start = offset;
+    lockArgs.l_len = length;
+    
+    int32_t ret;
+    while (CheckInterrupted(ret = fcntl (ToFileDescriptor(fd), F_SETLK, &lockArgs)));
+    return ret;
 }
