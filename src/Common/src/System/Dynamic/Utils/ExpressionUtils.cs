@@ -146,6 +146,15 @@ namespace System.Dynamic.Utils
             Type pType = pi.ParameterType;
             if (pType.IsByRef)
             {
+                // The stack spiller can emit ref locals. When the LambdaCompiler constructs new expressions
+                // during lowering steps, it can invoke factory methods that perform validation. Note that
+                // user expressions can't have ByRef types.
+                if (TypeUtils.AreReferenceAssignable(pType, arguments.Type))
+                {
+                    Debug.Assert(arguments.NodeType == ExpressionType.Parameter, "Expected only ref locals from stack spiller.");
+                    return arguments;
+                }
+
                 pType = pType.GetElementType();
             }
             TypeUtils.ValidateType(pType, methodParamName);
