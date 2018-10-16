@@ -12,8 +12,8 @@ namespace System.Globalization.Tests
         public static IEnumerable<object[]> FirstDayOfWeek_TestData()
         {
             yield return new object[] { DateTimeFormatInfo.InvariantInfo, DayOfWeek.Sunday };
-            yield return new object[] { new CultureInfo("en-US").DateTimeFormat, DayOfWeek.Sunday };
-            yield return new object[] { new CultureInfo("fr-FR").DateTimeFormat, DayOfWeek.Monday };
+            yield return new object[] { new CultureInfo("en-US", false).DateTimeFormat, DayOfWeek.Sunday };
+            yield return new object[] { new CultureInfo("fr-FR", false).DateTimeFormat, DayOfWeek.Monday };
         }
 
         [Theory]
@@ -43,7 +43,7 @@ namespace System.Globalization.Tests
         [InlineData(DayOfWeek.Saturday + 1)]
         public void FirstDayOfWeek_Set_Invalid_ThrowsArgumentOutOfRangeException(DayOfWeek value)
         {
-            Assert.Throws<ArgumentOutOfRangeException>("value", () => new DateTimeFormatInfo().FirstDayOfWeek = value);
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("value", () => new DateTimeFormatInfo().FirstDayOfWeek = value);
         }
 
         [Fact]

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -231,19 +230,19 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.ExclusiveOr(Expression.Constant(0), Expression.Constant(0));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public static void ThrowsOnLeftNull()
         {
-            Assert.Throws<ArgumentNullException>("left", () => Expression.ExclusiveOr(null, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.ExclusiveOr(null, Expression.Constant("")));
         }
 
         [Fact]
         public static void ThrowsOnRightNull()
         {
-            Assert.Throws<ArgumentNullException>("right", () => Expression.ExclusiveOr(Expression.Constant(""), null));
+            AssertExtensions.Throws<ArgumentNullException>("right", () => Expression.ExclusiveOr(Expression.Constant(""), null));
         }
 
         private static class Unreadable<T>
@@ -258,20 +257,20 @@ namespace System.Linq.Expressions.Tests
         public static void ThrowsOnLeftUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("left", () => Expression.ExclusiveOr(value, Expression.Constant(1)));
+            AssertExtensions.Throws<ArgumentException>("left", () => Expression.ExclusiveOr(value, Expression.Constant(1)));
         }
 
         [Fact]
         public static void ThrowsOnRightUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("right", () => Expression.ExclusiveOr(Expression.Constant(1), value));
+            AssertExtensions.Throws<ArgumentException>("right", () => Expression.ExclusiveOr(Expression.Constant(1), value));
         }
 
         [Fact]
         public static void ToStringTest()
         {
-            var e = Expression.ExclusiveOr(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
+            BinaryExpression e = Expression.ExclusiveOr(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
             Assert.Equal("(a ^ b)", e.ToString());
 
             // NB: Unlike And and Or, there's no special case for bool and bool? here.

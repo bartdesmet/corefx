@@ -56,7 +56,7 @@ namespace System.Diagnostics
             {
                 if (s_appName == null)
                 {
-                    s_appName = Assembly.GetEntryAssembly().GetName().Name;
+                    s_appName = Assembly.GetEntryAssembly()?.GetName().Name ?? string.Empty;
                 }
                 return s_appName;
             }
@@ -165,7 +165,7 @@ namespace System.Diagnostics
             lock (critSec)
             {
                 InitializeSettings();
-                if (t_indentLevel < Int32.MaxValue)
+                if (t_indentLevel < int.MaxValue)
                 {
                     t_indentLevel++;
                 }
@@ -236,7 +236,7 @@ namespace System.Diagnostics
                 {
                     foreach (TraceListener listener in Listeners)
                     {
-                        listener.Dispose();
+                        listener.Close();
                     }
                 }
             }
@@ -349,7 +349,7 @@ namespace System.Diagnostics
 
         // This method refreshes all the data from the configuration file, so that updated to the configuration file are mirrored
         // in the System.Diagnostics.Trace class
-        static internal void Refresh()
+        internal static void Refresh()
         {
             lock (critSec)
             {

@@ -176,7 +176,7 @@ namespace System.Xml.Serialization
             {
                 EscapeKeywords(name.Substring(0, nameEnd), sb);
                 sb.Append("<");
-                int arguments = Int32.Parse(name.Substring(nameEnd + 1), CultureInfo.InvariantCulture) + index;
+                int arguments = int.Parse(name.Substring(nameEnd + 1), CultureInfo.InvariantCulture) + index;
                 for (; index < arguments; index++)
                 {
                     sb.Append(GetCSharpName(parameters[index]));
@@ -215,7 +215,7 @@ namespace System.Xml.Serialization
                 }
             }
 
-            Type[] arguments = t.GetTypeInfo().IsGenericType || t.GetTypeInfo().ContainsGenericParameters ? t.GetGenericArguments() : Array.Empty<Type>();
+            Type[] arguments = t.IsGenericType || t.ContainsGenericParameters ? t.GetGenericArguments() : Array.Empty<Type>();
             GetCSharpName(t, arguments, 0, sb);
             for (int i = 0; i < rank; i++)
             {

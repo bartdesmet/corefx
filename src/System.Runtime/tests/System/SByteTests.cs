@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Xunit;
 
 namespace System.Tests
 {
-    public static class SByteTests
+    public partial class SByteTests
     {
         [Fact]
         public static void Ctor_Empty()
@@ -45,23 +44,22 @@ namespace System.Tests
         [InlineData((sbyte)114, (sbyte)123, -1)]
         [InlineData((sbyte)114, sbyte.MaxValue, -1)]
         [InlineData((sbyte)114, null, 1)]
-        public static void CompareTo(sbyte i, object value, int expected)
+        public void CompareTo_Other_ReturnsExpected(sbyte i, object value, int expected)
         {
-            if (value is sbyte)
+            if (value is sbyte sbyteValue)
             {
-                Assert.Equal(expected, Math.Sign(i.CompareTo((sbyte)value)));
+                Assert.Equal(expected, Math.Sign(i.CompareTo(sbyteValue)));
             }
 
-            IComparable comparable = i;
-            Assert.Equal(expected, Math.Sign(comparable.CompareTo(value)));
+            Assert.Equal(expected, Math.Sign(i.CompareTo(value)));
         }
 
-        [Fact]
-        public static void CompareTo_ObjectNotSByte_ThrowsArgumentException()
+        [Theory]
+        [InlineData("a")]
+        [InlineData(234)]
+        public void CompareTo_ObjectNotSByte_ThrowsArgumentException(object value)
         {
-            IComparable comparable = (sbyte)114;
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo("a")); // Obj is not a sbyte
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo(234)); // Obj is not a sbyte
+            AssertExtensions.Throws<ArgumentException>(null, () => ((sbyte)123).CompareTo(value));
         }
 
         [Theory]
@@ -85,24 +83,47 @@ namespace System.Tests
             Assert.Equal(expected, i1.Equals(obj));
         }
 
+        [Fact]
+        public void GetTypeCode_Invoke_ReturnsSByte()
+        {
+            Assert.Equal(TypeCode.SByte, ((sbyte)1).GetTypeCode());
+        }
+
         public static IEnumerable<object[]> ToString_TestData()
         {
-            NumberFormatInfo emptyFormat = NumberFormatInfo.CurrentInfo;
-            yield return new object[] { sbyte.MinValue, "G", emptyFormat, "-128" };
-            yield return new object[] { (sbyte)-123, "G", emptyFormat, "-123" };
-            yield return new object[] { (sbyte)0, "G", emptyFormat, "0" };
-            yield return new object[] { (sbyte)123, "G", emptyFormat, "123" };
-            yield return new object[] { sbyte.MaxValue, "G", emptyFormat, "127" };
+            foreach (NumberFormatInfo defaultFormat in new[] { null, NumberFormatInfo.CurrentInfo })
+            {
+                yield return new object[] { sbyte.MinValue, "G", defaultFormat, "-128" };
+                yield return new object[] { (sbyte)-123, "G", defaultFormat, "-123" };
+                yield return new object[] { (sbyte)0, "G", defaultFormat, "0" };
+                yield return new object[] { (sbyte)123, "G", defaultFormat, "123" };
+                yield return new object[] { sbyte.MaxValue, "G", defaultFormat, "127" };
 
-            yield return new object[] { (sbyte)0x24, "x", emptyFormat, "24" };
-            yield return new object[] { (sbyte)24, "N", emptyFormat, string.Format("{0:N}", 24.00) };
+                yield return new object[] { (sbyte)123, "D", defaultFormat, "123" };
+                yield return new object[] { (sbyte)123, "D99", defaultFormat, "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123" };
+                yield return new object[] { (sbyte)(-123), "D99", defaultFormat, "-000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123" };
 
-            NumberFormatInfo customFormat = new NumberFormatInfo();
-            customFormat.NegativeSign = "#";
-            customFormat.NumberDecimalSeparator = "~";
-            customFormat.NumberGroupSeparator = "*";
+                yield return new object[] { (sbyte)0x24, "x", defaultFormat, "24" };
+                yield return new object[] { (sbyte)24, "N", defaultFormat, string.Format("{0:N}", 24.00) };
+            }
+
+            var customFormat = new NumberFormatInfo()
+            {
+                NegativeSign = "#",
+                NumberDecimalSeparator = "~",
+                NumberGroupSeparator = "*",
+                PositiveSign = "&",
+                NumberDecimalDigits = 2,
+                PercentSymbol = "@",
+                PercentGroupSeparator = ",",
+                PercentDecimalSeparator = ".",
+                PercentDecimalDigits = 5
+            };
             yield return new object[] { (sbyte)-24, "N", customFormat, "#24~00" };
             yield return new object[] { (sbyte)24, "N", customFormat, "24~00" };
+            yield return new object[] { (sbyte)123, "E", customFormat, "1~230000E&002" };
+            yield return new object[] { (sbyte)123, "F", customFormat, "123~00" };
+            yield return new object[] { (sbyte)123, "P", customFormat, "12,300.00000 @" };
         }
 
         [Theory]
@@ -141,8 +162,8 @@ namespace System.Tests
         public static void ToString_InvalidFormat_ThrowsFormatException()
         {
             IComparable comparable = (sbyte)123;
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo("a")); // Obj is not a sbyte
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo(234)); // Obj is not a sbyte
+            AssertExtensions.Throws<ArgumentException>(null, () => comparable.CompareTo("a")); // Obj is not a sbyte
+            AssertExtensions.Throws<ArgumentException>(null, () => comparable.CompareTo(234)); // Obj is not a sbyte
         }
 
         public static IEnumerable<object[]> ParseValidData()
@@ -300,16 +321,16 @@ namespace System.Tests
         }
 
         [Theory]
-        [InlineData(NumberStyles.HexNumber | NumberStyles.AllowParentheses)]
-        [InlineData(unchecked((NumberStyles)0xFFFFFC00))]
-        public static void TryParse_InvalidNumberStyle_ThrowsArgumentException(NumberStyles style)
+        [InlineData(NumberStyles.HexNumber | NumberStyles.AllowParentheses, null)]
+        [InlineData(unchecked((NumberStyles)0xFFFFFC00), "style")]
+        public static void TryParse_InvalidNumberStyle_ThrowsArgumentException(NumberStyles style, string paramName)
         {
             sbyte result = 0;
-            Assert.Throws<ArgumentException>(() => sbyte.TryParse("1", style, null, out result));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => sbyte.TryParse("1", style, null, out result));
             Assert.Equal(default(sbyte), result);
 
-            Assert.Throws<ArgumentException>(() => sbyte.Parse("1", style));
-            Assert.Throws<ArgumentException>(() => sbyte.Parse("1", style, null));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => sbyte.Parse("1", style));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => sbyte.Parse("1", style, null));
         }
     }
 }

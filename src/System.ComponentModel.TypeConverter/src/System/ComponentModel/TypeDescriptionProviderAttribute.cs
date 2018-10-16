@@ -4,15 +4,11 @@
 
 namespace System.ComponentModel
 {
-    /// <summary>
-    /// </summary>
     [AttributeUsage(AttributeTargets.Class, Inherited = true)]
     public sealed class TypeDescriptionProviderAttribute : Attribute
     {
-        private readonly string _typeName;
-
         /// <summary>
-        ///     Creates a new TypeDescriptionProviderAttribute object.
+        /// Creates a new TypeDescriptionProviderAttribute object.
         /// </summary>
         public TypeDescriptionProviderAttribute(string typeName)
         {
@@ -21,11 +17,11 @@ namespace System.ComponentModel
                 throw new ArgumentNullException(nameof(typeName));
             }
 
-            _typeName = typeName;
+            TypeName = typeName;
         }
 
         /// <summary>
-        ///     Creates a new TypeDescriptionProviderAttribute object.
+        /// Creates a new TypeDescriptionProviderAttribute object.
         /// </summary>
         public TypeDescriptionProviderAttribute(Type type)
         {
@@ -34,20 +30,13 @@ namespace System.ComponentModel
                 throw new ArgumentNullException(nameof(type));
             }
 
-            _typeName = type.AssemblyQualifiedName;
+            TypeName = type.AssemblyQualifiedName;
         }
 
         /// <summary>
-        ///     The TypeName property returns the assembly qualified type name 
-        ///     for the type description provider.
+        /// The TypeName property returns the assembly qualified type name 
+        /// for the type description provider.
         /// </summary>
-        public string TypeName
-        {
-            get
-            {
-                return _typeName;
-            }
-        }
+        public string TypeName { get; }
     }
 }
-

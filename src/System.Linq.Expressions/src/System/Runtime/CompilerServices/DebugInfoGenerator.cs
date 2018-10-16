@@ -20,7 +20,7 @@ namespace System.Runtime.CompilerServices
         /// <returns>PDB symbol generator.</returns>
         public static DebugInfoGenerator CreatePdbGenerator()
         {
-            // Creating PDBs is not suported in .NET Core
+            // Creating PDBs is not supported in .NET Core
             throw new PlatformNotSupportedException();
         }
 
@@ -29,9 +29,10 @@ namespace System.Runtime.CompilerServices
         /// </summary>
         /// <param name="method">The lambda being generated.</param>
         /// <param name="ilOffset">IL offset where to mark the sequence point.</param>
-        /// <param name="sequencePoint">Debug informaton corresponding to the sequence point.</param>
+        /// <param name="sequencePoint">Debug information corresponding to the sequence point.</param>
         public abstract void MarkSequencePoint(LambdaExpression method, int ilOffset, DebugInfoExpression sequencePoint);
 
+#if FEATURE_COMPILE
         internal virtual void MarkSequencePoint(LambdaExpression method, MethodBase methodBase, ILGenerator ilg, DebugInfoExpression sequencePoint)
         {
             MarkSequencePoint(method, ilg.ILOffset, sequencePoint);
@@ -41,5 +42,6 @@ namespace System.Runtime.CompilerServices
         {
             // nop
         }
+#endif
     }
 }

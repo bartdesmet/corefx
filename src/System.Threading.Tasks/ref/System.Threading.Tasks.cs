@@ -9,6 +9,7 @@
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.AggregateException))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.CompilerServices.ConfiguredTaskAwaitable))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.CompilerServices.ConfiguredTaskAwaitable<>))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.CompilerServices.IAsyncStateMachine))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.CompilerServices.ICriticalNotifyCompletion))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.CompilerServices.INotifyCompletion))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.CompilerServices.TaskAwaiter))]
@@ -42,9 +43,9 @@ namespace System
 }
 namespace System.Runtime.CompilerServices
 {
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct AsyncTaskMethodBuilder
     {
+        private object _dummy;
         public System.Threading.Tasks.Task Task { get { throw null; } }
         public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : System.Runtime.CompilerServices.INotifyCompletion where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : System.Runtime.CompilerServices.ICriticalNotifyCompletion where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
@@ -54,9 +55,9 @@ namespace System.Runtime.CompilerServices
         public void SetStateMachine(System.Runtime.CompilerServices.IAsyncStateMachine stateMachine) { }
         public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct AsyncTaskMethodBuilder<TResult>
     {
+        private System.Threading.Tasks.Task<TResult> _dummy;
         public System.Threading.Tasks.Task<TResult> Task { get { throw null; } }
         public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : System.Runtime.CompilerServices.INotifyCompletion where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : System.Runtime.CompilerServices.ICriticalNotifyCompletion where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
@@ -66,9 +67,9 @@ namespace System.Runtime.CompilerServices
         public void SetStateMachine(System.Runtime.CompilerServices.IAsyncStateMachine stateMachine) { }
         public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct AsyncVoidMethodBuilder
     {
+        private object _dummy;
         public void AwaitOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : System.Runtime.CompilerServices.INotifyCompletion where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(ref TAwaiter awaiter, ref TStateMachine stateMachine) where TAwaiter : System.Runtime.CompilerServices.ICriticalNotifyCompletion where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
         public static System.Runtime.CompilerServices.AsyncVoidMethodBuilder Create() { throw null; }
@@ -76,11 +77,6 @@ namespace System.Runtime.CompilerServices
         public void SetResult() { }
         public void SetStateMachine(System.Runtime.CompilerServices.IAsyncStateMachine stateMachine) { }
         public void Start<TStateMachine>(ref TStateMachine stateMachine) where TStateMachine : System.Runtime.CompilerServices.IAsyncStateMachine { }
-    }
-    public partial interface IAsyncStateMachine
-    {
-        void MoveNext();
-        void SetStateMachine(System.Runtime.CompilerServices.IAsyncStateMachine stateMachine);
     }
 }
 namespace System.Threading
@@ -120,6 +116,7 @@ namespace System.Threading.Tasks
         public TaskCanceledException() { }
         public TaskCanceledException(string message) { }
         public TaskCanceledException(string message, System.Exception innerException) { }
+        public TaskCanceledException(string message, System.Exception innerException, System.Threading.CancellationToken token) : base(message, innerException, token) { }
         public TaskCanceledException(System.Threading.Tasks.Task task) { }
         protected TaskCanceledException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) { }
         public System.Threading.Tasks.Task Task { get { throw null; } }

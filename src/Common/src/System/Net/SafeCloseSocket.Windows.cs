@@ -3,9 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using Microsoft.Win32.SafeHandles;
-
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -19,7 +17,10 @@ namespace System.Net.Sockets
 #endif
     {
         private ThreadPoolBoundHandle _iocpBoundHandle;
+        private bool _skipCompletionPortOnSuccess;
         private object _iocpBindingLock = new object();
+
+        public void SetExposed() { /* nop */ }
 
         public ThreadPoolBoundHandle IOCPBoundHandle
         {
@@ -29,8 +30,10 @@ namespace System.Net.Sockets
             }
         }
 
+        public ThreadPoolBoundHandle GetThreadPoolBoundHandle() => !_released ? _iocpBoundHandle : null;
+
         // Binds the Socket Win32 Handle to the ThreadPool's CompletionPort.
-        public ThreadPoolBoundHandle GetOrAllocateThreadPoolBoundHandle()
+        public ThreadPoolBoundHandle GetOrAllocateThreadPoolBoundHandle(bool trySkipCompletionPortOnSuccess)
         {
             if (_released)
             {
@@ -38,40 +41,63 @@ namespace System.Net.Sockets
                 throw new ObjectDisposedException(typeof(Socket).FullName);
             }
 
-            // Check to see if the socket native _handle is already
-            // bound to the ThreadPool's completion port.
-            if (_iocpBoundHandle == null)
+            if (_iocpBoundHandle != null)
             {
-                lock (_iocpBindingLock)
-                {
-                    if (_iocpBoundHandle == null)
-                    {
-                        // Bind the socket native _handle to the ThreadPool.
-                        if (NetEventSource.IsEnabled) NetEventSource.Info(this, "calling ThreadPool.BindHandle()");
-
-                        try
-                        {
-                            // The handle (this) may have been already released:
-                            // E.g.: The socket has been disposed in the main thread. A completion callback may
-                            //       attempt starting another operation.
-                            _iocpBoundHandle = ThreadPoolBoundHandle.BindHandle(this);
-                        }
-                        catch (Exception exception)
-                        {
-                            if (ExceptionCheck.IsFatal(exception)) throw;
-                            CloseAsIs();
-                            throw;
-                        }
-                    }
-                }
+                return _iocpBoundHandle;
             }
 
-            return _iocpBoundHandle;
+            lock (_iocpBindingLock)
+            {
+                ThreadPoolBoundHandle boundHandle = _iocpBoundHandle;
+
+                if (boundHandle == null)
+                {
+                    // Bind the socket native _handle to the ThreadPool.
+                    if (NetEventSource.IsEnabled) NetEventSource.Info(this, "calling ThreadPool.BindHandle()");
+
+                    try
+                    {
+                        // The handle (this) may have been already released:
+                        // E.g.: The socket has been disposed in the main thread. A completion callback may
+                        //       attempt starting another operation.
+                        boundHandle = ThreadPoolBoundHandle.BindHandle(this);
+                    }
+                    catch (Exception exception) when (!ExceptionCheck.IsFatal(exception))
+                    {
+                        bool closed = IsClosed;
+                        CloseAsIs();
+                        if (closed)
+                        {
+                            // If the handle was closed just before the call to BindHandle,
+                            // we could end up getting an ArgumentException, which we should
+                            // instead propagate as an ObjectDisposedException.
+                            throw new ObjectDisposedException(typeof(Socket).FullName, exception);
+                        }
+                        throw;
+                    }
+
+                    // Try to disable completions for synchronous success, if requested
+                    if (trySkipCompletionPortOnSuccess &&
+                        CompletionPortHelper.SkipCompletionPortOnSuccess(boundHandle.Handle))
+                    {
+                        _skipCompletionPortOnSuccess = true;
+                    }
+
+                    // Don't set this until after we've configured the handle above (if we did)
+                    Volatile.Write(ref _iocpBoundHandle, boundHandle);
+                }
+
+                return boundHandle;
+            }
         }
 
-        internal unsafe static SafeCloseSocket CreateWSASocket(byte* pinnedBuffer)
+        public bool SkipCompletionPortOnSuccess
         {
-            return CreateSocket(InnerSafeCloseSocket.CreateWSASocket(pinnedBuffer));
+            get
+            {
+                Debug.Assert(_iocpBoundHandle != null);
+                return _skipCompletionPortOnSuccess;
+            }
         }
 
         internal static SafeCloseSocket CreateWSASocket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType)
@@ -135,25 +161,6 @@ namespace System.Net.Sockets
 
                     if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"handle:{handle}, ioctlsocket()#1:{errorCode}");
 
-                    // This can fail if there's a pending WSAEventSelect.  Try canceling it.
-                    if (errorCode == SocketError.InvalidArgument)
-                    {
-                        errorCode = Interop.Winsock.WSAEventSelect(
-                            handle,
-                            IntPtr.Zero,
-                            Interop.Winsock.AsyncEventBits.FdNone);
-
-                        if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"handle:{handle}, WSAEventSelect()#1:{(errorCode == SocketError.SocketError ? (SocketError)Marshal.GetLastWin32Error() : errorCode)}");
-
-                        // Now retry the ioctl.
-                        errorCode = Interop.Winsock.ioctlsocket(
-                            handle,
-                            Interop.Winsock.IoctlSocketConstants.FIONBIO,
-                            ref nonBlockCmd);
-
-                        if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"handle:{handle}, ioctlsocket()#2:{(errorCode == SocketError.SocketError ? (SocketError)Marshal.GetLastWin32Error() : errorCode)}");
-                    }
-
                     // If that succeeded, try again.
                     if (errorCode == SocketError.Success)
                     {
@@ -206,17 +213,6 @@ namespace System.Net.Sockets
                 if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"handle:{handle}, closesocket#3():{(errorCode == SocketError.SocketError ? (SocketError)Marshal.GetLastWin32Error() : errorCode)}");
 
                 return errorCode;
-            }
-
-            internal unsafe static InnerSafeCloseSocket CreateWSASocket(byte* pinnedBuffer)
-            {
-                // NOTE: -1 is the value for FROM_PROTOCOL_INFO.
-                InnerSafeCloseSocket result = Interop.Winsock.WSASocketW((AddressFamily)(-1), (SocketType)(-1), (ProtocolType)(-1), pinnedBuffer, 0, Interop.Winsock.SocketConstructorFlags.WSA_FLAG_OVERLAPPED);
-                if (result.IsInvalid)
-                {
-                    result.SetHandleAsInvalid();
-                }
-                return result;
             }
 
             internal static InnerSafeCloseSocket CreateWSASocket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType)

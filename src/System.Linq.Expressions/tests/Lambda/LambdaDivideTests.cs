@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -50,7 +49,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void LambdaDivideIntTest(bool useInterpreter)
         {
@@ -64,7 +63,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void LambdaDivideLongTest(bool useInterpreter)
         {
@@ -78,7 +77,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void LambdaDivideShortTest(bool useInterpreter)
         {
@@ -92,7 +91,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void LambdaDivideUIntTest(bool useInterpreter)
         {
@@ -106,7 +105,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void LambdaDivideULongTest(bool useInterpreter)
         {
@@ -120,7 +119,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void LambdaDivideUShortTest(bool useInterpreter)
         {
@@ -838,7 +837,7 @@ namespace System.Linq.Expressions.Tests
             else
             {
                 divideByZero = false;
-                expected = (short)(a / b);
+                expected = unchecked((short)(a / b));
             }
 
             ParameterExpression p0 = Expression.Parameter(typeof(short), "p0");

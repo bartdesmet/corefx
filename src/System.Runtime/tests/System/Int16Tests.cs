@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Xunit;
 
 namespace System.Tests
 {
-    public static class Int16Tests
+    public partial class Int16Tests
     {
         [Fact]
         public static void Ctor_Empty()
@@ -49,22 +48,22 @@ namespace System.Tests
         [InlineData((short)-234, (short)234, -1)]
         [InlineData((short)-234, (short)-432, 1)]
         [InlineData((short)234, null, 1)]
-        public static void CompareTo(short i, object obj, int expected)
+        public void CompareTo_Other_ReturnsExpected(short i, object value, int expected)
         {
-            if (obj is short)
+            if (value is short shortValue)
             {
-                Assert.Equal(expected, Math.Sign(i.CompareTo((short)obj)));
+                Assert.Equal(expected, Math.Sign(i.CompareTo(shortValue)));
             }
-            IComparable comparable = i;
-            Assert.Equal(expected, Math.Sign(comparable.CompareTo(obj)));
+
+            Assert.Equal(expected, Math.Sign(i.CompareTo(value)));
         }
 
-        [Fact]
-        public static void CompareTo_ObjectNotShort_ThrowsArgumentException()
+        [Theory]
+        [InlineData("a")]
+        [InlineData(234)]
+        public void CompareTo_ObjectNotShort_ThrowsArgumentException(object value)
         {
-            IComparable comparable = (short)234;
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo("a")); // Obj is not a short
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo(234)); // Obj is not a short
+            AssertExtensions.Throws<ArgumentException>(null, () => ((short)123).CompareTo(value));
         }
 
         [Theory]
@@ -88,26 +87,48 @@ namespace System.Tests
             Assert.Equal(expected, i1.Equals(obj));
         }
 
+        [Fact]
+        public void GetTypeCode_Invoke_ReturnsInt16()
+        {
+            Assert.Equal(TypeCode.Int16, ((short)1).GetTypeCode());
+        }
+
         public static IEnumerable<object[]> ToString_TestData()
         {
-            NumberFormatInfo emptyFormat = NumberFormatInfo.CurrentInfo;
-            yield return new object[] { short.MinValue, "G", emptyFormat, "-32768" };
-            yield return new object[] { (short)-4567, "G", emptyFormat, "-4567" };
-            yield return new object[] { (short)0, "G", emptyFormat, "0" };
-            yield return new object[] { (short)4567, "G", emptyFormat, "4567" };
-            yield return new object[] { short.MaxValue, "G", emptyFormat, "32767" };
+            foreach (NumberFormatInfo defaultFormat in new[] { null, NumberFormatInfo.CurrentInfo })
+            {
+                yield return new object[] { short.MinValue, "G", defaultFormat, "-32768" };
+                yield return new object[] { (short)-4567, "G", defaultFormat, "-4567" };
+                yield return new object[] { (short)0, "G", defaultFormat, "0" };
+                yield return new object[] { (short)4567, "G", defaultFormat, "4567" };
+                yield return new object[] { short.MaxValue, "G", defaultFormat, "32767" };
 
-            yield return new object[] { (short)0x2468, "x", emptyFormat, "2468" };
-            yield return new object[] { (short)-0x2468, "x", emptyFormat, "DB98" };
+                yield return new object[] { (short)4567, "D", defaultFormat, "4567" };
+                yield return new object[] { (short)4567, "D99", defaultFormat, "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004567" };
 
-            yield return new object[] { (short)2468, "N", emptyFormat, string.Format("{0:N}", 2468.00) };
+                yield return new object[] { (short)0x2468, "x", defaultFormat, "2468" };
+                yield return new object[] { (short)-0x2468, "x", defaultFormat, "db98" };
 
-            NumberFormatInfo customFormat = new NumberFormatInfo();
-            customFormat.NegativeSign = "#";
-            customFormat.NumberDecimalSeparator = "~";
-            customFormat.NumberGroupSeparator = "*";
+                yield return new object[] { (short)2468, "N", defaultFormat, string.Format("{0:N}", 2468.00) };
+            }
+
+            var customFormat = new NumberFormatInfo()
+            {
+                NegativeSign = "#",
+                NumberDecimalSeparator = "~",
+                NumberGroupSeparator = "*",
+                PositiveSign = "&",
+                NumberDecimalDigits = 2,
+                PercentSymbol = "@",
+                PercentGroupSeparator = ",",
+                PercentDecimalSeparator = ".",
+                PercentDecimalDigits = 5
+            };
             yield return new object[] { (short)-2468, "N", customFormat, "#2*468~00" };
             yield return new object[] { (short)2468, "N", customFormat, "2*468~00" };
+            yield return new object[] { (short)123, "E", customFormat, "1~230000E&002" };
+            yield return new object[] { (short)123, "F", customFormat, "123~00" };
+            yield return new object[] { (short)123, "P", customFormat, "12,300.00000 @" };
         }
 
         [Theory]
@@ -285,16 +306,16 @@ namespace System.Tests
         }
 
         [Theory]
-        [InlineData(NumberStyles.HexNumber | NumberStyles.AllowParentheses)]
-        [InlineData(unchecked((NumberStyles)0xFFFFFC00))]
-        public static void TryParse_InvalidNumberStyle_ThrowsArgumentException(NumberStyles style)
+        [InlineData(NumberStyles.HexNumber | NumberStyles.AllowParentheses, null)]
+        [InlineData(unchecked((NumberStyles)0xFFFFFC00), "style")]
+        public static void TryParse_InvalidNumberStyle_ThrowsArgumentException(NumberStyles style, string paramName)
         {
             short result = 0;
-            Assert.Throws<ArgumentException>(() => short.TryParse("1", style, null, out result));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => short.TryParse("1", style, null, out result));
             Assert.Equal(default(short), result);
 
-            Assert.Throws<ArgumentException>(() => short.Parse("1", style));
-            Assert.Throws<ArgumentException>(() => short.Parse("1", style, null));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => short.Parse("1", style));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => short.Parse("1", style, null));
         }
     }
 }

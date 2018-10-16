@@ -14,7 +14,7 @@ namespace System.Linq.Expressions.Compiler
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1505:AvoidUnmaintainableCode"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
         private void EmitExpression(Expression node, CompilationFlags flags)
         {
-            // When compling deep trees, we run the risk of triggering a terminating StackOverflowException,
+            // When compiling deep trees, we run the risk of triggering a terminating StackOverflowException,
             // so we use the StackGuard utility here to probe for sufficient stack and continue the work on
             // another thread when we run out of stack space.
             if (!_guard.TryEnterOnCurrentStack())
@@ -144,9 +144,6 @@ namespace System.Linq.Expressions.Compiler
                 case ExpressionType.Default:
                     EmitDefaultExpression(node);
                     break;
-                case ExpressionType.Extension:
-                    EmitExtensionExpression(node);
-                    break;
                 case ExpressionType.Goto:
                     EmitGotoExpression(node, flags);
                     break;
@@ -168,9 +165,6 @@ namespace System.Linq.Expressions.Compiler
                 case ExpressionType.Try:
                     EmitTryExpression(node);
                     break;
-
-                default:
-                    throw ContractUtils.Unreachable;
             }
 
             if (emitStart)

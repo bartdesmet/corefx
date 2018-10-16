@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if FEATURE_INTERPRET
+// FEATURE_COMPILE is not directly required, 
+// but this functionality relies on private reflection and that would not work with AOT
+#if FEATURE_INTERPRET && FEATURE_COMPILE
 
 using System.Linq.Expressions.Interpreter;
 using System.Reflection;
@@ -17,7 +19,8 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void VerifyInstructions_Simple()
         {
-            Expression<Func<string, bool>> f = s => s != null && s.Substring(1).Length * 2 > 0;
+            // Using an unchecked multiplication to ensure that a mul instruction is emitted (and not mul.ovf)
+            Expression<Func<string, bool>> f = s => s != null && unchecked(s.Substring(1).Length * 2) > 0;
 
             f.VerifyInstructions(
                 @"object lambda_method(object[])
@@ -99,19 +102,70 @@ namespace System.Linq.Expressions.Tests
                   }");
         }
 
+        [Fact]
+        public static void ConstructorThrows_StackTrace()
+        {
+            Expression<Func<Thrower>> e = () => new Thrower(true);
+            Func<Thrower> f = e.Compile(preferInterpretation: true);
+            AssertStackTrace(() => f(), "Thrower..ctor");
+        }
+
+        [Fact]
+        public static void PropertyGetterThrows_StackTrace()
+        {
+            Expression<Func<Thrower, int>> e = t => t.Bar;
+            Func<Thrower, int> f = e.Compile(preferInterpretation: true);
+            AssertStackTrace(() => f(new Thrower(error: false)), "Thrower.get_Bar");
+        }
+
+        [Fact]
+        public static void PropertySetterThrows_StackTrace()
+        {
+            ParameterExpression t = Expression.Parameter(typeof(Thrower), "t");
+            Expression<Action<Thrower>> e = Expression.Lambda<Action<Thrower>>(Expression.Assign(Expression.Property(t, nameof(Thrower.Bar)), Expression.Constant(0)), t);
+            Action<Thrower> f = e.Compile(preferInterpretation: true);
+            AssertStackTrace(() => f(new Thrower(error: false)), "Thrower.set_Bar");
+        }
+
+        [Fact]
+        public static void IndexerGetterThrows_StackTrace()
+        {
+            ParameterExpression t = Expression.Parameter(typeof(Thrower), "t");
+            Expression<Func<Thrower, int>> e = Expression.Lambda<Func<Thrower, int>>(Expression.MakeIndex(t, typeof(Thrower).GetProperty("Item"), new[] { Expression.Constant(0) }), t);
+            Func<Thrower, int> f = e.Compile(preferInterpretation: true);
+            AssertStackTrace(() => f(new Thrower(error: false)), "Thrower.get_Item");
+        }
+
+        [Fact]
+        public static void IndexerSetterThrows_StackTrace()
+        {
+            ParameterExpression t = Expression.Parameter(typeof(Thrower), "t");
+            Expression<Action<Thrower>> e = Expression.Lambda<Action<Thrower>>(Expression.Assign(Expression.MakeIndex(t, typeof(Thrower).GetProperty("Item"), new[] { Expression.Constant(0) }), Expression.Constant(0)), t);
+            Action<Thrower> f = e.Compile(preferInterpretation: true);
+            AssertStackTrace(() => f(new Thrower(error: false)), "Thrower.set_Item");
+        }
+
+        [Fact]
+        public static void MethodThrows_StackTrace()
+        {
+            Expression<Action<Thrower>> e = t => t.Foo();
+            Action<Thrower> f = e.Compile(preferInterpretation: true);
+            AssertStackTrace(() => f(new Thrower(error: false)), "Thrower.Foo");
+        }
+
         public static void VerifyInstructions(this LambdaExpression expression, string expected)
         {
-            var actual = expression.GetInstructions();
+            string actual = expression.GetInstructions();
 
-            var nExpected = Normalize(expected);
-            var nActual = Normalize(actual);
+            string nExpected = Normalize(expected);
+            string nActual = Normalize(actual);
 
             Assert.Equal(nExpected, nActual);
         }
 
         private static string Normalize(string s)
         {
-            var lines =
+            Collections.Generic.IEnumerable<string> lines =
                 s
                 .Replace("\r\n", "\n")
                 .Split(new[] { '\n' })
@@ -128,6 +182,53 @@ namespace System.Linq.Expressions.Tests
             var lambda = (LightLambda)thunk.Target;
             var debugView = (string)s_debugView.GetValue(lambda);
             return debugView;
+        }
+
+        private static void AssertStackTrace(Action a, string searchTerm)
+        {
+            bool hasThrown = false;
+            try
+            {
+                a();
+            }
+            catch (Exception ex)
+            {
+                AssertStackTrace(ex, searchTerm);
+                hasThrown = true;
+            }
+
+            Assert.True(hasThrown);
+        }
+
+        private static void AssertStackTrace(Exception ex, string searchTerm)
+        {
+            Assert.True(ex.StackTrace.Contains(searchTerm));
+        }
+
+        private sealed class Thrower
+        {
+            public Thrower(bool error)
+            {
+                if (error)
+                    throw new Exception();
+            }
+
+            public int this[int x]
+            {
+                get { throw new Exception(); }
+                set { throw new Exception(); }
+            }
+
+            public int Bar
+            {
+                get { throw new Exception(); }
+                set { throw new Exception(); }
+            }
+
+            public void Foo()
+            {
+                throw new Exception();
+            }
         }
     }
 }

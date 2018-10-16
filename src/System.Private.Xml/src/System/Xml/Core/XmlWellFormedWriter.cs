@@ -672,7 +672,7 @@ namespace System.Xml
                         {
                             throw new ArgumentException(SR.Xml_XmlnsPrefix);
                         }
-                        _curDeclPrefix = String.Empty;
+                        _curDeclPrefix = string.Empty;
                         SetSpecialAttribute(SpecialAttribute.DefaultXmlns);
                         goto SkipPushAndWrite;
                     }
@@ -991,7 +991,7 @@ namespace System.Xml
         {
             try
             {
-                if (Char.IsSurrogate(ch))
+                if (char.IsSurrogate(ch))
                 {
                     throw new ArgumentException(SR.Xml_InvalidSurrogateMissingLowChar);
                 }
@@ -1017,7 +1017,7 @@ namespace System.Xml
         {
             try
             {
-                if (!Char.IsSurrogatePair(highChar, lowChar))
+                if (!char.IsSurrogatePair(highChar, lowChar))
                 {
                     throw XmlConvert.CreateInvalidSurrogatePairException(lowChar, highChar);
                 }
@@ -1364,7 +1364,7 @@ namespace System.Xml
                 CheckNCName(localName);
 
                 AdvanceState(Token.Text);
-                string prefix = String.Empty;
+                string prefix = string.Empty;
                 if (ns != null && ns.Length != 0)
                 {
                     prefix = LookupPrefix(ns);
@@ -1576,17 +1576,6 @@ namespace System.Xml
             {
                 _currentState = State.Error;
                 throw;
-            }
-        }
-
-        //
-        // Internal methods
-        //
-        internal XmlWriter InnerWriter
-        {
-            get
-            {
-                return _writer;
             }
         }
 
@@ -1920,7 +1909,7 @@ namespace System.Xml
             }
         }
 
-        static private XmlException DupAttrException(string prefix, string localName)
+        private static XmlException DupAttrException(string prefix, string localName)
         {
             StringBuilder sb = new StringBuilder();
             if (prefix.Length > 0)
@@ -2133,7 +2122,6 @@ namespace System.Xml
             return s;
         }
 
-        [System.Security.SecuritySafeCritical]
         private unsafe void CheckNCName(string ncname)
         {
             Debug.Assert(ncname != null && ncname.Length > 0);

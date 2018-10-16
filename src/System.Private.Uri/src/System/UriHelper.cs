@@ -9,7 +9,7 @@ namespace System
 {
     internal static class UriHelper
     {
-        private static readonly char[] s_hexUpperChars = {
+        internal static readonly char[] s_hexUpperChars = {
                                    '0', '1', '2', '3', '4', '5', '6', '7',
                                    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
@@ -125,7 +125,7 @@ namespace System
         private const short c_MaxUnicodeCharsReallocate = 40;
         private const short c_MaxUTF_8BytesPerUnicodeChar = 4;
         private const short c_EncodedCharsPerByte = 3;
-        internal unsafe static char[] EscapeString(string input, int start, int end, char[] dest, ref int destPos,
+        internal static unsafe char[] EscapeString(string input, int start, int end, char[] dest, ref int destPos,
             bool isUriString, char force1, char force2, char rsvd)
         {
             if (end - start >= Uri.c_MaxUriBufferSize)
@@ -229,7 +229,7 @@ namespace System
         //
         // ensure destination array has enough space and contains all the needed input stuff
         //
-        private unsafe static char[] EnsureDestinationSize(char* pStr, char[] dest, int currentInputPos,
+        private static unsafe char[] EnsureDestinationSize(char* pStr, char[] dest, int currentInputPos,
             short charsToAdd, short minReallocateChars, ref int destPos, int prevInputPos)
         {
             if ((object)dest == null || dest.Length < destPos + (currentInputPos - prevInputPos) + charsToAdd)
@@ -259,7 +259,7 @@ namespace System
         // - It is a RARE case when Unescape actually needs escaping some characters mentioned above.
         //   For this reason it returns a char[] that is usually the same ref as the input "dest" value.
         //
-        internal unsafe static char[] UnescapeString(string input, int start, int end, char[] dest,
+        internal static unsafe char[] UnescapeString(string input, int start, int end, char[] dest,
             ref int destPosition, char rsvd1, char rsvd2, char rsvd3, UnescapeMode unescapeMode, UriParser syntax,
             bool isQuery)
         {
@@ -269,7 +269,7 @@ namespace System
                     syntax, isQuery);
             }
         }
-        internal unsafe static char[] UnescapeString(char* pStr, int start, int end, char[] dest, ref int destPosition,
+        internal static unsafe char[] UnescapeString(char* pStr, int start, int end, char[] dest, ref int destPosition,
             char rsvd1, char rsvd2, char rsvd3, UnescapeMode unescapeMode, UriParser syntax, bool isQuery)
         {
             byte[] bytes = null;
@@ -412,7 +412,7 @@ namespace System
                                 {
                                     escapedReallocations = 30;
                                     char[] newDest = new char[dest.Length + escapedReallocations * 3];
-                                    fixed (char* pNewDest = newDest)
+                                    fixed (char* pNewDest = &newDest[0])
                                     {
                                         for (int i = 0; i < destPosition; ++i)
                                             pNewDest[i] = pDest[i];
@@ -569,7 +569,7 @@ namespace System
                                         EscapeAsciiChar((char)encodedBytes[l], dest, ref destOffset);
                                     }
                                 }
-                                else if (!UriHelper.IsBidiControlCharacter(unescapedCharsPtr[j]))
+                                else if (!UriHelper.IsBidiControlCharacter(unescapedCharsPtr[j]) || !UriParser.DontKeepUnicodeBidiFormattingCharacters)
                                 {
                                     //copy chars
                                     Debug.Assert(dest.Length > destOffset, "Destination length exceeded destination offset.");
@@ -657,28 +657,43 @@ namespace System
                        + 10)));
         }
 
-        // Do not unescape these in safe mode:
-        // 1)  reserved    = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" | "$" | ","
-        // 2)  excluded = control | "#" | "%" | "\"
+        internal const string RFC3986ReservedMarks = @";/?:@&=+$,#[]!'()*";
+        private const string RFC2396ReservedMarks = @";/?:@&=+$,";
+        private const string RFC3986UnreservedMarks = @"-_.~";
+        private const string RFC2396UnreservedMarks = @"-_.~*'()!";
+        private const string AdditionalUnsafeToUnescape = @"%\#";// While not specified as reserved, these are still unsafe to unescape.
+
+        // When unescaping in safe mode, do not unescape the RFC 3986 reserved set:
+        // gen-delims  = ":" / "/" / "?" / "#" / "[" / "]" / "@"
+        // sub-delims  = "!" / "$" / "&" / "'" / "(" / ")"
+        //             / "*" / "+" / "," / ";" / "="
         //
-        // That will still give plenty characters unescaped by SafeUnesced mode such as
-        // 1) Unicode characters
-        // 2) Unreserved = alphanum | "-" | "_" | "." | "!" | "~" | "*" | "'" | "(" | ")"
-        // 3) DelimitersAndUnwise = "<" | ">" |  <"> | "{" | "}" | "|" | "^" | "[" | "]" | "`"
+        // In addition, do not unescape the following unsafe characters:
+        // excluded    = "%" / "\"
+        //
+        // This implementation used to use the following variant of the RFC 2396 reserved set. 
+        // That behavior is now disabled by default, and is controlled by a UriSyntax property. 
+        // reserved    = ";" | "/" | "?" | "@" | "&" | "=" | "+" | "$" | ","
+        // excluded    = control | "#" | "%" | "\"
         internal static bool IsNotSafeForUnescape(char ch)
         {
             if (ch <= '\x1F' || (ch >= '\x7F' && ch <= '\x9F'))
+            {
                 return true;
-            else if ((ch >= ';' && ch <= '@' && (ch | '\x2') != '>') ||
-                     (ch >= '#' && ch <= '&') ||
-                     ch == '+' || ch == ',' || ch == '/' || ch == '\\')
+            }
+            else if (UriParser.DontEnableStrictRFC3986ReservedCharacterSets)
+            {
+                if ((ch != ':' && (RFC2396ReservedMarks.IndexOf(ch) >= 0) || (AdditionalUnsafeToUnescape.IndexOf(ch) >= 0)))
+                {
+                    return true;
+                }
+            }
+            else if ((RFC3986ReservedMarks.IndexOf(ch) >= 0) || (AdditionalUnsafeToUnescape.IndexOf(ch) >= 0))
+            {
                 return true;
-
+            }
             return false;
         }
-
-        private const string RFC3986ReservedMarks = @":/?#[]@!$&'()*+,;=";
-        private const string RFC3986UnreservedMarks = @"-._~";
 
         private static unsafe bool IsReservedUnreservedOrHash(char c)
         {
@@ -713,52 +728,6 @@ namespace System
         internal static bool IsGenDelim(char ch)
         {
             return (ch == ':' || ch == '/' || ch == '?' || ch == '#' || ch == '[' || ch == ']' || ch == '@');
-        }
-
-        //
-        // IsHexDigit
-        //
-        //  Determines whether a character is a valid hexadecimal digit in the range
-        //  [0..9] | [A..F] | [a..f]
-        //
-        // Inputs:
-        //  <argument>  character
-        //      Character to test
-        //
-        // Returns:
-        //  true if <character> is a hexadecimal digit character
-        //
-        // Throws:
-        //  Nothing
-        //
-        internal static bool IsHexDigit(char character)
-        {
-            return ((character >= '0') && (character <= '9'))
-                || ((character >= 'A') && (character <= 'F'))
-                || ((character >= 'a') && (character <= 'f'));
-        }
-
-        //
-        // Returns:
-        //  Number in the range 0..15
-        //
-        // Throws:
-        //  ArgumentException
-        //
-        internal static int FromHex(char digit)
-        {
-            if (((digit >= '0') && (digit <= '9'))
-                || ((digit >= 'A') && (digit <= 'F'))
-                || ((digit >= 'a') && (digit <= 'f')))
-            {
-                return (digit <= '9')
-                    ? ((int)digit - (int)'0')
-                    : (((digit <= 'F')
-                    ? ((int)digit - (int)'A')
-                    : ((int)digit - (int)'a'))
-                    + 10);
-            }
-            throw new ArgumentOutOfRangeException(nameof(digit));
         }
 
         internal static readonly char[] s_WSchars = new char[] { ' ', '\n', '\r', '\t' };

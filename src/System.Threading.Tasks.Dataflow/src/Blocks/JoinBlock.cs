@@ -119,7 +119,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="TryReceive"]/*' />
-        public Boolean TryReceive(Predicate<Tuple<T1, T2>> filter, out Tuple<T1, T2> item)
+        public bool TryReceive(Predicate<Tuple<T1, T2>> filter, out Tuple<T1, T2> item)
         {
             return _source.TryReceive(filter, out item);
         }
@@ -168,7 +168,7 @@ namespace System.Threading.Tasks.Dataflow
         public ITargetBlock<T2> Target2 { get { return _target2; } }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-        Tuple<T1, T2> ISourceBlock<Tuple<T1, T2>>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<Tuple<T1, T2>> target, out Boolean messageConsumed)
+        Tuple<T1, T2> ISourceBlock<Tuple<T1, T2>>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<Tuple<T1, T2>> target, out bool messageConsumed)
         {
             return _source.ConsumeMessage(messageHeader, target, out messageConsumed);
         }
@@ -352,7 +352,7 @@ namespace System.Threading.Tasks.Dataflow
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="TryReceive"]/*' />
-        public Boolean TryReceive(Predicate<Tuple<T1, T2, T3>> filter, out Tuple<T1, T2, T3> item)
+        public bool TryReceive(Predicate<Tuple<T1, T2, T3>> filter, out Tuple<T1, T2, T3> item)
         {
             return _source.TryReceive(filter, out item);
         }
@@ -406,7 +406,7 @@ namespace System.Threading.Tasks.Dataflow
         public ITargetBlock<T3> Target3 { get { return _target3; } }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-        Tuple<T1, T2, T3> ISourceBlock<Tuple<T1, T2, T3>>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<Tuple<T1, T2, T3>> target, out Boolean messageConsumed)
+        Tuple<T1, T2, T3> ISourceBlock<Tuple<T1, T2, T3>>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<Tuple<T1, T2, T3>> target, out bool messageConsumed)
         {
             return _source.ConsumeMessage(messageHeader, target, out messageConsumed);
         }
@@ -826,7 +826,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
             if (exceptions != null)
             {
                 // It is important to migrate these exceptions to the source part of the owning join,
-                // because that is the completion task that is publically exposed.
+                // because that is the completion task that is publicly exposed.
                 foreach (Exception exc in exceptions)
                 {
                     _sharedResources._exceptionAction(exc);
@@ -840,7 +840,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Targets/Member[@name="OfferMessage"]/*' />
-        DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, Boolean consumeToAccept)
+        DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
         {
             // Validate arguments
             if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
@@ -1100,7 +1100,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
         /// <summary>The number of joins this block has created.</summary>
         internal long _joinsCreated;
 
-        // *** Private fields and properties - mutatable
+        // *** Private fields and properties - mutable
         /// <summary>A task has reserved the right to run the completion routine.</summary>
         private bool _completionReserved;
 

@@ -6,6 +6,7 @@ using Xunit;
 
 namespace System.IO.IsolatedStorage
 {
+    [ActiveIssue(18940, TargetFrameworkMonikers.UapAot)]
     public class FileExistsTests : IsoStorageTest
     {
         [Fact]
@@ -29,17 +30,17 @@ namespace System.IO.IsolatedStorage
         }
 
         [Fact]
-        public void FileExists_ThrowsIsolatedStorageException()
+        public void FileExists_Removed_ThrowsInvalidOperationException()
         {
             using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
             {
                 isf.Remove();
-                Assert.Throws<IsolatedStorageException>(() => isf.FileExists("foo"));
+                Assert.Throws<InvalidOperationException>(() => isf.FileExists("foo"));
             }
         }
 
         [Fact]
-        public void FileExists_ThrowsInvalidOperationException()
+        public void FileExists_Closed_ThrowsInvalidOperationException()
         {
             using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
             {
@@ -49,15 +50,28 @@ namespace System.IO.IsolatedStorage
         }
 
         [Fact]
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
         public void FileExists_RaisesArgumentException()
         {
             using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
             {
-                Assert.Throws<ArgumentException>(() => isf.FileExists("\0bad"));
+                AssertExtensions.Throws<ArgumentException>("path", null, () => isf.FileExists("\0bad"));
             }
         }
 
-        [Theory MemberData(nameof(ValidStores))]
+        [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public void FileExists_False()
+        {
+            using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
+            {
+                Assert.False(isf.FileExists("\0bad"));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(ValidStores))]
+        [ActiveIssue("dotnet/corefx #18268", TargetFrameworkMonikers.NetFramework)]
         public void FileExists_Existance(PresetScopes scope)
         {
             using (var isf = GetPresetScope(scope))

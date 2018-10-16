@@ -12,7 +12,7 @@ using System.Diagnostics;
 
 namespace System.Threading.Tasks.Tests
 {
-    public class AsyncTaskMethodBuilderTests
+    public partial class AsyncTaskMethodBuilderTests
     {
         // Test captured sync context with successful completion (SetResult)
         [Fact]
@@ -345,6 +345,7 @@ namespace System.Threading.Tasks.Tests
         }
 
         [Fact]
+        [ActiveIssue("TFS 450361 - Codegen optimization issue", TargetFrameworkMonikers.UapAot)]
         public static void TaskMethodBuilder_UsesCompletedCache()
         {
             var atmb1 = new AsyncTaskMethodBuilder();
@@ -357,6 +358,7 @@ namespace System.Threading.Tasks.Tests
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
+        [ActiveIssue("TFS 450361 - Codegen optimization issue", TargetFrameworkMonikers.UapAot)]
         public static void TaskMethodBuilderBoolean_UsesCompletedCache(bool result)
         {
             TaskMethodBuilderT_UsesCompletedCache(result, true);
@@ -367,14 +369,26 @@ namespace System.Threading.Tasks.Tests
         [InlineData(5, true)]
         [InlineData(-5, false)]
         [InlineData(42, false)]
+        [ActiveIssue("TFS 450361 - Codegen optimization issue", TargetFrameworkMonikers.UapAot)]
         public static void TaskMethodBuilderInt32_UsesCompletedCache(int result, bool shouldBeCached)
         {
             TaskMethodBuilderT_UsesCompletedCache(result, shouldBeCached);
         }
 
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "https://github.com/dotnet/coreclr/pull/16588")]
+        [Fact]
+        [ActiveIssue("TFS 450361 - Codegen optimization issue", TargetFrameworkMonikers.UapAot)]
+        public static void TaskMethodBuilderDecimal_DoesntUseCompletedCache()
+        {
+            TaskMethodBuilderT_UsesCompletedCache(0m, shouldBeCached: false);
+            TaskMethodBuilderT_UsesCompletedCache(0.0m, shouldBeCached: false);
+            TaskMethodBuilderT_UsesCompletedCache(42m, shouldBeCached: false);
+        }
+
         [Theory]
         [InlineData((string)null, true)]
         [InlineData("test", false)]
+        [ActiveIssue("TFS 450361 - Codegen optimization issue", TargetFrameworkMonikers.UapAot)]
         public static void TaskMethodBuilderRef_UsesCompletedCache(string result, bool shouldBeCached)
         {
             TaskMethodBuilderT_UsesCompletedCache(result, shouldBeCached);
@@ -389,6 +403,11 @@ namespace System.Threading.Tasks.Tests
             atmb2.SetResult(result);
 
             Assert.Equal(shouldBeCached, object.ReferenceEquals(atmb1.Task, atmb2.Task));
+            if (result != null)
+            {
+                Assert.Equal(result.ToString(), atmb1.Task.Result.ToString());
+                Assert.Equal(result.ToString(), atmb2.Task.Result.ToString());
+            }
         }
 
         [Fact]
@@ -525,7 +544,7 @@ namespace System.Threading.Tasks.Tests
         {
             Assert.NotNull(e);
             Assert.NotNull(e.StackTrace);
-            Assert.Contains("End of stack trace", e.StackTrace);
+            Assert.Matches(@"---.+---", e.StackTrace);
         }
 
         private class TrackOperationsSynchronizationContext : SynchronizationContext

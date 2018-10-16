@@ -160,7 +160,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-        internal TOutput ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out Boolean messageConsumed)
+        internal TOutput ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out bool messageConsumed)
         {
             // Validate arguments
             if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
@@ -217,7 +217,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
         }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ReserveMessage"]/*' />
-        internal Boolean ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target)
+        internal bool ReserveMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target)
         {
             // Validate arguments
             if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
@@ -281,7 +281,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
         internal Task Completion { get { return _completionTask.Task; } }
 
         /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="TryReceive"]/*' />
-        internal Boolean TryReceive(Predicate<TOutput> filter, out TOutput item)
+        internal bool TryReceive(Predicate<TOutput> filter, out TOutput item)
         {
             item = default(TOutput);
             bool itemReceived = false;
@@ -455,7 +455,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
             }
         }
 
-        /// <summary>Adds an individual exceptionto this source.</summary>
+        /// <summary>Adds an individual exception to this source.</summary>
         /// <param name="exception">The exception to add</param>
         internal void AddException(Exception exception)
         {
@@ -1022,8 +1022,7 @@ namespace System.Threading.Tasks.Dataflow.Internal
 
             /// <summary>Gets the DataflowBlockOptions used to configure this block.</summary>
             internal DataflowBlockOptions DataflowBlockOptions { get { return _source._dataflowBlockOptions; } }
-            /// <summary>Gets whether the block is declining further messages.</summary>
-            internal bool IsDecliningPermanently { get { return _source._decliningPermanently; } }
+
             /// <summary>Gets whether the block is completed.</summary>
             internal bool IsCompleted { get { return _source.Completion.IsCompleted; } }
 

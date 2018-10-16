@@ -55,10 +55,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void UnboxReturnsReference(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(object));
-            var unbox = Expression.Unbox(p, typeof(Mutable));
-            var call = Expression.Call(unbox, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<object, int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(object));
+            UnaryExpression unbox = Expression.Unbox(p, typeof(Mutable));
+            MethodCallExpression call = Expression.Call(unbox, typeof(Mutable).GetMethod("Foo"));
+            Func<object, int> lambda = Expression.Lambda<Func<object, int>>(call, p).Compile(useInterpreter);
 
             object boxed = new Mutable();
             Assert.Equal(0, lambda(boxed));
@@ -71,10 +71,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void ArrayWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Mutable[]));
-            var indexed = Expression.ArrayIndex(p, Expression.Constant(0));
-            var call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<Mutable[], int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Mutable[]));
+            BinaryExpression indexed = Expression.ArrayIndex(p, Expression.Constant(0));
+            MethodCallExpression call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
+            Func<Mutable[], int> lambda = Expression.Lambda<Func<Mutable[], int>>(call, p).Compile(useInterpreter);
 
             var array = new Mutable[1];
             Assert.Equal(0, lambda(array));
@@ -84,12 +84,24 @@ namespace System.Linq.Expressions.Tests
 
         [Theory]
         [ClassData(typeof(CompilationTypes))]
+        public static void EnumArgAndReturn(bool useInterpreter)
+        {
+            ParameterExpression p = Expression.Parameter(typeof(NonGenericClass.E1));
+            MethodCallExpression call = Expression.Call(typeof(NonGenericClass).GetMethod("FooEnum"), p);
+            Func<NonGenericClass.E1, NonGenericClass.E2> lambda = Expression.Lambda<Func<NonGenericClass.E1, NonGenericClass.E2>>(call, p).Compile(useInterpreter);
+
+            Assert.Equal(NonGenericClass.E2.One, lambda(NonGenericClass.E1.One));
+            Assert.Equal(NonGenericClass.E2.Two, lambda(NonGenericClass.E1.Two));
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
         public static void MultiRankArrayWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Mutable[,]));
-            var indexed = Expression.ArrayIndex(p, Expression.Constant(0), Expression.Constant(0));
-            var call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<Mutable[,], int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Mutable[,]));
+            MethodCallExpression indexed = Expression.ArrayIndex(p, Expression.Constant(0), Expression.Constant(0));
+            MethodCallExpression call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
+            Func<Mutable[,], int> lambda = Expression.Lambda<Func<Mutable[,], int>>(call, p).Compile(useInterpreter);
 
             var array = new Mutable[1, 1];
             Assert.Equal(0, lambda(array));
@@ -101,10 +113,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void ArrayAccessWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Mutable[]));
-            var indexed = Expression.ArrayAccess(p, Expression.Constant(0));
-            var call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<Mutable[], int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Mutable[]));
+            IndexExpression indexed = Expression.ArrayAccess(p, Expression.Constant(0));
+            MethodCallExpression call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
+            Func<Mutable[], int> lambda = Expression.Lambda<Func<Mutable[], int>>(call, p).Compile(useInterpreter);
 
             var array = new Mutable[1];
             Assert.Equal(0, lambda(array));
@@ -116,10 +128,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void MultiRankArrayAccessWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Mutable[,]));
-            var indexed = Expression.ArrayAccess(p, Expression.Constant(0), Expression.Constant(0));
-            var call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<Mutable[,], int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Mutable[,]));
+            IndexExpression indexed = Expression.ArrayAccess(p, Expression.Constant(0), Expression.Constant(0));
+            MethodCallExpression call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
+            Func<Mutable[,], int> lambda = Expression.Lambda<Func<Mutable[,], int>>(call, p).Compile(useInterpreter);
 
             var array = new Mutable[1, 1];
             Assert.Equal(0, lambda(array));
@@ -131,10 +143,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void IndexedPropertyAccessNoWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(List<Mutable>));
-            var indexed = Expression.Property(p, typeof(List<Mutable>).GetProperty("Item"), Expression.Constant(0));
-            var call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<List<Mutable>, int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(List<Mutable>));
+            IndexExpression indexed = Expression.Property(p, typeof(List<Mutable>).GetProperty("Item"), Expression.Constant(0));
+            MethodCallExpression call = Expression.Call(indexed, typeof(Mutable).GetMethod("Foo"));
+            Func<List<Mutable>, int> lambda = Expression.Lambda<Func<List<Mutable>, int>>(call, p).Compile(useInterpreter);
 
             var list = new List<Mutable> { new Mutable() };
             Assert.Equal(0, lambda(list));
@@ -145,10 +157,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void FieldAccessWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Wrapper<Mutable>));
-            var member = Expression.Field(p, typeof(Wrapper<Mutable>).GetField("Field"));
-            var call = Expression.Call(member, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<Wrapper<Mutable>, int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Wrapper<Mutable>));
+            MemberExpression member = Expression.Field(p, typeof(Wrapper<Mutable>).GetField("Field"));
+            MethodCallExpression call = Expression.Call(member, typeof(Mutable).GetMethod("Foo"));
+            Func<Wrapper<Mutable>, int> lambda = Expression.Lambda<Func<Wrapper<Mutable>, int>>(call, p).Compile(useInterpreter);
 
             var wrapper = new Wrapper<Mutable>();
             Assert.Equal(0, lambda(wrapper));
@@ -160,10 +172,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void PropertyAccessNoWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Wrapper<Mutable>));
-            var member = Expression.Property(p, typeof(Wrapper<Mutable>).GetProperty("Property"));
-            var call = Expression.Call(member, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<Wrapper<Mutable>, int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Wrapper<Mutable>));
+            MemberExpression member = Expression.Property(p, typeof(Wrapper<Mutable>).GetProperty("Property"));
+            MethodCallExpression call = Expression.Call(member, typeof(Mutable).GetMethod("Foo"));
+            Func<Wrapper<Mutable>, int> lambda = Expression.Lambda<Func<Wrapper<Mutable>, int>>(call, p).Compile(useInterpreter);
 
             var wrapper = new Wrapper<Mutable>();
             Assert.Equal(0, lambda(wrapper));
@@ -174,10 +186,10 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void ReadonlyFieldAccessWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Wrapper<Mutable>));
-            var member = Expression.Field(p, typeof(Wrapper<Mutable>).GetField("ReadOnlyField"));
-            var call = Expression.Call(member, typeof(Mutable).GetMethod("Foo"));
-            var lambda = Expression.Lambda<Func<Wrapper<Mutable>, int>>(call, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Wrapper<Mutable>));
+            MemberExpression member = Expression.Field(p, typeof(Wrapper<Mutable>).GetField("ReadOnlyField"));
+            MethodCallExpression call = Expression.Call(member, typeof(Mutable).GetMethod("Foo"));
+            Func<Wrapper<Mutable>, int> lambda = Expression.Lambda<Func<Wrapper<Mutable>, int>>(call, p).Compile(useInterpreter);
 
             var wrapper = new Wrapper<Mutable>();
             Assert.Equal(0, lambda(wrapper));
@@ -189,9 +201,9 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void ConstFieldAccessWriteBack(bool useInterpreter)
         {
-            var member = Expression.Field(null, typeof(Wrapper<Mutable>).GetField("Zero"));
-            var call = Expression.Call(member, typeof(int).GetMethod("GetType"));
-            var lambda = Expression.Lambda<Func<Type>>(call).Compile(useInterpreter);
+            MemberExpression member = Expression.Field(null, typeof(Wrapper<Mutable>).GetField("Zero"));
+            MethodCallExpression call = Expression.Call(member, typeof(int).GetMethod("GetType"));
+            Func<Type> lambda = Expression.Lambda<Func<Type>>(call).Compile(useInterpreter);
 
             var wrapper = new Wrapper<Mutable>();
             Assert.Equal(typeof(int), lambda());
@@ -201,11 +213,11 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void CallByRefMutableStructPropertyWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Mutable));
-            var x = Expression.Property(p, "X");
-            var call = Expression.Call(typeof(Methods).GetMethod("ByRef"), x);
-            var body = Expression.Block(call, x);
-            var lambda = Expression.Lambda<Func<Mutable, int>>(body, p).Compile(useInterpreter);
+            ParameterExpression p = Expression.Parameter(typeof(Mutable));
+            MemberExpression x = Expression.Property(p, "X");
+            MethodCallExpression call = Expression.Call(typeof(Methods).GetMethod("ByRef"), x);
+            BlockExpression body = Expression.Block(call, x);
+            Func<Mutable, int> lambda = Expression.Lambda<Func<Mutable, int>>(body, p).Compile(useInterpreter);
 
             var m = new Mutable() { X = 41 };
             Assert.Equal(42, lambda(m));
@@ -215,11 +227,25 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public static void CallByRefMutableStructIndexWriteBack(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(Mutable));
-            var x = Expression.MakeIndex(p, typeof(Mutable).GetProperty("Item"), new[] { Expression.Constant(0) });
-            var call = Expression.Call(typeof(Methods).GetMethod("ByRef"), x);
-            var body = Expression.Block(call, x);
-            var lambda = Expression.Lambda<Func<Mutable, int>>(body, p).Compile(useInterpreter);
+            // Should not produce tail-call, but should still succeed
+            ParameterExpression p = Expression.Parameter(typeof(Mutable));
+            IndexExpression x = Expression.MakeIndex(p, typeof(Mutable).GetProperty("Item"), new[] { Expression.Constant(0) });
+            MethodCallExpression call = Expression.Call(typeof(Methods).GetMethod("ByRef"), x);
+            Action<Mutable> act = Expression.Lambda<Action<Mutable>>(call, true, p).Compile(useInterpreter);
+
+            Mutable m = new Mutable { X = 41 };
+            act(m);
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void CallByRefAttemptTailCall(bool useInterpreter)
+        {
+            ParameterExpression p = Expression.Parameter(typeof(Mutable));
+            IndexExpression x = Expression.MakeIndex(p, typeof(Mutable).GetProperty("Item"), new[] { Expression.Constant(0) });
+            MethodCallExpression call = Expression.Call(typeof(Methods).GetMethod("ByRef"), x);
+            BlockExpression body = Expression.Block(call, x);
+            Func<Mutable, int> lambda = Expression.Lambda<Func<Mutable, int>>(body, p).Compile(useInterpreter);
 
             var m = new Mutable() { X = 41 };
             Assert.Equal(42, lambda(m));
@@ -280,6 +306,8 @@ namespace System.Linq.Expressions.Tests
         private static MethodInfo s_method3 = typeof(NonGenericClass).GetMethod(nameof(NonGenericClass.Method3));
         private static MethodInfo s_method4 = typeof(NonGenericClass).GetMethod(nameof(NonGenericClass.Method4));
         private static MethodInfo s_method5 = typeof(NonGenericClass).GetMethod(nameof(NonGenericClass.Method5));
+        private static MethodInfo s_method6 = typeof(NonGenericClass).GetMethod(nameof(NonGenericClass.Method6));
+        private static MethodInfo s_method7 = typeof(NonGenericClass).GetMethod(nameof(NonGenericClass.Method7));
 
         public static IEnumerable<object[]> Method_Invalid_TestData()
         {
@@ -307,6 +335,13 @@ namespace System.Linq.Expressions.Tests
             AssertArgumentException(() => Expression.Call(method, (IEnumerable<Expression>)new Expression[0]), exceptionType, "method");
         }
 
+        [Fact]
+        public static void Method_Invalid_Via_Name()
+        {
+            AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(typeof(GenericClass<>), nameof(GenericClass<string>.NonGenericMethod), Type.EmptyTypes));
+            AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(typeof(GenericClass<>).MakeGenericType(typeof(GenericClass<>)), nameof(GenericClass<string>.NonGenericMethod), Type.EmptyTypes));
+        }
+
         public static IEnumerable<object[]> Method_DoesntBelongToInstance_TestData()
         {
             // Different declaring type
@@ -326,26 +361,26 @@ namespace System.Linq.Expressions.Tests
         [MemberData(nameof(Method_DoesntBelongToInstance_TestData))]
         public static void Method_DoesntBelongToInstance_ThrowsArgumentException(Expression instance, MethodInfo method)
         {
-            Assert.Throws<ArgumentException>(null, () => Expression.Call(instance, method));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(instance, method));
         }
 
         [Fact]
         public static void InstanceMethod_NullInstance_ThrowsArgumentException()
         {
             MethodInfo method = typeof(NonGenericClass).GetMethod(nameof(NonGenericClass.InstanceMethod));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, s_valid, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, s_valid, s_valid, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, s_valid, s_valid, s_valid, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, new Expression[0]));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, (IEnumerable<Expression>)new Expression[0]));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(method, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(method, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(method, s_valid, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(method, s_valid, s_valid, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(method, s_valid, s_valid, s_valid, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(method, new Expression[0]));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(method, (IEnumerable<Expression>)new Expression[0]));
 
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, s_valid, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, new Expression[0]));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, (IEnumerable<Expression>)new Expression[0]));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(null, method, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(null, method, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(null, method, s_valid, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(null, method, new Expression[0]));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(null, method, (IEnumerable<Expression>)new Expression[0]));
         }
 
         [Fact]
@@ -353,11 +388,11 @@ namespace System.Linq.Expressions.Tests
         {
             Expression instance = Expression.Constant(new NonGenericClass());
             MethodInfo method = typeof(NonGenericClass).GetMethod(nameof(NonGenericClass.StaticMethod));
-            Assert.Throws<ArgumentException>("instance", () => Expression.Call(instance, method, s_valid));
-            Assert.Throws<ArgumentException>("instance", () => Expression.Call(instance, method, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("instance", () => Expression.Call(instance, method, s_valid, s_valid, s_valid));
-            Assert.Throws<ArgumentException>("instance", () => Expression.Call(instance, method, new Expression[0]));
-            Assert.Throws<ArgumentException>("instance", () => Expression.Call(instance, method, (IEnumerable<Expression>)new Expression[0]));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(instance, method, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(instance, method, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(instance, method, s_valid, s_valid, s_valid));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(instance, method, new Expression[0]));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(instance, method, (IEnumerable<Expression>)new Expression[0]));
         }
 
         public static IEnumerable<object[]> InvalidArg_TestData()
@@ -424,7 +459,10 @@ namespace System.Linq.Expressions.Tests
         private static void AssertArgumentException(Action action, Type exceptionType, string paramName)
         {
             ArgumentException ex = (ArgumentException)Assert.Throws(exceptionType, action);
-            Assert.Equal(paramName, ex.ParamName);
+            if (!PlatformDetection.IsNetNative) // The .NET Native toolchain optimizes away exception ParamNames
+            {
+                Assert.Equal(paramName, ex.ParamName);
+            }
         }
 
         [Theory]
@@ -440,56 +478,56 @@ namespace System.Linq.Expressions.Tests
             Expression arg = Expression.Constant("abc");
             if (count != 0)
             {
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(method));
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(null, method));
             }
             if (count != 1)
             {
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(method, arg));
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(null, method, arg));
             }
             if (count != 2)
             {
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg));
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, arg, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(null, method, arg, arg));
             }
             if (count != 3)
             {
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg, arg));
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, arg, arg, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(null, method, arg, arg, arg));
             }
             if (count != 4)
             {
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg, arg, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg, arg, arg));
             }
             if (count != 5)
             {
-                Assert.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg, arg, arg, arg));
+                AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method, arg, arg, arg, arg, arg));
             }
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, Enumerable.Repeat(arg, count + 1).ToArray()));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(method, Enumerable.Repeat(arg, count + 1)));
+            AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method, Enumerable.Repeat(arg, count + 1).ToArray()));
+            AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(method, Enumerable.Repeat(arg, count + 1)));
 
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, Enumerable.Repeat(arg, count + 1).ToArray()));
-            Assert.Throws<ArgumentException>("method", () => Expression.Call(null, method, Enumerable.Repeat(arg, count + 1)));
+            AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(null, method, Enumerable.Repeat(arg, count + 1).ToArray()));
+            AssertExtensions.Throws<ArgumentException>("method", () => Expression.Call(null, method, Enumerable.Repeat(arg, count + 1)));
         }
 
         [Fact]
         public static void MethodName_NullInstance_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>("instance", () => Expression.Call((Expression)null, "methodName", new Type[0], new Expression[0]));
+            AssertExtensions.Throws<ArgumentNullException>("instance", () => Expression.Call((Expression)null, "methodName", new Type[0], new Expression[0]));
         }
 
         [Fact]
         public static void MethodName_NullType_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>("type", () => Expression.Call((Type)null, "methodName", new Type[0], new Expression[0]));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.Call((Type)null, "methodName", new Type[0], new Expression[0]));
         }
 
         [Fact]
         public static void NullMethodName_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>("methodName", () => Expression.Call(Expression.Constant(new NonGenericClass()), null, new Type[0], new Expression[0]));
-            Assert.Throws<ArgumentNullException>("methodName", () => Expression.Call(typeof(NonGenericClass), null, new Type[0], new Expression[0]));
+            AssertExtensions.Throws<ArgumentNullException>("methodName", () => Expression.Call(Expression.Constant(new NonGenericClass()), null, new Type[0], new Expression[0]));
+            AssertExtensions.Throws<ArgumentNullException>("methodName", () => Expression.Call(typeof(NonGenericClass), null, new Type[0], new Expression[0]));
         }
 
         [Fact]
@@ -517,8 +555,8 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void MethodName_TypeArgsDontMatchConstraints_ThrowsArgumentException()
         {
-            Assert.Throws<ArgumentException>(null, () => Expression.Call(Expression.Constant(new NonGenericClass()), nameof(NonGenericClass.ConstrainedInstanceMethod), new Type[] { typeof(object) }));
-            Assert.Throws<ArgumentException>(null, () => Expression.Call(typeof(NonGenericClass), nameof(NonGenericClass.ConstrainedStaticMethod), new Type[] { typeof(object) }));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(Expression.Constant(new NonGenericClass()), nameof(NonGenericClass.ConstrainedInstanceMethod), new Type[] { typeof(object) }));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Call(typeof(NonGenericClass), nameof(NonGenericClass.ConstrainedStaticMethod), new Type[] { typeof(object) }));
         }
 
         [Fact]
@@ -531,15 +569,15 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void MethodName_TypeArgsHasNullValue_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>(null, () => Expression.Call(Expression.Constant(new NonGenericClass()), nameof(NonGenericClass.GenericInstanceMethod), new Type[] { null }));
-            Assert.Throws<ArgumentNullException>(null, () => Expression.Call(typeof(NonGenericClass), nameof(NonGenericClass.GenericStaticMethod), new Type[] { null }));
+            AssertExtensions.Throws<ArgumentNullException>(null, () => Expression.Call(Expression.Constant(new NonGenericClass()), nameof(NonGenericClass.GenericInstanceMethod), new Type[] { null }));
+            AssertExtensions.Throws<ArgumentNullException>(null, () => Expression.Call(typeof(NonGenericClass), nameof(NonGenericClass.GenericStaticMethod), new Type[] { null }));
         }
 
         [Fact]
         public static void MethodName_ArgumentsHasNullValue_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>("arguments", () => Expression.Call(Expression.Constant(new NonGenericClass()), nameof(NonGenericClass.InstanceMethod1), new Type[0], new Expression[] { null }));
-            Assert.Throws<ArgumentNullException>("arguments", () => Expression.Call(typeof(NonGenericClass), nameof(NonGenericClass.StaticMethod1), new Type[0], new Expression[] { null }));
+            AssertExtensions.Throws<ArgumentNullException>("arguments", () => Expression.Call(Expression.Constant(new NonGenericClass()), nameof(NonGenericClass.InstanceMethod1), new Type[0], new Expression[] { null }));
+            AssertExtensions.Throws<ArgumentNullException>("arguments", () => Expression.Call(typeof(NonGenericClass), nameof(NonGenericClass.StaticMethod1), new Type[0], new Expression[] { null }));
         }
 
         [Fact]
@@ -554,32 +592,80 @@ namespace System.Linq.Expressions.Tests
         {
             // NB: Static methods are inconsistent compared to static members; the declaring type is not included
 
-            var e1 = Expression.Call(null, typeof(SomeMethods).GetMethod(nameof(SomeMethods.S0), BindingFlags.Static | BindingFlags.Public));
+            MethodCallExpression e1 = Expression.Call(null, typeof(SomeMethods).GetMethod(nameof(SomeMethods.S0), BindingFlags.Static | BindingFlags.Public));
             Assert.Equal("S0()", e1.ToString());
 
-            var e2 = Expression.Call(null, typeof(SomeMethods).GetMethod(nameof(SomeMethods.S1), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"));
+            MethodCallExpression e2 = Expression.Call(null, typeof(SomeMethods).GetMethod(nameof(SomeMethods.S1), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"));
             Assert.Equal("S1(x)", e2.ToString());
 
-            var e3 = Expression.Call(null, typeof(SomeMethods).GetMethod(nameof(SomeMethods.S2), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
+            MethodCallExpression e3 = Expression.Call(null, typeof(SomeMethods).GetMethod(nameof(SomeMethods.S2), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
             Assert.Equal("S2(x, y)", e3.ToString());
 
-            var e4 = Expression.Call(Expression.Parameter(typeof(SomeMethods), "o"), typeof(SomeMethods).GetMethod(nameof(SomeMethods.I0), BindingFlags.Instance | BindingFlags.Public));
+            MethodCallExpression e4 = Expression.Call(Expression.Parameter(typeof(SomeMethods), "o"), typeof(SomeMethods).GetMethod(nameof(SomeMethods.I0), BindingFlags.Instance | BindingFlags.Public));
             Assert.Equal("o.I0()", e4.ToString());
 
-            var e5 = Expression.Call(Expression.Parameter(typeof(SomeMethods), "o"), typeof(SomeMethods).GetMethod(nameof(SomeMethods.I1), BindingFlags.Instance | BindingFlags.Public), Expression.Parameter(typeof(int), "x"));
+            MethodCallExpression e5 = Expression.Call(Expression.Parameter(typeof(SomeMethods), "o"), typeof(SomeMethods).GetMethod(nameof(SomeMethods.I1), BindingFlags.Instance | BindingFlags.Public), Expression.Parameter(typeof(int), "x"));
             Assert.Equal("o.I1(x)", e5.ToString());
 
-            var e6 = Expression.Call(Expression.Parameter(typeof(SomeMethods), "o"), typeof(SomeMethods).GetMethod(nameof(SomeMethods.I2), BindingFlags.Instance | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
+            MethodCallExpression e6 = Expression.Call(Expression.Parameter(typeof(SomeMethods), "o"), typeof(SomeMethods).GetMethod(nameof(SomeMethods.I2), BindingFlags.Instance | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
             Assert.Equal("o.I2(x, y)", e6.ToString());
 
-            var e7 = Expression.Call(null, typeof(ExtensionMethods).GetMethod(nameof(ExtensionMethods.E0), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"));
+            MethodCallExpression e7 = Expression.Call(null, typeof(ExtensionMethods).GetMethod(nameof(ExtensionMethods.E0), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"));
             Assert.Equal("x.E0()", e7.ToString());
 
-            var e8 = Expression.Call(null, typeof(ExtensionMethods).GetMethod(nameof(ExtensionMethods.E1), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
+            MethodCallExpression e8 = Expression.Call(null, typeof(ExtensionMethods).GetMethod(nameof(ExtensionMethods.E1), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
             Assert.Equal("x.E1(y)", e8.ToString());
 
-            var e9 = Expression.Call(null, typeof(ExtensionMethods).GetMethod(nameof(ExtensionMethods.E2), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"), Expression.Parameter(typeof(int), "z"));
+            MethodCallExpression e9 = Expression.Call(null, typeof(ExtensionMethods).GetMethod(nameof(ExtensionMethods.E2), BindingFlags.Static | BindingFlags.Public), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"), Expression.Parameter(typeof(int), "z"));
             Assert.Equal("x.E2(y, z)", e9.ToString());
+        }
+
+        [Fact]
+        public static void GetArguments()
+        {
+            VerifyGetArguments(Expression.Call(null, s_method0));
+            VerifyGetArguments(Expression.Call(null, s_method1, Expression.Constant(0)));
+            VerifyGetArguments(
+                Expression.Call(null, s_method2, Enumerable.Range(0, 2).Select(i => Expression.Constant(i))));
+            VerifyGetArguments(
+                Expression.Call(null, s_method3, Enumerable.Range(0, 3).Select(i => Expression.Constant(i))));
+            VerifyGetArguments(
+                Expression.Call(null, s_method4, Enumerable.Range(0, 4).Select(i => Expression.Constant(i))));
+            VerifyGetArguments(
+                Expression.Call(null, s_method5, Enumerable.Range(0, 5).Select(i => Expression.Constant(i))));
+            VerifyGetArguments(
+                Expression.Call(null, s_method6, Enumerable.Range(0, 6).Select(i => Expression.Constant(i))));
+            VerifyGetArguments(
+                Expression.Call(null, s_method7, Enumerable.Range(0, 7).Select(i => Expression.Constant(i))));
+            var site = Expression.Default(typeof(NonGenericClass));
+            VerifyGetArguments(Expression.Call(site, nameof(NonGenericClass.InstanceMethod0), null));
+            VerifyGetArguments(
+                Expression.Call(site, nameof(NonGenericClass.InstanceMethod1), null, Expression.Constant(0)));
+            VerifyGetArguments(
+                Expression.Call(
+                    site, nameof(NonGenericClass.InstanceMethod2), null,
+                    Enumerable.Range(0, 2).Select(i => Expression.Constant(i)).ToArray()));
+            VerifyGetArguments(
+                Expression.Call(
+                    site, nameof(NonGenericClass.InstanceMethod3), null,
+                    Enumerable.Range(0, 3).Select(i => Expression.Constant(i)).ToArray()));
+            VerifyGetArguments(
+                Expression.Call(
+                    site, nameof(NonGenericClass.InstanceMethod4), null,
+                    Enumerable.Range(0, 4).Select(i => Expression.Constant(i)).ToArray()));
+        }
+
+        private static void VerifyGetArguments(MethodCallExpression call)
+        {
+            var args = call.Arguments;
+            Assert.Equal(args.Count, call.ArgumentCount);
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("index", () => call.GetArgument(-1));
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("index", () => call.GetArgument(args.Count));
+            for (int i = 0; i != args.Count; ++i)
+            {
+                Assert.Same(args[i], call.GetArgument(i));
+                Assert.Equal(i, ((ConstantExpression)call.GetArgument(i)).Value);
+            }
         }
 
         public class GenericClass<T>
@@ -604,6 +690,8 @@ namespace System.Linq.Expressions.Tests
             public static void Method3(int i1, int i2, int i3) { }
             public static void Method4(int i1, int i2, int i3, int i4) { }
             public static void Method5(int i1, int i2, int i3, int i4, int i5) { }
+            public static void Method6(int i1, int i2, int i3, int i4, int i5, int i6) { }
+            public static void Method7(int i1, int i2, int i3, int i4, int i5, int i6, int i7) { }
 
             public void staticSameName(uint i1) { }
             public void instanceSameName(int i1) { }
@@ -617,8 +705,29 @@ namespace System.Linq.Expressions.Tests
             public void ConstrainedInstanceMethod<T>(T t1) where T : struct { }
             public static void ConstrainedStaticMethod<T>(T t1) where T : struct { }
 
+            public void InstanceMethod0() { }
             public void InstanceMethod1(int i1) { }
+            public void InstanceMethod2(int i1, int i2) { }
+            public void InstanceMethod3(int i1, int i2, int i3) { }
+            public void InstanceMethod4(int i1, int i2, int i3, int i4) { }
             public static void StaticMethod1(int i1) { }
+
+            public enum E1 : byte
+            {
+                One,
+                Two
+            }
+
+            public enum E2 : int
+            {
+                One,
+                Two
+            }
+
+            public static E2 FooEnum(E1 arg)
+            {
+                return (E2)arg;
+            }
         }
 
         public interface Interface1

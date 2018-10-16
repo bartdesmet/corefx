@@ -39,7 +39,7 @@ namespace Microsoft.Framework.WebEncoders
             var newFilter = new TextEncoderSettings(originalFilter);
 
             // Assert
-            for (int i = 0; i <= Char.MaxValue; i++)
+            for (int i = 0; i <= char.MaxValue; i++)
             {
                 Assert.Equal((i % 2) == 1, newFilter.IsCharacterAllowed((char)i));
             }
@@ -86,10 +86,23 @@ namespace Microsoft.Framework.WebEncoders
             {
                 Assert.True(filter.IsCharacterAllowed((char)i));
             }
-            for (int i = 0x2C80; i <= Char.MaxValue; i++)
+            for (int i = 0x2C80; i <= char.MaxValue; i++)
             {
                 Assert.False(filter.IsCharacterAllowed((char)i));
             }
+        }
+
+        [Fact]
+        public void Ctor_Null_UnicodeRanges()
+        {
+            Assert.Throws<ArgumentNullException>("allowedRanges", () => new TextEncoderSettings(default(UnicodeRange[])));
+        }
+
+
+        [Fact]
+        public void Ctor_Null_TextEncoderSettings()
+        {
+            Assert.Throws<ArgumentNullException>("other", () => new TextEncoderSettings(default(TextEncoderSettings)));
         }
 
         [Fact]
@@ -132,6 +145,14 @@ namespace Microsoft.Framework.WebEncoders
             Assert.False(filter.IsCharacterAllowed('\u0103'));
         }
 
+
+        [Fact]
+        public void AllowChars_Null()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings();
+            Assert.Throws<ArgumentNullException>("characters", () => filter.AllowCharacters(null));
+        }
+
         [Fact]
         public void AllowFilter()
         {
@@ -144,10 +165,25 @@ namespace Microsoft.Framework.WebEncoders
             {
                 Assert.True(filter.IsCharacterAllowed((char)i));
             }
-            for (int i = 0x0080; i <= Char.MaxValue; i++)
+            for (int i = 0x0080; i <= char.MaxValue; i++)
             {
                 Assert.Equal((i % 2) == 1, filter.IsCharacterAllowed((char)i));
             }
+        }
+
+        [Fact]
+        public void AllowFilter_NullCodePoints()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings(UnicodeRanges.BasicLatin);
+            Assert.Throws<ArgumentNullException>("codePoints", () => filter.AllowCodePoints(null));
+        }
+
+        [Fact]
+        public void AllowFilter_NonBMP()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings();
+            filter.AllowCodePoints(Enumerable.Range(0x10000, 20));
+            Assert.Empty(filter.GetAllowedCodePoints());
         }
 
         [Fact]
@@ -166,10 +202,17 @@ namespace Microsoft.Framework.WebEncoders
             {
                 Assert.True(filter.IsCharacterAllowed((char)i));
             }
-            for (int i = 0x0180; i <= Char.MaxValue; i++)
+            for (int i = 0x0180; i <= char.MaxValue; i++)
             {
                 Assert.False(filter.IsCharacterAllowed((char)i));
             }
+        }
+
+        [Fact]
+        public void AllowRange_NullRange()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings();
+            Assert.Throws<ArgumentNullException>("range", () => filter.AllowRange(null));
         }
 
         [Fact]
@@ -196,10 +239,17 @@ namespace Microsoft.Framework.WebEncoders
             {
                 Assert.True(filter.IsCharacterAllowed((char)i));
             }
-            for (int i = 0x2C80; i <= Char.MaxValue; i++)
+            for (int i = 0x2C80; i <= char.MaxValue; i++)
             {
                 Assert.False(filter.IsCharacterAllowed((char)i));
             }
+        }
+
+        [Fact]
+        public void AllowRanges_NullRange()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings();
+            Assert.Throws<ArgumentNullException>("ranges", () => filter.AllowRanges(null));
         }
 
         [Fact]
@@ -207,7 +257,7 @@ namespace Microsoft.Framework.WebEncoders
         {
             // Arrange
             var filter = new TextEncoderSettings();
-            for (int i = 1; i <= Char.MaxValue; i++)
+            for (int i = 1; i <= char.MaxValue; i++)
             {
                 filter.AllowCharacter((char)i);
             }
@@ -216,7 +266,7 @@ namespace Microsoft.Framework.WebEncoders
             filter.Clear();
 
             // Assert
-            for (int i = 0; i <= Char.MaxValue; i++)
+            for (int i = 0; i <= char.MaxValue; i++)
             {
                 Assert.False(filter.IsCharacterAllowed((char)i));
             }
@@ -264,6 +314,14 @@ namespace Microsoft.Framework.WebEncoders
             Assert.False(filter.IsCharacterAllowed('z'));
         }
 
+
+        [Fact]
+        public void ForbidChars_Null()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings(UnicodeRanges.BasicLatin);
+            Assert.Throws<ArgumentNullException>("characters", () => filter.ForbidCharacters(null));
+        }
+
         [Fact]
         public void ForbidRange()
         {
@@ -276,10 +334,17 @@ namespace Microsoft.Framework.WebEncoders
             {
                 Assert.Equal((i % 2) == 1, filter.IsCharacterAllowed((char)i));
             }
-            for (int i = 0xFFF0; i <= Char.MaxValue; i++)
+            for (int i = 0xFFF0; i <= char.MaxValue; i++)
             {
                 Assert.False(filter.IsCharacterAllowed((char)i));
             }
+        }
+
+        [Fact]
+        public void ForbidRange_Null()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings();
+            Assert.Throws<ArgumentNullException>("range", () => filter.ForbidRange(null));
         }
 
         [Fact]
@@ -298,10 +363,17 @@ namespace Microsoft.Framework.WebEncoders
             {
                 Assert.Equal((i % 2) == 1, filter.IsCharacterAllowed((char)i));
             }
-            for (int i = 0xFFF0; i <= Char.MaxValue; i++)
+            for (int i = 0xFFF0; i <= char.MaxValue; i++)
             {
                 Assert.False(filter.IsCharacterAllowed((char)i));
             }
+        }
+
+        [Fact]
+        public void ForbidRanges_Null()
+        {
+            TextEncoderSettings filter = new TextEncoderSettings(new OddTextEncoderSettings());
+            Assert.Throws<ArgumentNullException>("ranges", () => filter.ForbidRanges(null));
         }
 
         [Fact]
@@ -329,7 +401,7 @@ namespace Microsoft.Framework.WebEncoders
         {
             public override IEnumerable<int> GetAllowedCodePoints()
             {
-                for (int i = 1; i <= Char.MaxValue; i += 2)
+                for (int i = 1; i <= char.MaxValue; i += 2)
                 {
                     yield return i;
                 }

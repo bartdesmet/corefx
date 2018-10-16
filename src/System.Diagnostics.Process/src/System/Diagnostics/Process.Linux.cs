@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -49,12 +51,68 @@ namespace System.Diagnostics
         }
 
         /// <summary>Gets the time the associated process was started.</summary>
-        public DateTime StartTime
+        internal DateTime StartTimeCore
         {
             get
             {
                 return BootTimeToDateTime(TicksToTimeSpan(GetStat().starttime));
             }
+        }
+
+        /// <summary>Computes a time based on a number of ticks since boot.</summary>
+        /// <param name="timespanAfterBoot">The timespan since boot.</param>
+        /// <returns>The converted time.</returns>
+        internal static DateTime BootTimeToDateTime(TimeSpan timespanAfterBoot)
+        {
+            // And use that to determine the absolute time for timespan.
+            DateTime dt = BootTime + timespanAfterBoot;
+
+            // The return value is expected to be in the local time zone.
+            // It is converted here (rather than starting with DateTime.Now) to avoid DST issues.
+            return dt.ToLocalTime();
+        }
+
+        /// <summary>Gets the system boot time.</summary>
+        private static DateTime BootTime
+        {
+            get
+            {
+                // '/proc/stat -> btime' gets the boot time.
+                // btime is the time of system boot in seconds since the Unix epoch.
+                // It includes suspended time and is updated based on the system time (settimeofday).
+                const string StatFile = Interop.procfs.ProcStatFilePath;
+                string text = File.ReadAllText(StatFile);
+                int btimeLineStart = text.IndexOf("\nbtime ");
+                if (btimeLineStart >= 0)
+                {
+                    int btimeStart = btimeLineStart + "\nbtime ".Length;
+                    int btimeEnd = text.IndexOf('\n', btimeStart);
+                    if (btimeEnd > btimeStart)
+                    {
+                        if (long.TryParse(text.AsSpan(btimeStart, btimeEnd - btimeStart), out long bootTimeSeconds))
+                        {
+                            return DateTime.UnixEpoch + TimeSpan.FromSeconds(bootTimeSeconds);
+                        }
+                    }
+                }
+
+                return DateTime.UtcNow;
+            }
+        }
+
+        /// <summary>Gets execution path</summary>
+        private string GetPathToOpenFile()
+        {
+            string[] allowedProgramsToRun = { "xdg-open", "gnome-open", "kfmclient" };
+            foreach (var program in allowedProgramsToRun)
+            {
+                string pathToProgram = FindProgramInPath(program);
+                if (!string.IsNullOrEmpty(pathToProgram))
+                {
+                    return pathToProgram;
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -87,6 +145,11 @@ namespace System.Diagnostics
         {
             if (_processInfo.HandleCount <= 0 && _haveProcessId)
             {
+                // Don't get information for a PID that exited and has possibly been recycled.
+                if (GetWaitState().GetExited(out _, refresh: false))
+                {
+                    return;
+                }
                 string path = Interop.procfs.GetFileDescriptorDirectoryPathForProcess(_processId);
                 if (Directory.Exists(path))
                 {
@@ -108,7 +171,7 @@ namespace System.Diagnostics
         {
             get
             {
-                EnsureState(State.HaveId);
+                EnsureState(State.HaveNonExitedId);
 
                 IntPtr set;
                 if (Interop.Sys.SchedGetAffinity(_processId, out set) != 0)
@@ -120,7 +183,7 @@ namespace System.Diagnostics
             }
             set
             {
-                EnsureState(State.HaveId);
+                EnsureState(State.HaveNonExitedId);
 
                 if (Interop.Sys.SchedSetAffinity(_processId, ref value) != 0)
                 {
@@ -138,7 +201,7 @@ namespace System.Diagnostics
             ulong rsslim = GetStat().rsslim;
 
             // rsslim is a ulong, but maxWorkingSet is an IntPtr, so we need to cap rsslim
-            // at the max size of IntPtr.  This often happens when there is no configured 
+            // at the max size of IntPtr.  This often happens when there is no configured
             // rsslim other than ulong.MaxValue, which without these checks would show up
             // as a maxWorkingSet == -1.
             switch (IntPtr.Size)
@@ -164,43 +227,22 @@ namespace System.Diagnostics
         private void SetWorkingSetLimitsCore(IntPtr? newMin, IntPtr? newMax, out IntPtr resultingMin, out IntPtr resultingMax)
         {
             // RLIMIT_RSS with setrlimit not supported on Linux > 2.4.30.
-            throw new PlatformNotSupportedException();
+            throw new PlatformNotSupportedException(SR.MinimumWorkingSetNotSupported);
         }
 
         // -----------------------------
         // ---- PAL layer ends here ----
         // -----------------------------
 
-        /// <summary>Gets the path to the current executable, or null if it could not be retrieved.</summary>
-        private static string GetExePath()
+        /// <summary>Gets the path to the executable for the process, or null if it could not be retrieved.</summary>
+        /// <param name="processId">The pid for the target process, or -1 for the current process.</param>
+        internal static string GetExePath(int processId = -1)
         {
-            // Determine the maximum size of a path
-            int maxPath = Interop.Sys.MaxPath;
+            string exeFilePath = processId == -1 ?
+                Interop.procfs.SelfExeFilePath :
+                Interop.procfs.GetExeFilePathForProcess(processId);
 
-            // Start small with a buffer allocation, and grow only up to the max path
-            for (int pathLen = 256; pathLen < maxPath; pathLen *= 2)
-            {
-                // Read from procfs the symbolic link to this process' executable
-                byte[] buffer = new byte[pathLen + 1]; // +1 for null termination
-                int resultLength = Interop.Sys.ReadLink(Interop.procfs.SelfExeFilePath, buffer, pathLen);
-
-                // If we got one, null terminate it (readlink doesn't do this) and return the string
-                if (resultLength > 0)
-                {
-                    buffer[resultLength] = (byte)'\0';
-                    return Encoding.UTF8.GetString(buffer, 0, resultLength);
-                }
-
-                // If the buffer was too small, loop around again and try with a larger buffer.
-                // Otherwise, bail.
-                if (resultLength == 0 || Interop.Sys.GetLastError() != Interop.Error.ENAMETOOLONG)
-                {
-                    break;
-                }
-            }
-
-            // Could not get a path
-            return null;
+            return Interop.Sys.ReadLink(exeFilePath);
         }
 
         // ----------------------------------
@@ -210,7 +252,7 @@ namespace System.Diagnostics
         /// <summary>Reads the stats information for this process from the procfs file system.</summary>
         private Interop.procfs.ParsedStat GetStat()
         {
-            EnsureState(State.HaveId);
+            EnsureState(State.HaveNonExitedId);
             Interop.procfs.ParsedStat stat;
             if (!Interop.procfs.TryReadStatFile(_processId, out stat, new ReusableTextReader()))
             {
@@ -218,6 +260,5 @@ namespace System.Diagnostics
             }
             return stat;
         }
-
     }
 }

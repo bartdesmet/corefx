@@ -2,9 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -1936,7 +1933,7 @@ namespace System.Linq.Expressions.Tests
         {
             foreach (var e in new Expression[] { Expression.Parameter(typeof(int).MakeArrayType(1)), Expression.Constant(new int[2, 2]) })
             {
-                Assert.Throws<ArgumentException>("array", () => Expression.ArrayLength(e));
+                AssertExtensions.Throws<ArgumentException>("array", () => Expression.ArrayLength(e));
             }
         }
 

@@ -123,16 +123,39 @@ namespace System.Security.Cryptography
     public sealed partial class MD5CryptoServiceProvider : System.Security.Cryptography.MD5
     {
         public MD5CryptoServiceProvider() { }
-        public override int HashSize { get { throw null; } }
-        protected sealed override void Dispose(bool disposing) { }
+        protected override void Dispose(bool disposing) { }
         protected override void HashCore(byte[] array, int ibStart, int cbSize) { }
+        protected override void HashCore(System.ReadOnlySpan<byte> source) { }
         protected override byte[] HashFinal() { throw null; }
         public override void Initialize() { }
+        protected override bool TryHashFinal(System.Span<byte> destination, out int bytesWritten) { throw null; }
     }
     public enum KeyNumber
     {
         Exchange = 1,
         Signature = 2,
+    }
+    [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
+    public partial class PasswordDeriveBytes : System.Security.Cryptography.DeriveBytes
+    {
+        public PasswordDeriveBytes(byte[] password, byte[] salt) { }
+        public PasswordDeriveBytes(byte[] password, byte[] salt, System.Security.Cryptography.CspParameters cspParams) { }
+        public PasswordDeriveBytes(byte[] password, byte[] salt, string hashName, int iterations) { }
+        public PasswordDeriveBytes(byte[] password, byte[] salt, string hashName, int iterations, System.Security.Cryptography.CspParameters cspParams) { }
+        public PasswordDeriveBytes(string strPassword, byte[] rgbSalt) { }
+        public PasswordDeriveBytes(string strPassword, byte[] rgbSalt, System.Security.Cryptography.CspParameters cspParams) { }
+        public PasswordDeriveBytes(string strPassword, byte[] rgbSalt, string strHashName, int iterations) { }
+        public PasswordDeriveBytes(string strPassword, byte[] rgbSalt, string strHashName, int iterations, System.Security.Cryptography.CspParameters cspParams) { }
+        public string HashName { get { throw null; } set { } }
+        public int IterationCount { get { throw null; } set { } }
+        public byte[] Salt { get { throw null; } set { } }
+        public byte[] CryptDeriveKey(string algname, string alghashname, int keySize, byte[] rgbIV) { throw null; }
+        protected override void Dispose(bool disposing) { }
+        [System.ObsoleteAttribute("Rfc2898DeriveBytes replaces PasswordDeriveBytes for deriving key material from a password and is preferred in new applications.")]
+#pragma warning disable 0809
+        public override byte[] GetBytes(int cb) { throw null; }
+#pragma warning restore 0809
+        public override void Reset() { }
     }
     [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
     public sealed partial class RC2CryptoServiceProvider : System.Security.Cryptography.RC2
@@ -154,7 +177,10 @@ namespace System.Security.Cryptography
         public RNGCryptoServiceProvider(string str) { }
         protected override void Dispose(bool disposing) { }
         public override void GetBytes(byte[] data) { }
+        public override void GetBytes(byte[] data, int offset, int count) { }
+        public override void GetBytes(System.Span<byte> data) { }
         public override void GetNonZeroBytes(byte[] data) { }
+        public override void GetNonZeroBytes(System.Span<byte> data) { }
     }
     public sealed partial class RSACryptoServiceProvider : System.Security.Cryptography.RSA, System.Security.Cryptography.ICspAsymmetricAlgorithm
     {
@@ -172,9 +198,11 @@ namespace System.Security.Cryptography
         public static bool UseMachineKeyStore { get { throw null; } set { } }
         public byte[] Decrypt(byte[] rgb, bool fOAEP) { throw null; }
         public override byte[] Decrypt(byte[] data, System.Security.Cryptography.RSAEncryptionPadding padding) { throw null; }
+        public override byte[] DecryptValue(byte[] rgb) { throw null; }
         protected override void Dispose(bool disposing) { }
         public byte[] Encrypt(byte[] rgb, bool fOAEP) { throw null; }
         public override byte[] Encrypt(byte[] data, System.Security.Cryptography.RSAEncryptionPadding padding) { throw null; }
+        public override byte[] EncryptValue(byte[] rgb) { throw null; }
         public byte[] ExportCspBlob(bool includePrivateParameters) { throw null; }
         public override System.Security.Cryptography.RSAParameters ExportParameters(bool includePrivateParameters) { throw null; }
         protected override byte[] HashData(byte[] data, int offset, int count, System.Security.Cryptography.HashAlgorithmName hashAlgorithm) { throw null; }
@@ -194,11 +222,45 @@ namespace System.Security.Cryptography
     public sealed partial class SHA1CryptoServiceProvider : System.Security.Cryptography.SHA1
     {
         public SHA1CryptoServiceProvider() { }
-        public override int HashSize { get { throw null; } }
-        protected sealed override void Dispose(bool disposing) { }
+        protected override void Dispose(bool disposing) { }
         protected override void HashCore(byte[] array, int ibStart, int cbSize) { }
+        protected override void HashCore(System.ReadOnlySpan<byte> source) { }
         protected override byte[] HashFinal() { throw null; }
         public override void Initialize() { }
+        protected override bool TryHashFinal(System.Span<byte> destination, out int bytesWritten) { throw null; }
+    }
+    [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
+    public sealed partial class SHA256CryptoServiceProvider : System.Security.Cryptography.SHA256
+    {
+        public SHA256CryptoServiceProvider() { }
+        protected override void Dispose(bool disposing) { }
+        protected override void HashCore(byte[] array, int ibStart, int cbSize) { }
+        protected override void HashCore(System.ReadOnlySpan<byte> source) { }
+        protected override byte[] HashFinal() { throw null; }
+        public override void Initialize() { }
+        protected override bool TryHashFinal(System.Span<byte> destination, out int bytesWritten) { throw null; }
+    }
+    [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
+    public sealed partial class SHA384CryptoServiceProvider : System.Security.Cryptography.SHA384
+    {
+        public SHA384CryptoServiceProvider() { }
+        protected override void Dispose(bool disposing) { }
+        protected override void HashCore(byte[] array, int ibStart, int cbSize) { }
+        protected override void HashCore(System.ReadOnlySpan<byte> source) { }
+        protected override byte[] HashFinal() { throw null; }
+        public override void Initialize() { }
+        protected override bool TryHashFinal(System.Span<byte> destination, out int bytesWritten) { throw null; }
+    }
+    [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
+    public sealed partial class SHA512CryptoServiceProvider : System.Security.Cryptography.SHA512
+    {
+        public SHA512CryptoServiceProvider() { }
+        protected override void Dispose(bool disposing) { }
+        protected override void HashCore(byte[] array, int ibStart, int cbSize) { }
+        protected override void HashCore(System.ReadOnlySpan<byte> source) { }
+        protected override byte[] HashFinal() { throw null; }
+        public override void Initialize() { }
+        protected override bool TryHashFinal(System.Span<byte> destination, out int bytesWritten) { throw null; }
     }
     [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
     public sealed partial class TripleDESCryptoServiceProvider : System.Security.Cryptography.TripleDES

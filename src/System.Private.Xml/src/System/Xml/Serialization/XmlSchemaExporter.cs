@@ -597,7 +597,7 @@ namespace System.Xml.Serialization
             }
             else
             {
-                throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Unsuported anonymous mapping type: " + mapping.ToString()));
+                throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Unsupported anonymous mapping type: " + mapping.ToString()));
             }
         }
 
@@ -652,9 +652,9 @@ namespace System.Xml.Serialization
                 if (seq.Items.Count > 0)
                 {
 #if DEBUG
-                        // we can have only one item for the array mapping
-                        if (seq.Items.Count != 1) 
-                            throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Type " + mapping.TypeName + " from namespace '" + ns + "' is an invalid array mapping"));
+                    // we can have only one item for the array mapping
+                    if (seq.Items.Count != 1)
+                        throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Type " + mapping.TypeName + " from namespace '" + ns + "' is an invalid array mapping"));
 #endif
                     if (seq.Items[0] is XmlSchemaChoice)
                     {
@@ -900,7 +900,7 @@ namespace System.Xml.Serialization
             }
         }
 
-        static internal string ExportDefaultValue(TypeMapping mapping, object value)
+        internal static string ExportDefaultValue(TypeMapping mapping, object value)
         {
             if (!(mapping is PrimitiveMapping))
                 // should throw, but it will be a breaking change;
@@ -914,8 +914,8 @@ namespace System.Xml.Serialization
                 EnumMapping em = (EnumMapping)mapping;
 
 #if DEBUG
-                    // use exception in the place of Debug.Assert to avoid throwing asserts from a server process such as aspnet_ewp.exe
-                    if (value.GetType() != typeof(string)) throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, SR.Format(SR.XmlInvalidDefaultValue, value.ToString(), value.GetType().FullName)));
+                // use exception in the place of Debug.Assert to avoid throwing asserts from a server process such as aspnet_ewp.exe
+                if (value.GetType() != typeof(string)) throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, SR.Format(SR.XmlInvalidDefaultValue, value.ToString(), value.GetType().FullName)));
 #endif
 
                 // check the validity of the value
@@ -952,10 +952,11 @@ namespace System.Xml.Serialization
             if (!pm.TypeDesc.HasCustomFormatter)
             {
 #if DEBUG
-                    // use exception in the place of Debug.Assert to avoid throwing asserts from a server process such as aspnet_ewp.exe
-                    if (pm.TypeDesc.Type == null) {
-                        throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Mapping for " + pm.TypeDesc.Name + " missing type property"));
-                    }
+                // use exception in the place of Debug.Assert to avoid throwing asserts from a server process such as aspnet_ewp.exe
+                if (pm.TypeDesc.Type == null)
+                {
+                    throw new InvalidOperationException(SR.Format(SR.XmlInternalErrorDetails, "Mapping for " + pm.TypeDesc.Name + " missing type property"));
+                }
 #endif
 
                 if (pm.TypeDesc.FormatterName == "String")
@@ -964,7 +965,7 @@ namespace System.Xml.Serialization
                 Type formatter = typeof(XmlConvert);
                 System.Reflection.MethodInfo format = formatter.GetMethod("ToString", new Type[] { pm.TypeDesc.Type });
                 if (format != null)
-                    return (string)format.Invoke(formatter, new Object[] { value });
+                    return (string)format.Invoke(formatter, new object[] { value });
             }
             else
             {

@@ -16,31 +16,8 @@ namespace System
 {
     public static partial class Environment
     {
-        private static readonly unsafe Lazy<LowLevelDictionary<string, string>> s_environ = new Lazy<LowLevelDictionary<string, string>>(() =>
-        {
-            var results = new LowLevelDictionary<string, string>();
-            byte** environ = Interop.Sys.GetEnviron();
-            if (environ != null)
-            {
-                for (byte** ptr = environ; *ptr != null; ptr++)
-                {
-                    string entry = Marshal.PtrToStringAnsi((IntPtr)(*ptr));
-                    int equalsPos = entry.IndexOf('=');
-                    if (equalsPos != -1)
-                    {
-                        results.Add(entry.Substring(0, equalsPos), entry.Substring(equalsPos + 1));
-                    }
-                    else
-                    {
-                        results.Add(entry, string.Empty);
-                    }
-                }
-            }
-            return results;
-        });
         internal static readonly bool IsMac = Interop.Sys.GetUnixName() == "OSX";
-        private static Func<string, IEnumerable<string>> s_fileReadLines;
-        private static Action<string> s_directoryCreateDirectory;
+        private static Func<string, object> s_directoryCreateDirectory;
 
         private static string CurrentDirectoryCore
         {
@@ -52,7 +29,8 @@ namespace System
 
         private static string ExpandEnvironmentVariablesCore(string name)
         {
-            StringBuilder result = StringBuilderCache.Acquire();
+            Span<char> initialBuffer = stackalloc char[128];
+            var result = new ValueStringBuilder(initialBuffer);
 
             int lastPos = 0, pos;
             while (lastPos < name.Length && (pos = name.IndexOf('%', lastPos + 1)) >= 0)
@@ -68,51 +46,12 @@ namespace System
                         continue;
                     }
                 }
-                result.Append(name.Substring(lastPos, pos - lastPos));
+                result.Append(name.AsSpan(lastPos, pos - lastPos));
                 lastPos = pos;
             }
-            result.Append(name.Substring(lastPos));
+            result.Append(name.AsSpan(lastPos));
 
-            return StringBuilderCache.GetStringAndRelease(result);
-        }
-
-        private static string GetEnvironmentVariableCore(string variable)
-        {
-            // Ensure variable doesn't include a null char
-            int nullEnd = variable.IndexOf('\0');
-            if (nullEnd != -1)
-            {
-                variable = variable.Substring(0, nullEnd);
-            }
-
-            // Get the value of the variable
-            lock (s_environ)
-            {
-                string value;
-                return s_environ.Value.TryGetValue(variable, out value) ? value : null;
-            }
-        }
-
-        private static string GetEnvironmentVariableCore(string variable, EnvironmentVariableTarget target)
-        {
-            return target == EnvironmentVariableTarget.Process ?
-                GetEnvironmentVariableCore(variable) :
-                null;
-        }
-
-        private static IDictionary GetEnvironmentVariablesCore()
-        {
-            lock (s_environ)
-            {
-                return s_environ.Value.Clone();
-            }
-        }
-
-        private static IDictionary GetEnvironmentVariablesCore(EnvironmentVariableTarget target)
-        {
-            return target == EnvironmentVariableTarget.Process ?
-                GetEnvironmentVariablesCore() :
-                new LowLevelDictionary<string, string>();
+            return result.ToString();
         }
 
         private static string GetFolderPathCore(SpecialFolder folder, SpecialFolderOption option)
@@ -141,11 +80,11 @@ namespace System
                 Debug.Assert(option == SpecialFolderOption.Create);
 
                 // TODO #11151: Replace with Directory.CreateDirectory once we have access to System.IO.FileSystem here.
-                Action<string> createDirectory = LazyInitializer.EnsureInitialized(ref s_directoryCreateDirectory, () =>
+                Func<string, object> createDirectory = LazyInitializer.EnsureInitialized(ref s_directoryCreateDirectory, () =>
                 {
                     Type dirType = Type.GetType("System.IO.Directory, System.IO.FileSystem, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", throwOnError: true);
                     MethodInfo mi = dirType.GetTypeInfo().GetDeclaredMethod("CreateDirectory");
-                    return (Action<string>)mi.CreateDelegate(typeof(Action<string>));
+                    return (Func<string, object>)mi.CreateDelegate(typeof(Func<string, object>));
                 });
                 createDirectory(path);
 
@@ -261,7 +200,7 @@ namespace System
             // Use the user-dirs.dirs file to look up the right config.
             // Note that the docs also highlight a list of directories in which to look for this file:
             // "$XDG_CONFIG_DIRS defines the preference-ordered set of base directories to search for configuration files in addition
-            //  to the $XDG_CONFIG_HOME base directory. The directories in $XDG_CONFIG_DIRS should be seperated with a colon ':'. If
+            //  to the $XDG_CONFIG_HOME base directory. The directories in $XDG_CONFIG_DIRS should be separated with a colon ':'. If
             //  $XDG_CONFIG_DIRS is either not set or empty, a value equal to / etc / xdg should be used."
             // For simplicity, we don't currently do that.  We can add it if/when necessary.
 
@@ -270,27 +209,10 @@ namespace System
             {
                 try
                 {
-                    // TODO #11151: Replace with direct usage of File.ReadLines or equivalent once we have access to System.IO.FileSystem here.
-                    Func<string, IEnumerable<string>> readLines = LazyInitializer.EnsureInitialized(ref s_fileReadLines, () =>
+                    using (var reader = new StreamReader(userDirsPath))
                     {
-                        Type fileType = Type.GetType("System.IO.File, System.IO.FileSystem, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a", throwOnError: false);
-                        if (fileType != null)
-                        {
-                            foreach (MethodInfo mi in fileType.GetTypeInfo().GetDeclaredMethods("ReadLines"))
-                            {
-                                if (mi.GetParameters().Length == 1)
-                                {
-                                    return (Func<string, IEnumerable<string>>)mi.CreateDelegate(typeof(Func<string, IEnumerable<string>>));
-                                }
-                            }
-                        }
-                        return null;
-                    });
-
-                    IEnumerable<string> lines = readLines?.Invoke(userDirsPath);
-                    if (lines != null)
-                    {
-                        foreach (string line in lines)
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
                         {
                             // Example lines:
                             // XDG_DESKTOP_DIR="$HOME/Desktop"
@@ -371,14 +293,15 @@ namespace System
 
         public static string NewLine => "\n";
 
-        private static Lazy<OperatingSystem> s_osVersion = new Lazy<OperatingSystem>(() =>
+        private static readonly Lazy<OperatingSystem> s_osVersion = new Lazy<OperatingSystem>(() => GetOperatingSystem(Interop.Sys.GetUnixRelease()));
+
+        private static OperatingSystem GetOperatingSystem(string release)
         {
             int major = 0, minor = 0, build = 0, revision = 0;
 
-            // Get the uname's utsname.release.  Then parse it for the first four numbers found.
+            // Parse the uname's utsname.release for the first four numbers found.
             // This isn't perfect, but Version already doesn't map exactly to all possible release
-            // formats, e.g. 
-            string release = Interop.Sys.GetUnixRelease();
+            // formats, e.g. 2.6.19-1.2895.fc6
             if (release != null)
             {
                 int i = 0;
@@ -388,8 +311,10 @@ namespace System
                 revision = FindAndParseNextNumber(release, ref i);
             }
 
+            // For compatibility reasons with Mono, PlatformID.Unix is returned on MacOSX. PlatformID.MacOSX
+            // is hidden from the editor and shouldn't be used.
             return new OperatingSystem(PlatformID.Unix, new Version(major, minor, build, revision));
-        });
+        }
 
         private static int FindAndParseNextNumber(string text, ref int pos)
         {
@@ -408,64 +333,28 @@ namespace System
             for (; pos < text.Length; pos++)
             {
                 char c = text[pos];
-                if ('0' <= c && c <= '9')
+                if ('0' > c || c > '9')
+                    break;
+
+                try
                 {
-                    num = (num * 10) + (c - '0');
+                    num = checked((num * 10) + (c - '0'));
                 }
-                else break;
+                // Integer overflow can occur for example with:
+                //     Linux nelknet 4.15.0-24201807041620-generic
+                // To form a valid Version, num must be positive.
+                catch (OverflowException)
+                {
+                    return int.MaxValue;
+                }
             }
+
             return num;
-        }
-
-        public static int ProcessorCount => (int)Interop.Sys.SysConf(Interop.Sys.SysConfName._SC_NPROCESSORS_ONLN);
-
-        private static void SetEnvironmentVariableCore(string variable, string value)
-        {
-            int nullEnd;
-
-            // Ensure variable doesn't include a null char
-            nullEnd = variable.IndexOf('\0');
-            if (nullEnd != -1)
-            {
-                variable = variable.Substring(0, nullEnd);
-            }
-
-            // Ensure value doesn't include a null char
-            if (value != null)
-            {
-                nullEnd = value.IndexOf('\0');
-                if (nullEnd != -1)
-                {
-                    value = value.Substring(0, nullEnd);
-                }
-            }
-
-            lock (s_environ)
-            {
-                // Remove the entry if the value is null, otherwise add/overwrite it
-                if (value == null)
-                {
-                    s_environ.Value.Remove(variable);
-                }
-                else
-                {
-                    s_environ.Value[variable] = value;
-                }
-            }
-        }
-
-        private static void SetEnvironmentVariableCore(string variable, string value, EnvironmentVariableTarget target)
-        {
-            if (target == EnvironmentVariableTarget.Process)
-            {
-                SetEnvironmentVariableCore(variable, value);
-            }
-            // other targets ignored
         }
 
         public static string SystemDirectory => GetFolderPathCore(SpecialFolder.System, SpecialFolderOption.None);
 
-        public static int SystemPageSize => (int)Interop.Sys.SysConf(Interop.Sys.SysConfName._SC_PAGESIZE);
+        public static int SystemPageSize => CheckedSysConf(Interop.Sys.SysConfName._SC_PAGESIZE);
 
         public static unsafe string UserName
         {
@@ -473,7 +362,7 @@ namespace System
             {
                 // First try with a buffer that should suffice for 99% of cases.
                 string username;
-                const int BufLen = 1024;
+                const int BufLen = Interop.Sys.Passwd.InitialBufferSize;
                 byte* stackBuf = stackalloc byte[BufLen];
                 if (TryGetUserNameFromPasswd(stackBuf, BufLen, out username))
                 {
@@ -487,7 +376,7 @@ namespace System
                 {
                     lastBufLen *= 2;
                     byte[] heapBuf = new byte[lastBufLen];
-                    fixed (byte* buf = heapBuf)
+                    fixed (byte* buf = &heapBuf[0])
                     {
                         if (TryGetUserNameFromPasswd(buf, heapBuf.Length, out username))
                         {
@@ -523,7 +412,7 @@ namespace System
 
             var errorInfo = new Interop.ErrorInfo(error);
 
-            // If the call failed because the buffer was too small, return false to 
+            // If the call failed because the buffer was too small, return false to
             // indicate the caller should try again with a larger buffer.
             if (errorInfo.Error == Interop.Error.ERANGE)
             {
@@ -536,5 +425,19 @@ namespace System
         }
 
         public static string UserDomainName => MachineName;
+
+        /// <summary>Invoke <see cref="Interop.Sys.SysConf"/>, throwing if it fails.</summary>
+        private static int CheckedSysConf(Interop.Sys.SysConfName name)
+        {
+            long result = Interop.Sys.SysConf(name);
+            if (result == -1)
+            {
+                Interop.ErrorInfo errno = Interop.Sys.GetLastErrorInfo();
+                throw errno.Error == Interop.Error.EINVAL ?
+                    new ArgumentOutOfRangeException(nameof(name), name, errno.GetErrorMessage()) :
+                    Interop.GetIOException(errno);
+            }
+            return (int)result;
+        }
     }
 }

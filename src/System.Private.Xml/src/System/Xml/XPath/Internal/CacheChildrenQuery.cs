@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
 using System.Xml;
 using System.Xml.XPath;
 using StackInt = MS.Internal.Xml.XPath.ClonableStack<int>;
@@ -91,16 +92,6 @@ namespace MS.Internal.Xml.XPath
                         continue;
                     }
                 }
-				// TODO: this code was previously removed
-#if DEBUG
-                if (_lastNode != null) {
-                    if (currentNode.GetType().ToString() == "Microsoft.VisualStudio.Modeling.StoreNavigator") {
-                        XmlNodeOrder order = CompareNodes(_lastNode, currentNode);
-                        Debug.Assert(order == XmlNodeOrder.Before, "Algorith error. Nodes expected to be DocOrderDistinct");
-                    }
-                }
-                lastNode = currentNode.Clone();
-#endif
                 if (matches(currentNode))
                 {
                     position++;

@@ -4,11 +4,14 @@
 
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace System.Net
 {
     [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public partial class WebException : InvalidOperationException, ISerializable
     {
         private const WebExceptionStatus DefaultStatus = WebExceptionStatus.UnknownError;
@@ -50,7 +53,8 @@ namespace System.Net
             }
         }
 
-        protected WebException(SerializationInfo serializationInfo, StreamingContext streamingContext) : base(serializationInfo, streamingContext)
+        protected WebException(SerializationInfo serializationInfo, StreamingContext streamingContext) 
+            : base(serializationInfo, streamingContext)
         {
         }
 
@@ -72,7 +76,7 @@ namespace System.Net
 
         void ISerializable.GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
         {
-            GetObjectData(serializationInfo, streamingContext);
+            base.GetObjectData(serializationInfo, streamingContext);
         }
 
         public override void GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
@@ -96,8 +100,40 @@ namespace System.Net
                     GetStatusFromException(exception as HttpRequestException),
                     null);
             }
+            else if (exception is TaskCanceledException)
+            {
+                return new WebException(
+                    SR.net_webstatus_Timeout,
+                    null,
+                    WebExceptionStatus.Timeout,
+                    null);
+            }
 
             return exception;
+        }
+        
+        private static WebExceptionStatus GetStatusFromExceptionHelper(HttpRequestException ex)
+        {
+            SocketException socketEx = ex.InnerException as SocketException;
+
+            if (socketEx is null)
+            {
+                return WebExceptionStatus.UnknownError;
+            }
+
+            WebExceptionStatus status;
+            switch (socketEx.SocketErrorCode)
+            {
+                case SocketError.NoData:
+                case SocketError.HostNotFound:
+                    status = WebExceptionStatus.NameResolutionFailure;
+                    break;
+                default:
+                    status = WebExceptionStatus.UnknownError;
+                    break;
+            }
+
+            return status;
         }
     }
 }

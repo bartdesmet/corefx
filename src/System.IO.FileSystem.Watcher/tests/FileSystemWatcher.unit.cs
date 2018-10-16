@@ -2,9 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -67,8 +64,8 @@ namespace System.IO.Tests
         [Fact]
         public void FileSystemWatcher_ctor()
         {
-            string path = String.Empty;
-            string pattern = "*.*";
+            string path = string.Empty;
+            string pattern = PlatformDetection.IsFullFramework ? "*.*" : "*";
             using (FileSystemWatcher watcher = new FileSystemWatcher())
                 ValidateDefaults(watcher, path, pattern);
         }
@@ -77,7 +74,7 @@ namespace System.IO.Tests
         public void FileSystemWatcher_ctor_path()
         {
             string path = @".";
-            string pattern = "*.*";
+            string pattern = PlatformDetection.IsFullFramework ? "*.*" : "*";
             using (FileSystemWatcher watcher = new FileSystemWatcher(path))
                 ValidateDefaults(watcher, path, pattern);
         }
@@ -92,7 +89,7 @@ namespace System.IO.Tests
         }
 
         [Fact]
-        public void FileSystemWatcher_ctor_InvalidStrings()
+        public void FileSystemWatcher_ctor_NullStrings()
         {
             using (var testDirectory = new TempDirectory(GetTestFilePath()))
             {
@@ -100,16 +97,25 @@ namespace System.IO.Tests
                 Assert.Throws<ArgumentNullException>("filter", () => new FileSystemWatcher(testDirectory.Path, null));
 
                 // Null path
+                Assert.Throws<ArgumentNullException>("path", () => new FileSystemWatcher(null, null));
                 Assert.Throws<ArgumentNullException>("path", () => new FileSystemWatcher(null));
                 Assert.Throws<ArgumentNullException>("path", () => new FileSystemWatcher(null, "*"));
+            }
+        }
 
+        [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "On Desktop, these exceptions don't have a parameter")]
+        public void FileSystemWatcher_ctor_InvalidStrings()
+        {
+            using (var testDirectory = new TempDirectory(GetTestFilePath()))
+            {
                 // Empty path
-                Assert.Throws<ArgumentException>("path", () => new FileSystemWatcher(string.Empty));
-                Assert.Throws<ArgumentException>("path", () => new FileSystemWatcher(string.Empty, "*"));
+                AssertExtensions.Throws<ArgumentException>("path", () => new FileSystemWatcher(string.Empty));
+                AssertExtensions.Throws<ArgumentException>("path", () => new FileSystemWatcher(string.Empty, "*"));
 
                 // Invalid directory
-                Assert.Throws<ArgumentException>("path", () => new FileSystemWatcher(GetTestFilePath()));
-                Assert.Throws<ArgumentException>("path", () => new FileSystemWatcher(GetTestFilePath(), "*"));
+                AssertExtensions.Throws<ArgumentException>("path", () => new FileSystemWatcher(GetTestFilePath()));
+                AssertExtensions.Throws<ArgumentException>("path", () => new FileSystemWatcher(GetTestFilePath(), "*"));
             }
         }
 
@@ -208,14 +214,14 @@ namespace System.IO.Tests
         {
             FileSystemWatcher watcher = new FileSystemWatcher();
 
-            Assert.Equal("*.*", watcher.Filter);
+            Assert.Equal(PlatformDetection.IsFullFramework ? "*.*" : "*", watcher.Filter);
 
-            // Null and empty should be mapped to "*.*"
+            // Null and empty should be mapped to "*"
             watcher.Filter = null;
-            Assert.Equal("*.*", watcher.Filter);
+            Assert.Equal(PlatformDetection.IsFullFramework ? "*.*" : "*", watcher.Filter);
 
-            watcher.Filter = String.Empty;
-            Assert.Equal("*.*", watcher.Filter);
+            watcher.Filter = string.Empty;
+            Assert.Equal(PlatformDetection.IsFullFramework ? "*.*" : "*", watcher.Filter);
 
             watcher.Filter = " ";
             Assert.Equal(" ", watcher.Filter);
@@ -229,13 +235,10 @@ namespace System.IO.Tests
             watcher.Filter = "abc.dll";
             Assert.Equal("abc.dll", watcher.Filter);
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || // expect no change for OrdinalIgnoreCase-equal strings
-                RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (!(PlatformDetection.IsFullFramework || PlatformDetection.IsOSX))
             {
-                // expect no change for OrdinalIgnoreCase-equal strings
-                // it's unclear why desktop does this but preserve it for compat        
                 watcher.Filter = "ABC.DLL";
-                Assert.Equal("abc.dll", watcher.Filter);
+                Assert.Equal("ABC.DLL", watcher.Filter);
             }
 
             // We can make this setting by first changing to another value then back.
@@ -305,13 +308,13 @@ namespace System.IO.Tests
             Assert.Equal((NotifyFilters)0, watcher.NotifyFilter);
 
             // These throw InvalidEnumException on desktop, but ArgumentException on K
-            Assert.Throws<ArgumentException>(() => watcher.NotifyFilter = (NotifyFilters)(-1));
-            Assert.Throws<ArgumentException>(() => watcher.NotifyFilter = (NotifyFilters)int.MinValue);
-            Assert.Throws<ArgumentException>(() => watcher.NotifyFilter = (NotifyFilters)int.MaxValue);
-            Assert.Throws<ArgumentException>(() => watcher.NotifyFilter = allFilters + 1);
+            Assert.ThrowsAny<ArgumentException>(() => watcher.NotifyFilter = (NotifyFilters)(-1));
+            Assert.ThrowsAny<ArgumentException>(() => watcher.NotifyFilter = (NotifyFilters)int.MinValue);
+            Assert.ThrowsAny<ArgumentException>(() => watcher.NotifyFilter = (NotifyFilters)int.MaxValue);
+            Assert.ThrowsAny<ArgumentException>(() => watcher.NotifyFilter = allFilters + 1);
 
             // Simulate a bit added to the flags
-            Assert.Throws<ArgumentException>(() => watcher.NotifyFilter = allFilters | (NotifyFilters)((int)notifyFilters.Max() << 1));
+            Assert.ThrowsAny<ArgumentException>(() => watcher.NotifyFilter = allFilters | (NotifyFilters)((int)notifyFilters.Max() << 1));
         }
 
         [Fact]
@@ -361,7 +364,7 @@ namespace System.IO.Tests
         }
 
         [Fact]
-        [PlatformSpecific(TestPlatforms.OSX | TestPlatforms.Windows)]
+        [PlatformSpecific(TestPlatforms.OSX | TestPlatforms.Windows)]  // Casing matters on Linux
         public void FileSystemWatcher_OnCreatedWithMismatchedCasingGivesExpectedFullPath()
         {
             using (var dir = new TempDirectory(GetTestFilePath()))
@@ -461,14 +464,14 @@ namespace System.IO.Tests
             using (var file = new TempFile(Path.Combine(dir.Path, "file")))
             using (var fsw = new FileSystemWatcher(dir.Path))
             {
-                AutoResetEvent eventOccurred = WatchRenamed(fsw);
+                AutoResetEvent eventOccurred = WatchRenamed(fsw).EventOccured;
 
                 string newPath = Path.Combine(dir.Path, "newPath");
 
                 fsw.Renamed += (o, e) =>
                 {
-                    Assert.Equal(e.OldFullPath, file.Path);
-                    Assert.Equal(e.FullPath, newPath);
+                    Assert.Equal(file.Path, e.OldFullPath);
+                    Assert.Equal(newPath, e.FullPath);
                 };
 
                 fsw.EnableRaisingEvents = true;
@@ -481,16 +484,19 @@ namespace System.IO.Tests
         public void FileSystemWatcher_Path()
         {
             FileSystemWatcher watcher = new FileSystemWatcher();
-            Assert.Equal(String.Empty, watcher.Path);
+            Assert.Equal(string.Empty, watcher.Path);
 
             watcher.Path = null;
-            Assert.Equal(String.Empty, watcher.Path);
+            Assert.Equal(string.Empty, watcher.Path);
 
             watcher.Path = ".";
             Assert.Equal(".", watcher.Path);
 
-            watcher.Path = "..";
-            Assert.Equal("..", watcher.Path);
+            if (!PlatformDetection.IsInAppContainer)
+            {
+                watcher.Path = "..";
+                Assert.Equal("..", watcher.Path);
+            }
 
             string currentDir = Path.GetFullPath(".").TrimEnd('.', Path.DirectorySeparatorChar);
             watcher.Path = currentDir;
@@ -516,8 +522,8 @@ namespace System.IO.Tests
             Assert.Equal(currentDirRelative, watcher.Path);
 
             // FSW starts with String.Empty and will ignore setting this if it is already set,
-            // but if you set it after some other valid string has been set it will throw.
-            Assert.Throws<ArgumentException>(() => watcher.Path = String.Empty);
+            // but if you set it after some other valid string has been set it will throw.            
+            Assert.Throws<ArgumentException>(() => watcher.Path = string.Empty);
             // Non-existent path
             Assert.Throws<ArgumentException>(() => watcher.Path = GetTestFilePath());
             // Web path
@@ -543,7 +549,7 @@ namespace System.IO.Tests
         }
 
         [Fact]
-        [PlatformSpecific(TestPlatforms.Linux)]
+        [PlatformSpecific(TestPlatforms.Linux)]  // Reads MaxUsersWatches from Linux OS files
         [OuterLoop("This test has high system resource demands and may cause failures in other concurrent tests")]
         public void FileSystemWatcher_CreateManyConcurrentWatches()
         {
@@ -584,32 +590,21 @@ namespace System.IO.Tests
             // a FSW event callback and make sure we don't Thread.Join to deadlock
             using (var dir = new TempDirectory(GetTestFilePath()))
             {
-                FileSystemWatcher watcher = new FileSystemWatcher();
+                string filePath = Path.Combine(dir.Path, "testfile.txt");
+                File.Create(filePath).Dispose();
                 AutoResetEvent are = new AutoResetEvent(false);
-
+                FileSystemWatcher watcher = new FileSystemWatcher(Path.GetFullPath(dir.Path), "*");
                 FileSystemEventHandler callback = (sender, arg) =>
                 {
                     watcher.Dispose();
                     are.Set();
                 };
-
-                // Attach the FSW to the existing structure
-                watcher.Path = Path.GetFullPath(dir.Path);
-                watcher.Filter = "*";
-                watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size;
+                watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite;
                 watcher.Changed += callback;
-
-                using (var file = File.Create(Path.Combine(dir.Path, "testfile.txt")))
-                {
-                    watcher.EnableRaisingEvents = true;
-
-                    // Change the nested file and verify we get the changed event
-                    byte[] bt = new byte[4096];
-                    file.Write(bt, 0, bt.Length);
-                    file.Flush();
-                }
-
-                ExpectEvent(are, "deleted");
+                watcher.EnableRaisingEvents = true;
+                File.SetLastWriteTime(filePath, File.GetLastWriteTime(filePath).AddDays(1));
+                Assert.True(are.WaitOne(10000));
+                Assert.Throws<ObjectDisposedException>(() => watcher.EnableRaisingEvents = true);
             }
         }
 
@@ -620,7 +615,7 @@ namespace System.IO.Tests
             using (var dir = new TempDirectory(Path.Combine(testDirectory.Path, "dir")))
             using (var fsw = new FileSystemWatcher(dir.Path))
             {
-                AutoResetEvent are = WatchCreated(fsw);
+                AutoResetEvent are = WatchCreated(fsw).EventOccured;
 
                 fsw.Filter = "*";
                 fsw.EnableRaisingEvents = true;

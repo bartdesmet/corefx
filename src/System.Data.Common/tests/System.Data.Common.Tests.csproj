@@ -1,27 +1,15 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <ProjectGuid>{82B54697-0251-47A1-8546-FC507D0F3B08}</ProjectGuid>
-    <AssemblyName>System.Data.Common.Tests</AssemblyName>
-    <RootNamespace>System.Data.Common.Tests</RootNamespace>
-    <DefineConstants Condition="'$(TargetGroup)'==''">$(DefineConstants);netstandard17</DefineConstants>
-    <NugetTargetMoniker Condition="'$(TargetGroup)'==''">.NETStandard,Version=v1.7</NugetTargetMoniker>
+    <ProjectGuid>{B473F77D-4168-4123-932A-E88020B768FA}</ProjectGuid>
     <NoWarn>0168,0169,0414,0219,0649</NoWarn>
+    <Configurations>netcoreapp-Debug;netcoreapp-Release;netstandard-Debug;netstandard-Release</Configurations>
   </PropertyGroup>
   <ItemGroup>
-    <TestNugetTargetMoniker Include="$(NugetTargetMoniker)">
-      <Folder>netcoreapp1.1</Folder>
-    </TestNugetTargetMoniker>
-  </ItemGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'" />
-  <ItemGroup>
+    <Compile Include="System\Data\Common\DataColumnMappingTest.cs" />
+    <Compile Include="System\Data\Common\DataTableMappingTest.cs" />
     <Compile Include="System\Data\Common\DbCommandTests.cs" />
     <Compile Include="System\Data\Common\DbConnectionTests.cs" />
     <Compile Include="System\Data\Common\DbExceptionTests.cs" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetGroup)'==''">
     <Compile Include="DataProvider.cs" />
     <Compile Include="System\Data\Common\DataAdapterTest.cs" />
     <Compile Include="System\Data\Common\DataColumnMappingCollectionTest.cs" />
@@ -32,6 +20,8 @@
     <Compile Include="System\Data\Common\DbDataReaderMock.cs" />
     <Compile Include="System\Data\Common\DbDataReaderTest.cs" />
     <Compile Include="System\Data\Common\DbTransactionTest.cs" />
+    <Compile Include="System\Data\Common\RowUpdatedEventArgsTest.cs" />
+    <Compile Include="System\Data\Common\RowUpdatingEventArgsTest.cs" />
     <Compile Include="System\Data\ConstraintCollectionTest.cs" />
     <Compile Include="System\Data\ConstraintCollectionTest2.cs" />
     <Compile Include="System\Data\ConstraintExceptionTest.cs" />
@@ -84,7 +74,9 @@
     <Compile Include="System\Data\InRowChangingEventExceptionTest.cs" />
     <Compile Include="System\Data\InvalidConstraintExceptionTest.cs" />
     <Compile Include="System\Data\MissingPrimaryKeyExceptionTest.cs" />
-    <Compile Include="System\Data\MonkeyDataSet.cs" />
+    <Compile Include="System\Data\MonkeyDataSet.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="System\Data\NoNullAllowedExceptionTest.cs" />
     <Compile Include="System\Data\ReadOnlyExceptionTest.cs" />
     <Compile Include="System\Data\RowNotInTableExceptionTest.cs" />
@@ -115,11 +107,20 @@
     <Compile Include="$(CommonTestPath)\System\Diagnostics\Tracing\TestEventListener.cs">
       <Link>Common\System\Diagnostics\Tracing\TestEventListener.cs</Link>
     </Compile>
+    <Compile Include="$(CommonTestPath)\System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs">
+      <Link>Common\System\Runtime\Serialization\Formatters\BinaryFormatterHelpers.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetGroup)' == 'netcoreapp'">
+    <Compile Include="System\Data\Common\DbProviderFactoriesTests.netcoreapp.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\pkg\System.Data.Common.pkgproj">
-      <Name>System.Data.Common</Name>
+    <ProjectReference Include="$(CommonTestPath)\System\Diagnostics\RemoteExecutorConsoleApp\RemoteExecutorConsoleApp.csproj">
+      <Project>{69e46a6f-9966-45a5-8945-2559fe337827}</Project>
+      <Name>RemoteExecutorConsoleApp</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\$(AssemblyName).rd.xml" />
+  </ItemGroup>
 </Project>

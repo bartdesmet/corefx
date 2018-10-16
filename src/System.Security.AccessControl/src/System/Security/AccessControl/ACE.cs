@@ -11,7 +11,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Security.Principal;
 
@@ -149,7 +148,7 @@ nameof(binaryForm),
 
             binaryForm[offset + 0] = (byte)AceType;
             binaryForm[offset + 1] = (byte)AceFlags;
-            binaryForm[offset + 2] = (byte)(Length >> 0);
+            binaryForm[offset + 2] = unchecked((byte)(Length >> 0));
             binaryForm[offset + 3] = (byte)(Length >> 8);
         }
 
@@ -691,7 +690,6 @@ nameof(binaryForm));
             {
                 throw new ArgumentNullException(nameof(securityIdentifier));
             }
-            Contract.EndContractBlock();
 
             //
             // The values are set by invoking the properties.
@@ -742,7 +740,6 @@ nameof(binaryForm));
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
-                Contract.EndContractBlock();
 
                 _sid = value;
             }
@@ -791,7 +788,6 @@ nameof(binaryForm));
 nameof(type),
                      SR.ArgumentOutOfRange_InvalidUserDefinedAceType);
             }
-            Contract.EndContractBlock();
 
             SetOpaque(opaque);
         }
@@ -987,11 +983,11 @@ nameof(opaque),
             //
 
             accessMask =
-                (int)(
+                unchecked((int)(
                 (((uint)binaryForm[baseOffset + 0]) << 0) +
                 (((uint)binaryForm[baseOffset + 1]) << 8) +
                 (((uint)binaryForm[baseOffset + 2]) << 16) +
-                (((uint)binaryForm[baseOffset + 3]) << 24));
+                (((uint)binaryForm[baseOffset + 3]) << 24)));
 
             offsetLocal += AccessMaskLength;
 
@@ -1067,11 +1063,13 @@ nameof(opaque),
             //
             // Store the access mask in the big-endian format
             //
-
-            binaryForm[baseOffset + 0] = (byte)(AccessMask >> 0);
-            binaryForm[baseOffset + 1] = (byte)(AccessMask >> 8);
-            binaryForm[baseOffset + 2] = (byte)(AccessMask >> 16);
-            binaryForm[baseOffset + 3] = (byte)(AccessMask >> 24);
+            unchecked
+            {
+                binaryForm[baseOffset + 0] = (byte)(AccessMask >> 0);
+                binaryForm[baseOffset + 1] = (byte)(AccessMask >> 8);
+                binaryForm[baseOffset + 2] = (byte)(AccessMask >> 16);
+                binaryForm[baseOffset + 3] = (byte)(AccessMask >> 24);
+            }
 
             offsetLocal += AccessMaskLength;
 
@@ -1623,10 +1621,13 @@ nameof(qualifier),
             // Store the access mask in the big-endian format
             //
 
-            binaryForm[baseOffset + 0] = (byte)(AccessMask >> 0);
-            binaryForm[baseOffset + 1] = (byte)(AccessMask >> 8);
-            binaryForm[baseOffset + 2] = (byte)(AccessMask >> 16);
-            binaryForm[baseOffset + 3] = (byte)(AccessMask >> 24);
+            unchecked
+            {
+                binaryForm[baseOffset + 0] = (byte)(AccessMask >> 0);
+                binaryForm[baseOffset + 1] = (byte)(AccessMask >> 8);
+                binaryForm[baseOffset + 2] = (byte)(AccessMask >> 16);
+                binaryForm[baseOffset + 3] = (byte)(AccessMask >> 24);
+            }
 
             offsetLocal += AccessMaskLength;
 
@@ -1950,11 +1951,11 @@ nameof(qualifier),
             int offsetLocal = 0;
 
             accessMask =
-                (int)(
+                unchecked((int)(
                 (((uint)binaryForm[baseOffset + 0]) << 0) +
                 (((uint)binaryForm[baseOffset + 1]) << 8) +
                 (((uint)binaryForm[baseOffset + 2]) << 16) +
-                (((uint)binaryForm[baseOffset + 3]) << 24));
+                (((uint)binaryForm[baseOffset + 3]) << 24)));
 
             offsetLocal += AccessMaskLength;
 
@@ -2159,11 +2160,13 @@ nameof(qualifier),
             //
             // Store the access mask in the big-endian format
             //
-
-            binaryForm[baseOffset + 0] = (byte)(AccessMask >> 0);
-            binaryForm[baseOffset + 1] = (byte)(AccessMask >> 8);
-            binaryForm[baseOffset + 2] = (byte)(AccessMask >> 16);
-            binaryForm[baseOffset + 3] = (byte)(AccessMask >> 24);
+            unchecked
+            {
+                binaryForm[baseOffset + 0] = (byte)(AccessMask >> 0);
+                binaryForm[baseOffset + 1] = (byte)(AccessMask >> 8);
+                binaryForm[baseOffset + 2] = (byte)(AccessMask >> 16);
+                binaryForm[baseOffset + 3] = (byte)(AccessMask >> 24);
+            }
 
             offsetLocal += AccessMaskLength;
 

@@ -8,25 +8,17 @@ namespace System.Linq
 {
     public static partial class Enumerable
     {
-        public static IOrderedEnumerable<TSource> OrderBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            return new OrderedEnumerable<TSource, TKey>(source, keySelector, null, false, null);
-        }
+        public static IOrderedEnumerable<TSource> OrderBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector) =>
+            new OrderedEnumerable<TSource, TKey>(source, keySelector, null, false, null);
 
-        public static IOrderedEnumerable<TSource> OrderBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey> comparer)
-        {
-            return new OrderedEnumerable<TSource, TKey>(source, keySelector, comparer, false, null);
-        }
+        public static IOrderedEnumerable<TSource> OrderBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey> comparer) =>
+            new OrderedEnumerable<TSource, TKey>(source, keySelector, comparer, false, null);
 
-        public static IOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            return new OrderedEnumerable<TSource, TKey>(source, keySelector, null, true, null);
-        }
+        public static IOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector) =>
+            new OrderedEnumerable<TSource, TKey>(source, keySelector, null, true, null);
 
-        public static IOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey> comparer)
-        {
-            return new OrderedEnumerable<TSource, TKey>(source, keySelector, comparer, true, null);
-        }
+        public static IOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey> comparer) =>
+            new OrderedEnumerable<TSource, TKey>(source, keySelector, comparer, true, null);
 
         public static IOrderedEnumerable<TSource> ThenBy<TSource, TKey>(this IOrderedEnumerable<TSource> source, Func<TSource, TKey> keySelector)
         {
@@ -69,7 +61,7 @@ namespace System.Linq
         }
     }
 
-    public interface IOrderedEnumerable<TElement> : IEnumerable<TElement>
+    public interface IOrderedEnumerable<out TElement> : IEnumerable<TElement>
     {
         IOrderedEnumerable<TElement> CreateOrderedEnumerable<TKey>(Func<TElement, TKey> keySelector, IComparer<TKey> comparer, bool descending);
     }

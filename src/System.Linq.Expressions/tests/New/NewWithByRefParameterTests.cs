@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -41,9 +41,9 @@ namespace System.Linq.Expressions.Tests
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CreateByRef(bool useInterpreter)
         {
-            var pX = Expression.Parameter(typeof(int).MakeByRefType());
-            var pY = Expression.Parameter(typeof(int).MakeByRefType());
-            var del =
+            ParameterExpression pX = Expression.Parameter(typeof(int).MakeByRefType());
+            ParameterExpression pY = Expression.Parameter(typeof(int).MakeByRefType());
+            ByRefNewFactory2 del =
                 Expression.Lambda<ByRefNewFactory2>(
                     Expression.New(typeof(ByRefNewType).GetConstructors()[0], pX, pY), pX, pY).Compile(useInterpreter);
             int x = 3;
@@ -53,12 +53,11 @@ namespace System.Linq.Expressions.Tests
             Assert.Equal(16, y);
         }
 
-        [Theory, InlineData(false)]
-        public void CreateByRefAliasing(bool useInterpreter)
+        private void CreateByRefAliasing(bool useInterpreter)
         {
-            var pX = Expression.Parameter(typeof(int).MakeByRefType());
-            var pY = Expression.Parameter(typeof(int).MakeByRefType());
-            var del =
+            ParameterExpression pX = Expression.Parameter(typeof(int).MakeByRefType());
+            ParameterExpression pY = Expression.Parameter(typeof(int).MakeByRefType());
+            ByRefNewFactory2 del =
                 Expression.Lambda<ByRefNewFactory2>(
                     Expression.New(typeof(ByRefNewType).GetConstructors()[0], pX, pY), pX, pY).Compile(useInterpreter);
             int x = 3;
@@ -69,14 +68,22 @@ namespace System.Linq.Expressions.Tests
         [Fact, ActiveIssue(13458)]
         public void CreateByRefAliasingInterpreted()
         {
-            CreateByRefAliasing(true);
+            CreateByRefAliasing(useInterpreter: true);
         }
+
+#if FEATURE_COMPILE
+        [Fact]
+        public void CreateByRefAliasingCompiled()
+        {
+            CreateByRefAliasing(useInterpreter: false);
+        }
+#endif
 
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CreateByRefReferencingReadonly(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(int).MakeByRefType());
-            var del =
+            ParameterExpression p = Expression.Parameter(typeof(int).MakeByRefType());
+            ByRefNewFactory1 del =
                 Expression.Lambda<ByRefNewFactory1>(
                     Expression.New(
                         typeof(ByRefNewType).GetConstructors()[0],
@@ -90,7 +97,7 @@ namespace System.Linq.Expressions.Tests
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CreateByRefReferencingOnlyReadonly(bool useInterpreter)
         {
-            var del =
+            Func<ByRefNewType> del =
                 Expression.Lambda<Func<ByRefNewType>>(
                     Expression.New(
                         typeof(ByRefNewType).GetConstructors()[0],
@@ -103,21 +110,21 @@ namespace System.Linq.Expressions.Tests
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CreateByRefThrowing(bool useInterpreter)
         {
-            var pX = Expression.Parameter(typeof(int).MakeByRefType());
-            var pY = Expression.Parameter(typeof(int).MakeByRefType());
-            var del =
+            ParameterExpression pX = Expression.Parameter(typeof(int).MakeByRefType());
+            ParameterExpression pY = Expression.Parameter(typeof(int).MakeByRefType());
+            ByRefNewFactory2 del =
                 Expression.Lambda<ByRefNewFactory2>(
                     Expression.New(typeof(ByRefNewType).GetConstructors()[0], pX, pY), pX, pY).Compile(useInterpreter);
             int x = -9;
             int y = 4;
-            Assert.Throws<ArgumentOutOfRangeException>("x", () => del(ref x, ref y));
+            AssertExtensions.Throws<ArgumentOutOfRangeException>("x", () => del(ref x, ref y));
         }
 
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CreateOut(bool useInterpreter)
         {
-            var p = Expression.Parameter(typeof(int).MakeByRefType());
-            var del =
+            ParameterExpression p = Expression.Parameter(typeof(int).MakeByRefType());
+            OutNewTypeFactory del =
                 Expression.Lambda<OutNewTypeFactory>(Expression.New(typeof(OutNewType).GetConstructors()[0], p), p)
                     .Compile(useInterpreter);
             int x;

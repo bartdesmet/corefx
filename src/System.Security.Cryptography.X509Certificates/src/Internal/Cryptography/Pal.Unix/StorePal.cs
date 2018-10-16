@@ -6,10 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
-using System.Runtime.InteropServices;
 
 namespace Internal.Cryptography.Pal
 {
@@ -30,8 +32,8 @@ namespace Internal.Cryptography.Pal
 
             ICertificatePal singleCert;
 
-            if (CertificatePal.TryReadX509Der(rawData, out singleCert) ||
-                CertificatePal.TryReadX509Pem(rawData, out singleCert))
+            if (OpenSslX509CertificateReader.TryReadX509Der(rawData, out singleCert) ||
+                OpenSslX509CertificateReader.TryReadX509Pem(rawData, out singleCert))
             {
                 // The single X509 structure methods shouldn't return true and out null, only empty
                 // collections have that behavior.
@@ -41,17 +43,19 @@ namespace Internal.Cryptography.Pal
             }
 
             List<ICertificatePal> certPals;
+            Exception openSslException;
 
             if (PkcsFormatReader.TryReadPkcs7Der(rawData, out certPals) ||
                 PkcsFormatReader.TryReadPkcs7Pem(rawData, out certPals) ||
-                PkcsFormatReader.TryReadPkcs12(rawData, password, out certPals))
+                PkcsFormatReader.TryReadPkcs12(rawData, password, out certPals, out openSslException))
             {
                 Debug.Assert(certPals != null);
 
                 return ListToLoaderPal(certPals);
             }
 
-            throw Interop.Crypto.CreateOpenSslCryptographicException();
+            Debug.Assert(openSslException != null);
+            throw openSslException;
         }
 
         public static ILoaderPal FromFile(string fileName, SafePasswordHandle password, X509KeyStorageFlags keyStorageFlags)
@@ -71,21 +75,21 @@ namespace Internal.Cryptography.Pal
 
             ICertificatePal singleCert;
 
-            if (CertificatePal.TryReadX509Pem(bio, out singleCert))
+            if (OpenSslX509CertificateReader.TryReadX509Pem(bio, out singleCert))
             {
                 return SingleCertToLoaderPal(singleCert);
             }
 
             // Rewind, try again.
-            CertificatePal.RewindBio(bio, bioPosition);
+            OpenSslX509CertificateReader.RewindBio(bio, bioPosition);
 
-            if (CertificatePal.TryReadX509Der(bio, out singleCert))
+            if (OpenSslX509CertificateReader.TryReadX509Der(bio, out singleCert))
             {
                 return SingleCertToLoaderPal(singleCert);
             }
 
             // Rewind, try again.
-            CertificatePal.RewindBio(bio, bioPosition);
+            OpenSslX509CertificateReader.RewindBio(bio, bioPosition);
 
             List<ICertificatePal> certPals;
 
@@ -95,7 +99,7 @@ namespace Internal.Cryptography.Pal
             }
 
             // Rewind, try again.
-            CertificatePal.RewindBio(bio, bioPosition);
+            OpenSslX509CertificateReader.RewindBio(bio, bioPosition);
 
             if (PkcsFormatReader.TryReadPkcs7Der(bio, out certPals))
             {
@@ -103,9 +107,11 @@ namespace Internal.Cryptography.Pal
             }
 
             // Rewind, try again.
-            CertificatePal.RewindBio(bio, bioPosition);
+            OpenSslX509CertificateReader.RewindBio(bio, bioPosition);
 
-            if (PkcsFormatReader.TryReadPkcs12(bio, password, out certPals))
+            // Capture the exception so in case of failure, the call to BioSeek does not override it.
+            Exception openSslException;
+            if (PkcsFormatReader.TryReadPkcs12(bio, password, out certPals, out openSslException))
             {
                 return ListToLoaderPal(certPals);
             }
@@ -113,18 +119,18 @@ namespace Internal.Cryptography.Pal
             // Since we aren't going to finish reading, leaving the buffer where it was when we got
             // it seems better than leaving it in some arbitrary other position.
             // 
-            // But, before seeking back to start, save the Exception representing the last reported
-            // OpenSSL error in case the last BioSeek would change it.
-            Exception openSslException = Interop.Crypto.CreateOpenSslCryptographicException();
-
             // Use BioSeek directly for the last seek attempt, because any failure here should instead
             // report the already created (but not yet thrown) exception.
-            Interop.Crypto.BioSeek(bio, bioPosition);
-
+            if (Interop.Crypto.BioSeek(bio, bioPosition) < 0)
+            {
+                Interop.Crypto.ErrClearError();
+            }
+            
+            Debug.Assert(openSslException != null);
             throw openSslException;
         }
 
-        public static IExportPal FromCertificate(ICertificatePal cert)
+        public static IExportPal FromCertificate(ICertificatePalCore cert)
         {
             return new ExportProvider(cert);
         }
@@ -136,14 +142,23 @@ namespace Internal.Cryptography.Pal
 
         public static IStorePal FromSystemStore(string storeName, StoreLocation storeLocation, OpenFlags openFlags)
         {
-            if (storeLocation != StoreLocation.LocalMachine)
+            if (storeLocation == StoreLocation.CurrentUser)
             {
+                if (X509Store.DisallowedStoreName.Equals(storeName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new DirectoryBasedStoreProvider.UnsupportedDisallowedStore(openFlags);
+                }
+
                 return new DirectoryBasedStoreProvider(storeName, openFlags);
             }
 
+            Debug.Assert(storeLocation == StoreLocation.LocalMachine);
+            
             if ((openFlags & OpenFlags.ReadWrite) == OpenFlags.ReadWrite)
             {
-                throw new PlatformNotSupportedException(SR.Cryptography_Unix_X509_MachineStoresReadOnly);
+                throw new CryptographicException(
+                    SR.Cryptography_Unix_X509_MachineStoresReadOnly,
+                    new PlatformNotSupportedException(SR.Cryptography_Unix_X509_MachineStoresReadOnly));
             }
 
             // The static store approach here is making an optimization based on not
@@ -160,17 +175,19 @@ namespace Internal.Cryptography.Pal
                 }
             }
 
-            if (StringComparer.Ordinal.Equals("Root", storeName))
+            if (X509Store.RootStoreName.Equals(storeName, StringComparison.OrdinalIgnoreCase))
             {
                 return s_machineRootStore;
             }
 
-            if (StringComparer.Ordinal.Equals("CA", storeName))
+            if (X509Store.IntermediateCAStoreName.Equals(storeName, StringComparison.OrdinalIgnoreCase))
             {
                 return s_machineIntermediateStore;
             }
 
-            throw new PlatformNotSupportedException(SR.Cryptography_Unix_X509_MachineStoresRootOnly);
+            throw new CryptographicException(
+                SR.Cryptography_Unix_X509_MachineStoresRootOnly,
+                new PlatformNotSupportedException(SR.Cryptography_Unix_X509_MachineStoresRootOnly));
         }
 
         private static ILoaderPal SingleCertToLoaderPal(ICertificatePal singleCert)
@@ -228,7 +245,7 @@ namespace Internal.Cryptography.Pal
 
             if (rootStoreFile != null && rootStoreFile.Exists)
             {
-                trustedCertFiles = Append(trustedCertFiles, rootStoreFile);
+                trustedCertFiles = trustedCertFiles.Prepend(rootStoreFile);
             }
 
             HashSet<X509Certificate2> uniqueRootCerts = new HashSet<X509Certificate2>();
@@ -238,10 +255,17 @@ namespace Internal.Cryptography.Pal
             {
                 using (SafeBioHandle fileBio = Interop.Crypto.BioNewFile(file.FullName, "rb"))
                 {
+                    // The handle may be invalid, for example when we don't have read permission for the file.
+                    if (fileBio.IsInvalid)
+                    {
+                        Interop.Crypto.ErrClearError();
+                        continue;
+                    }
+
                     ICertificatePal pal;
 
-                    while (CertificatePal.TryReadX509Pem(fileBio, out pal) ||
-                        CertificatePal.TryReadX509Der(fileBio, out pal))
+                    while (OpenSslX509CertificateReader.TryReadX509Pem(fileBio, out pal) ||
+                        OpenSslX509CertificateReader.TryReadX509Der(fileBio, out pal))
                     {
                         X509Certificate2 cert = new X509Certificate2(pal);
 
@@ -276,14 +300,6 @@ namespace Internal.Cryptography.Pal
             // s_machineRootStore's nullarity is the loaded-state sentinel, so write it with Volatile.
             Debug.Assert(Monitor.IsEntered(s_machineLoadLock), "LoadMachineStores assumes a lock(s_machineLoadLock)");
             Volatile.Write(ref s_machineRootStore, rootStorePal);
-        }
-
-        private static IEnumerable<T> Append<T>(IEnumerable<T> current, T addition)
-        {
-            foreach (T element in current)
-                yield return element;
-
-            yield return addition;
         }
     }
 }

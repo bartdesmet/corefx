@@ -65,7 +65,7 @@ namespace System.Runtime.CompilerServices
                     throw System.Linq.Expressions.Error.TypeParameterIsNotDelegate(target);
                 }
 
-                MethodInfo invoke = target.GetMethod("Invoke");
+                MethodInfo invoke = target.GetInvokeMethod();
                 ParameterInfo[] pis = invoke.GetParametersCached();
                 if (pis[0].ParameterType != typeof(CallSite))
                 {
@@ -186,7 +186,7 @@ namespace System.Runtime.CompilerServices
                     Expression.Condition(
                         Expression.Call(
                             CallSiteOps_SetNotMatched,
-                            @params.First()
+                            site
                         ),
                         Expression.Default(signature.ReturnLabel.Type),
                         Expression.Invoke(
@@ -194,7 +194,7 @@ namespace System.Runtime.CompilerServices
                                 Expression.Convert(site, siteType),
                                 typeof(CallSite<T>).GetProperty(nameof(CallSite<T>.Update))
                             ),
-                            new TrueReadOnlyCollection<Expression>(@params)
+                            @params
                         )
                     )
                 )
@@ -202,9 +202,9 @@ namespace System.Runtime.CompilerServices
 
             return Expression.Lambda<T>(
                 Expression.Block(body),
-                "CallSite.Target",
+                CallSite.CallSiteTargetMethodName,
                 true, // always compile the rules with tail call optimization
-                new TrueReadOnlyCollection<ParameterExpression>(@params)
+                @params
             );
         }
 

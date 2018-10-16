@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Xunit;
 
 namespace System.Tests
 {
-    public static class ByteTests
+    public partial class ByteTests
     {
         [Fact]
         public static void Ctor_Empty()
@@ -45,22 +44,22 @@ namespace System.Tests
         [InlineData((byte)234, (byte)235, -1)]
         [InlineData((byte)234, byte.MaxValue, -1)]
         [InlineData((byte)234, null, 1)]
-        public static void CompareTo(byte b, object value, int expected)
+        public void CompareTo_Other_ReturnsExpected(byte i, object value, int expected)
         {
-            if (value is byte)
+            if (value is byte byteValue)
             {
-                Assert.Equal(expected, Math.Sign(b.CompareTo((byte)value)));
+                Assert.Equal(expected, Math.Sign(i.CompareTo(byteValue)));
             }
-            IComparable comparable = b;
-            Assert.Equal(expected, Math.Sign(comparable.CompareTo(value)));
+
+            Assert.Equal(expected, Math.Sign(i.CompareTo(value)));
         }
 
-        [Fact]
-        public static void CompareTo_ObjectNotByte_ThrowsArgumentException()
+        [Theory]
+        [InlineData("a")]
+        [InlineData(234)]
+        public void CompareTo_ObjectNotByte_ThrowsArgumentException(object value)
         {
-            IComparable comparable = (byte)234;
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo("a")); // Obj is not a byte
-            Assert.Throws<ArgumentException>(null, () => comparable.CompareTo(234)); // Obj is not a byte
+            AssertExtensions.Throws<ArgumentException>(null, () => ((byte)123).CompareTo(value));
         }
 
         [Theory]
@@ -72,9 +71,8 @@ namespace System.Tests
         [InlineData((byte)78, 78, false)]
         public static void Equals(byte b, object obj, bool expected)
         {
-            if (obj is byte)
+            if (obj is byte b2)
             {
-                byte b2 = (byte)obj;
                 Assert.Equal(expected, b.Equals(b2));
                 Assert.Equal(expected, b.GetHashCode().Equals(b2.GetHashCode()));
                 Assert.Equal(b, b.GetHashCode());
@@ -82,21 +80,43 @@ namespace System.Tests
             Assert.Equal(expected, b.Equals(obj));
         }
 
+        [Fact]
+        public void GetTypeCode_Invoke_ReturnsByte()
+        {
+            Assert.Equal(TypeCode.Byte, ((byte)1).GetTypeCode());
+        }
+
         public static IEnumerable<object[]> ToString_TestData()
         {
-            NumberFormatInfo emptyFormat = NumberFormatInfo.CurrentInfo;
-            yield return new object[] { (byte)0, "G", emptyFormat, "0" };
-            yield return new object[] { (byte)123, "G", emptyFormat, "123" };
-            yield return new object[] { byte.MaxValue, "G", emptyFormat, "255" };
+            foreach (NumberFormatInfo emptyFormat in new[] { null, NumberFormatInfo.CurrentInfo })
+            {
+                yield return new object[] { (byte)0, "G", emptyFormat, "0" };
+                yield return new object[] { (byte)123, "G", emptyFormat, "123" };
+                yield return new object[] { byte.MaxValue, "G", emptyFormat, "255" };
 
-            yield return new object[] { (byte)0x24, "x", emptyFormat, "24" };
-            yield return new object[] { (byte)24, "N", emptyFormat, string.Format("{0:N}", 24.00) };
+                yield return new object[] { (byte)123, "D", emptyFormat, "123" };
+                yield return new object[] { (byte)123, "D99", emptyFormat, "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000123" };
 
-            NumberFormatInfo customFormat = new NumberFormatInfo();
-            customFormat.NegativeSign = "#";
-            customFormat.NumberDecimalSeparator = "~";
-            customFormat.NumberGroupSeparator = "*";
+                yield return new object[] { (byte)0x24, "x", emptyFormat, "24" };
+                yield return new object[] { (byte)24, "N", emptyFormat, string.Format("{0:N}", 24.00) };
+            }
+
+            var customFormat = new NumberFormatInfo()
+            {
+                NegativeSign = "#",
+                NumberDecimalSeparator = "~",
+                NumberGroupSeparator = "*",
+                PositiveSign = "&",
+                NumberDecimalDigits = 2,
+                PercentSymbol = "@",
+                PercentGroupSeparator = ",",
+                PercentDecimalSeparator = ".",
+                PercentDecimalDigits = 5
+            };
             yield return new object[] { (byte)24, "N", customFormat, "24~00" };
+            yield return new object[] { (byte)123, "E", customFormat, "1~230000E&002" };
+            yield return new object[] { (byte)123, "F", customFormat, "123~00" };
+            yield return new object[] { (byte)123, "P", customFormat, "12,300.00000 @" };
         }
 
         [Theory]
@@ -269,16 +289,16 @@ namespace System.Tests
         }
 
         [Theory]
-        [InlineData(NumberStyles.HexNumber | NumberStyles.AllowParentheses)]
-        [InlineData(unchecked((NumberStyles)0xFFFFFC00))]
-        public static void TryParse_InvalidNumberStyle_ThrowsArgumentException(NumberStyles style)
+        [InlineData(NumberStyles.HexNumber | NumberStyles.AllowParentheses, null)]
+        [InlineData(unchecked((NumberStyles)0xFFFFFC00), "style")]
+        public static void TryParse_InvalidNumberStyle_ThrowsArgumentException(NumberStyles style, string paramName)
         {
             byte result = 0;
-            Assert.Throws<ArgumentException>(() => byte.TryParse("1", style, null, out result));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => byte.TryParse("1", style, null, out result));
             Assert.Equal(default(byte), result);
 
-            Assert.Throws<ArgumentException>(() => byte.Parse("1", style));
-            Assert.Throws<ArgumentException>(() => byte.Parse("1", style, null));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => byte.Parse("1", style));
+            AssertExtensions.Throws<ArgumentException>(paramName, () => byte.Parse("1", style, null));
         }
     }
 }

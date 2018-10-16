@@ -88,20 +88,20 @@ namespace Microsoft.Framework.WebEncoders
         {
             for (int i = 0; i <= 0x10FFFF; i++)
             {
-                if (i <= 0xFFFF && Char.IsSurrogate((char)i))
+                if (i <= 0xFFFF && char.IsSurrogate((char)i))
                 {
                     continue; // no surrogates
                 }
 
                 // Arrange
-                byte[] expectedUtf8Bytes = _utf8EncodingThrowOnInvalidBytes.GetBytes(Char.ConvertFromUtf32(i));
+                byte[] expectedUtf8Bytes = _utf8EncodingThrowOnInvalidBytes.GetBytes(char.ConvertFromUtf32(i));
 
                 // Act
                 List<byte> actualUtf8Bytes = new List<byte>(4);
-                uint asUtf8 = (uint)UnicodeHelpers.GetUtf8RepresentationForScalarValue((uint)i);
+                uint asUtf8 = unchecked((uint)UnicodeHelpers.GetUtf8RepresentationForScalarValue((uint)i));
                 do
                 {
-                    actualUtf8Bytes.Add((byte)asUtf8);
+                    actualUtf8Bytes.Add(unchecked((byte)asUtf8));
                 } while ((asUtf8 >>= 8) != 0);
 
                 // Assert
@@ -167,7 +167,7 @@ namespace Microsoft.Framework.WebEncoders
             foreach (string line in allLines)
             {
                 string[] splitLine = line.Split(';');
-                uint codePoint = UInt32.Parse(splitLine[0], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
+                uint codePoint = uint.Parse(splitLine[0], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture);
                 if (codePoint >= retVal.Length)
                 {
                     continue; // don't care about supplementary chars

@@ -5,7 +5,6 @@
 // Enables instruction counting and displaying stats at process exit.
 // #define STATS
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -16,7 +15,7 @@ namespace System.Linq.Expressions.Interpreter
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes")]
     [DebuggerTypeProxy(typeof(InstructionArray.DebugView))]
-    internal struct InstructionArray
+    internal readonly struct InstructionArray
     {
         internal readonly int MaxStackDepth;
         internal readonly int MaxContinuationDepth;
@@ -143,7 +142,7 @@ namespace System.Linq.Expressions.Interpreter
             }
 
             [DebuggerDisplay("{GetValue(),nq}", Name = "{GetName(),nq}", Type = "{GetDisplayType(), nq}")]
-            internal struct InstructionView
+            internal readonly struct InstructionView
             {
                 private readonly int _index;
                 private readonly int _stackDepth;
@@ -318,7 +317,7 @@ namespace System.Linq.Expressions.Interpreter
         private static Instruction s_null;
         private static Instruction s_true;
         private static Instruction s_false;
-        private static Instruction[] s_ints;
+        private static Instruction[] s_Ints;
         private static Instruction[] s_loadObjectCached;
 
         public void EmitLoad(object value)
@@ -346,7 +345,7 @@ namespace System.Linq.Expressions.Interpreter
                 return;
             }
 
-            if (type == null || type.GetTypeInfo().IsValueType)
+            if (type == null || type.IsValueType)
             {
                 if (value is bool)
                 {
@@ -359,12 +358,12 @@ namespace System.Linq.Expressions.Interpreter
                     int i = (int)value;
                     if (i >= PushIntMinCachedValue && i <= PushIntMaxCachedValue)
                     {
-                        if (s_ints == null)
+                        if (s_Ints == null)
                         {
-                            s_ints = new Instruction[PushIntMaxCachedValue - PushIntMinCachedValue + 1];
+                            s_Ints = new Instruction[PushIntMaxCachedValue - PushIntMinCachedValue + 1];
                         }
                         i -= PushIntMinCachedValue;
-                        Emit(s_ints[i] ?? (s_ints[i] = new LoadObjectInstruction(value)));
+                        Emit(s_Ints[i] ?? (s_Ints[i] = new LoadObjectInstruction(value)));
                         return;
                     }
                 }
@@ -612,7 +611,7 @@ namespace System.Linq.Expressions.Interpreter
             {
                 Emit(new InitializeLocalInstruction.ImmutableValue(index, value));
             }
-            else if (type.GetTypeInfo().IsValueType)
+            else if (type.IsValueType)
             {
                 Emit(new InitializeLocalInstruction.MutableValue(index, type));
             }
@@ -687,40 +686,17 @@ namespace System.Linq.Expressions.Interpreter
 
         public void EmitAdd(Type type, bool @checked)
         {
-            if (@checked)
-            {
-                Emit(AddOvfInstruction.Create(type));
-            }
-            else
-            {
-                Emit(AddInstruction.Create(type));
-            }
+            Emit(@checked ? AddOvfInstruction.Create(type) : AddInstruction.Create(type));
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters")]
         public void EmitSub(Type type, bool @checked)
         {
-            if (@checked)
-            {
-                Emit(SubOvfInstruction.Create(type));
-            }
-            else
-            {
-                Emit(SubInstruction.Create(type));
-            }
+            Emit(@checked ? SubOvfInstruction.Create(type) : SubInstruction.Create(type));
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters")]
         public void EmitMul(Type type, bool @checked)
         {
-            if (@checked)
-            {
-                Emit(MulOvfInstruction.Create(type));
-            }
-            else
-            {
-                Emit(MulInstruction.Create(type));
-            }
+            Emit(@checked ? MulOvfInstruction.Create(type) : MulInstruction.Create(type));
         }
 
         public void EmitDiv(Type type)
@@ -806,6 +782,11 @@ namespace System.Linq.Expressions.Interpreter
             Emit(new NumericConvertInstruction.Unchecked(from, to, isLiftedToNull));
         }
 
+        public void EmitConvertToUnderlying(TypeCode to, bool isLiftedToNull)
+        {
+            Emit(new NumericConvertInstruction.ToUnderlying(to, isLiftedToNull));
+        }
+
         public void EmitCast(Type toType)
         {
             Emit(CastInstruction.Create(toType));
@@ -840,19 +821,9 @@ namespace System.Linq.Expressions.Interpreter
             Emit(new DefaultValueInstruction(type));
         }
 
-        public void EmitNew(ConstructorInfo constructorInfo)
-        {
-            EmitNew(constructorInfo, constructorInfo.GetParameters());
-        }
-
         public void EmitNew(ConstructorInfo constructorInfo, ParameterInfo[] parameters)
         {
             Emit(new NewInstruction(constructorInfo, parameters.Length));
-        }
-
-        public void EmitByRefNew(ConstructorInfo constructorInfo, ByRefUpdater[] updaters)
-        {
-            EmitByRefNew(constructorInfo, constructorInfo.GetParameters(), updaters);
         }
 
         public void EmitByRefNew(ConstructorInfo constructorInfo, ParameterInfo[] parameters, ByRefUpdater[] updaters)
@@ -870,11 +841,6 @@ namespace System.Linq.Expressions.Interpreter
             Emit(TypeEqualsInstruction.Instance);
         }
 
-        public void EmitNullableTypeEquals()
-        {
-            Emit(NullableTypeEqualsInstruction.Instance);
-        }
-
         public void EmitArrayLength()
         {
             Emit(ArrayLengthInstruction.Instance);
@@ -888,11 +854,6 @@ namespace System.Linq.Expressions.Interpreter
         public void EmitNegateChecked(Type type)
         {
             Emit(NegateCheckedInstruction.Create(type));
-        }
-
-        public void EmitOnesComplement(Type type)
-        {
-            Emit(OnesComplementInstruction.Create(type));
         }
 
         public void EmitIncrement(Type type)
@@ -961,7 +922,7 @@ namespace System.Linq.Expressions.Interpreter
 
         public void EmitCall(MethodInfo method)
         {
-            EmitCall(method, method.GetParameters());
+            EmitCall(method, method.GetParametersCached());
         }
 
         public void EmitCall(MethodInfo method, ParameterInfo[] parameters)

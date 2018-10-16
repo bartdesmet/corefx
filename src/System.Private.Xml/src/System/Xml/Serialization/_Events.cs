@@ -8,11 +8,13 @@ namespace System.Xml.Serialization
     using System;
     using System.Collections;
     using System.ComponentModel;
+    using System.Xml;
 
     /// <include file='doc\_Events.uex' path='docs/doc[@for="XmlAttributeEventHandler"]/*' />
     /// <devdoc>
     ///    <para>[To be supplied.]</para>
     /// </devdoc>
+
     public delegate void XmlAttributeEventHandler(object sender, XmlAttributeEventArgs e);
 
     /// <include file='doc\_Events.uex' path='docs/doc[@for="XmlAttributeEventArgs"]/*' />
@@ -152,6 +154,7 @@ namespace System.Xml.Serialization
     ///    <para>[To be supplied.]</para>
     /// </devdoc>
     public delegate void XmlNodeEventHandler(object sender, XmlNodeEventArgs e);
+
 
     /// <include file='doc\_Events.uex' path='docs/doc[@for="XmlNodeEventArgs"]/*' />
     /// <devdoc>

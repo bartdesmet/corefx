@@ -863,13 +863,13 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void ToStringTest()
         {
-            var e1 = Expression.NewArrayInit(typeof(int));
+            NewArrayExpression e1 = Expression.NewArrayInit(typeof(int));
             Assert.Equal("new [] {}", e1.ToString());
 
-            var e2 = Expression.NewArrayInit(typeof(int), Expression.Parameter(typeof(int), "x"));
+            NewArrayExpression e2 = Expression.NewArrayInit(typeof(int), Expression.Parameter(typeof(int), "x"));
             Assert.Equal("new [] {x}", e2.ToString());
 
-            var e3 = Expression.NewArrayInit(typeof(int), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
+            NewArrayExpression e3 = Expression.NewArrayInit(typeof(int), Expression.Parameter(typeof(int), "x"), Expression.Parameter(typeof(int), "y"));
             Assert.Equal("new [] {x, y}", e3.ToString());
         }
 
@@ -1639,52 +1639,52 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void NullType()
         {
-            Assert.Throws<ArgumentNullException>("type", () => Expression.NewArrayInit(null));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.NewArrayInit(null));
         }
 
         [Fact]
         public static void VoidType()
         {
-            Assert.Throws<ArgumentException>(() => Expression.NewArrayInit(typeof(void)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.NewArrayInit(typeof(void)));
         }
 
         [Fact]
         public static void NullInitializers()
         {
-            Assert.Throws<ArgumentNullException>("initializers", () => Expression.NewArrayInit(typeof(int), default(Expression[])));
-            Assert.Throws<ArgumentNullException>("initializers", () => Expression.NewArrayInit(typeof(int), default(IEnumerable<Expression>)));
+            AssertExtensions.Throws<ArgumentNullException>("initializers", () => Expression.NewArrayInit(typeof(int), default(Expression[])));
+            AssertExtensions.Throws<ArgumentNullException>("initializers", () => Expression.NewArrayInit(typeof(int), default(IEnumerable<Expression>)));
         }
 
         [Fact]
         public static void NullInitializer()
         {
-            Assert.Throws<ArgumentNullException>("initializers[0]", () => Expression.NewArrayInit(typeof(int), new Expression[] { null, null }));
-            Assert.Throws<ArgumentNullException>("initializers[0]", () => Expression.NewArrayInit(typeof(int), new List<Expression> { null, null }));
+            AssertExtensions.Throws<ArgumentNullException>("initializers[0]", () => Expression.NewArrayInit(typeof(int), new Expression[] { null, null }));
+            AssertExtensions.Throws<ArgumentNullException>("initializers[0]", () => Expression.NewArrayInit(typeof(int), new List<Expression> { null, null }));
         }
 
         [Fact]
         public static void ByRefType()
         {
-            Assert.Throws<ArgumentException>(() => Expression.NewArrayInit(typeof(int).MakeByRefType()));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.NewArrayInit(typeof(int).MakeByRefType()));
         }
 
         [Fact]
         public static void PointerType()
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.NewArrayInit(typeof(int).MakePointerType()));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.NewArrayInit(typeof(int).MakePointerType()));
         }
 
         [Fact]
         public static void GenericType()
         {
-            Assert.Throws<ArgumentException>(() => Expression.NewArrayInit(typeof(List<>)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.NewArrayInit(typeof(List<>)));
         }
 
         [Fact]
         public static void TypeContainsGenericParameters()
         {
-            Assert.Throws<ArgumentException>(() => Expression.NewArrayInit(typeof(List<>.Enumerator)));
-            Assert.Throws<ArgumentException>(() => Expression.NewArrayInit(typeof(List<>).MakeGenericType(typeof(List<>))));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.NewArrayInit(typeof(List<>.Enumerator)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.NewArrayInit(typeof(List<>).MakeGenericType(typeof(List<>))));
         }
 
         [Fact]
@@ -1697,13 +1697,13 @@ namespace System.Linq.Expressions.Tests
         public static void AutoQuote(bool useInterpreter)
         {
             Expression<Func<int, int>> doubleIt = x => x * 2;
-            var quoted = Expression.Lambda<Func<Expression<Func<int, int>>[]>>(
+            Expression<Func<Expression<Func<int, int>>[]>> quoted = Expression.Lambda<Func<Expression<Func<int, int>>[]>>(
                 Expression.NewArrayInit(
                     typeof(Expression<Func<int, int>>),
                     doubleIt
                     )
                 );
-            var del = quoted.Compile(useInterpreter);
+            Func<Expression<Func<int, int>>[]> del = quoted.Compile(useInterpreter);
             Assert.Equal(new [] {doubleIt}, del());
 
             quoted = Expression.Lambda<Func<Expression<Func<int, int>>[]>>(
@@ -1722,16 +1722,53 @@ namespace System.Linq.Expressions.Tests
         public static void NestedCompile(bool useInterpreter)
         {
             Expression<Func<int, int>> doubleIt = x => x * 2;
-            var unquoted = Expression.Lambda<Func<Func<int, int>[]>>(
+            Expression<Func<Func<int, int>[]>> unquoted = Expression.Lambda<Func<Func<int, int>[]>>(
                 Expression.NewArrayInit(
                     typeof(Func<int, int>),
                     doubleIt
                     )
                 );
-            var del = unquoted.Compile(useInterpreter);
-            var arr = del();
+            Func<Func<int, int>[]> del = unquoted.Compile(useInterpreter);
+            Func<int, int>[] arr = del();
             Assert.Equal(1, arr.Length);
             Assert.Equal(26, arr[0](13));
+        }
+
+        [Fact]
+        public static void UpdateSameReturnsSame()
+        {
+            Expression element0 = Expression.Constant(2);
+            Expression element1 = Expression.Constant(3);
+            NewArrayExpression newArrayExpression = Expression.NewArrayInit(typeof(int), element0, element1);
+            Assert.Same(newArrayExpression, newArrayExpression.Update(new[] { element0, element1 }));
+        }
+
+        [Fact]
+        public static void UpdateDifferentReturnsDifferent()
+        {
+            Expression element0 = Expression.Constant(2);
+            Expression element1 = Expression.Constant(3);
+            NewArrayExpression newArrayExpression = Expression.NewArrayInit(typeof(int), element0, element1);
+            Assert.NotSame(newArrayExpression, newArrayExpression.Update(new[] { element0 }));
+            Assert.NotSame(newArrayExpression, newArrayExpression.Update(newArrayExpression.Expressions.Reverse()));
+        }
+
+        [Fact]
+        public static void UpdateDoesntRepeatEnumeration()
+        {
+            Expression element0 = Expression.Constant(2);
+            Expression element1 = Expression.Constant(3);
+            NewArrayExpression newArrayExpression = Expression.NewArrayInit(typeof(int), element0, element1);
+            Assert.NotSame(newArrayExpression, newArrayExpression.Update(new RunOnceEnumerable<Expression>(new[] { element0 })));
+        }
+
+        [Fact]
+        public static void UpdateNullThrows()
+        {
+            Expression element0 = Expression.Constant(2);
+            Expression element1 = Expression.Constant(3);
+            NewArrayExpression newArrayExpression = Expression.NewArrayInit(typeof(int), element0, element1);
+            AssertExtensions.Throws<ArgumentNullException>("expressions", () => newArrayExpression.Update(null));
         }
     }
 }

@@ -5,6 +5,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using Internal.Runtime.Augments;
 
 namespace System
 {
@@ -14,41 +15,24 @@ namespace System
         {
             get
             {
-                StringBuilder sb = StringBuilderCache.Acquire(Interop.Kernel32.MAX_PATH + 1);
-                if (Interop.Kernel32.GetCurrentDirectory(sb.Capacity, sb) == 0)
+                Span<char> initialBuffer = stackalloc char[Interop.Kernel32.MAX_PATH];
+                var builder = new ValueStringBuilder(initialBuffer);
+
+                uint length;
+                while ((length = Interop.Kernel32.GetCurrentDirectory((uint)builder.Capacity, ref builder.GetPinnableReference())) > builder.Capacity)
                 {
-                    StringBuilderCache.Release(sb);
+                    builder.EnsureCapacity((int)length);
+                }
+
+                if (length == 0)
                     throw Win32Marshal.GetExceptionForLastWin32Error();
-                }
-                string currentDirectory = sb.ToString();
 
-                // Note that if we have somehow put our command prompt into short
-                // file name mode (i.e. by running edlin or a DOS grep, etc), then
-                // this will return a short file name.
-                if (currentDirectory.IndexOf('~') >= 0)
-                {
-                    int r = Interop.Kernel32.GetLongPathName(currentDirectory, sb, sb.Capacity);
-                    if (r == 0 || r >= Interop.Kernel32.MAX_PATH)
-                    {
-                        int errorCode = r >= Interop.Kernel32.MAX_PATH ?
-                            Interop.Errors.ERROR_FILENAME_EXCED_RANGE :
-                            Marshal.GetLastWin32Error();
+                builder.Length = (int)length;
 
-                        if (errorCode != Interop.Errors.ERROR_FILE_NOT_FOUND &&
-                            errorCode != Interop.Errors.ERROR_PATH_NOT_FOUND &&
-                            errorCode != Interop.Errors.ERROR_INVALID_FUNCTION &&
-                            errorCode != Interop.Errors.ERROR_ACCESS_DENIED)
-                        {
-                            StringBuilderCache.Release(sb);
-                            throw Win32Marshal.GetExceptionForWin32Error(errorCode);
-                        }
-                    }
-
-                    currentDirectory = sb.ToString();
-                }
-
-                StringBuilderCache.Release(sb);
-                return currentDirectory;
+                // If we have a tilde in the path, make an attempt to expand 8.3 filenames
+                return builder.AsSpan().Contains('~')
+                    ? PathHelper.TryExpandShortFileName(ref builder, null)
+                    : builder.ToString();
             }
             set
             {
@@ -66,23 +50,85 @@ namespace System
 
         public static string NewLine => "\r\n";
 
-        private static int ProcessorCountFromSystemInfo
-        {
-            get
-            {
-                var info = default(Interop.Kernel32.SYSTEM_INFO);
-                Interop.Kernel32.GetSystemInfo(out info);
-                return info.dwNumberOfProcessors;
-            }
-        }
-
         public static int SystemPageSize
         {
             get
             {
-                var info = default(Interop.Kernel32.SYSTEM_INFO);
-                Interop.Kernel32.GetSystemInfo(out info);
+                Interop.Kernel32.GetSystemInfo(out Interop.Kernel32.SYSTEM_INFO info);
                 return info.dwPageSize;
+            }
+        }
+
+        public static int ExitCode { get { return EnvironmentAugments.ExitCode; } set { EnvironmentAugments.ExitCode = value; } }
+
+        private static string ExpandEnvironmentVariablesCore(string name)
+        {
+            Span<char> initialBuffer = stackalloc char[128];
+            var builder = new ValueStringBuilder(initialBuffer);
+
+            uint length;
+            while ((length = Interop.Kernel32.ExpandEnvironmentStringsW(name, ref builder.GetPinnableReference(), (uint)builder.Capacity)) > builder.Capacity)
+            {
+                builder.EnsureCapacity((int)length);
+            }
+
+            if (length == 0)
+                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+
+            // length includes the null terminator
+            builder.Length = (int)length - 1;
+            return builder.ToString();
+        }
+
+        private static bool Is64BitOperatingSystemWhen32BitProcess
+            => Interop.Kernel32.IsWow64Process(Interop.Kernel32.GetCurrentProcess(), out bool isWow64) && isWow64;
+
+        public static string MachineName
+        {
+            get
+            {
+                string name = Interop.Kernel32.GetComputerName();
+                if (name == null)
+                {
+                    throw new InvalidOperationException(SR.InvalidOperation_ComputerName);
+                }
+                return name;
+            }
+        }
+
+        private static readonly unsafe Lazy<OperatingSystem> s_osVersion = new Lazy<OperatingSystem>(() =>
+        {
+            var version = new Interop.Kernel32.OSVERSIONINFOEX { dwOSVersionInfoSize = sizeof(Interop.Kernel32.OSVERSIONINFOEX) };
+            if (!Interop.Kernel32.GetVersionExW(ref version))
+            {
+                throw new InvalidOperationException(SR.InvalidOperation_GetVersion);
+            }
+
+            return new OperatingSystem(
+                PlatformID.Win32NT,
+                new Version(version.dwMajorVersion, version.dwMinorVersion, version.dwBuildNumber, (version.wServicePackMajor << 16) | version.wServicePackMinor),
+                Marshal.PtrToStringUni((IntPtr)version.szCSDVersion));
+        });
+
+        public static string SystemDirectory
+        {
+            get
+            {
+                // Normally this will be C:\Windows\System32
+                Span<char> initialBuffer = stackalloc char[32];
+                var builder = new ValueStringBuilder(initialBuffer);
+
+                uint length;
+                while ((length = Interop.Kernel32.GetSystemDirectoryW(ref builder.GetPinnableReference(), (uint)builder.Capacity)) > builder.Capacity)
+                {
+                    builder.EnsureCapacity((int)length);
+                }
+
+                if (length == 0)
+                    throw Win32Marshal.GetExceptionForLastWin32Error();
+
+                builder.Length = (int)length;
+                return builder.ToString();
             }
         }
     }

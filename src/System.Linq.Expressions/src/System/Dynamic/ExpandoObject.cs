@@ -20,26 +20,26 @@ namespace System.Dynamic
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix")]
     public sealed class ExpandoObject : IDynamicMetaObjectProvider, IDictionary<string, object>, INotifyPropertyChanged
     {
-        private static readonly MethodInfo ExpandoTryGetValue =
+        private static readonly MethodInfo s_expandoTryGetValue =
             typeof(RuntimeOps).GetMethod(nameof(RuntimeOps.ExpandoTryGetValue));
 
-        private static readonly MethodInfo ExpandoTrySetValue =
+        private static readonly MethodInfo s_expandoTrySetValue =
             typeof(RuntimeOps).GetMethod(nameof(RuntimeOps.ExpandoTrySetValue));
 
-        private static readonly MethodInfo ExpandoTryDeleteValue =
+        private static readonly MethodInfo s_expandoTryDeleteValue =
             typeof(RuntimeOps).GetMethod(nameof(RuntimeOps.ExpandoTryDeleteValue));
 
-        private static readonly MethodInfo ExpandoPromoteClass =
+        private static readonly MethodInfo s_expandoPromoteClass =
             typeof(RuntimeOps).GetMethod(nameof(RuntimeOps.ExpandoPromoteClass));
 
-        private static readonly MethodInfo ExpandoCheckVersion =
+        private static readonly MethodInfo s_expandoCheckVersion =
             typeof(RuntimeOps).GetMethod(nameof(RuntimeOps.ExpandoCheckVersion));
 
-        internal readonly object LockObject;                          // the readonly field is used for locking the Expando object
+        internal readonly object LockObject;                          // the read-only field is used for locking the Expando object
         private ExpandoData _data;                                    // the data currently being held by the Expando object
         private int _count;                                           // the count of available members
 
-        internal readonly static object Uninitialized = new object(); // A marker object used to identify that a value is uninitialized.
+        internal static readonly object Uninitialized = new object(); // A marker object used to identify that a value is uninitialized.
 
         internal const int AmbiguousMatchFound = -2;        // The value is used to indicate there exists ambiguous match in the Expando object
         internal const int NoMatch = -1;                    // The value is used to indicate there is no matching member
@@ -239,6 +239,7 @@ namespace System.Dynamic
         /// </summary>
         internal bool IsDeletedMember(int index)
         {
+            ContractUtils.AssertLockHeld(LockObject);
             Debug.Assert(index >= 0 && index <= _data.Length);
 
             if (index == _data.Length)
@@ -263,15 +264,14 @@ namespace System.Dynamic
         private ExpandoData PromoteClassCore(ExpandoClass oldClass, ExpandoClass newClass)
         {
             Debug.Assert(oldClass != newClass);
+            ContractUtils.AssertLockHeld(LockObject);
 
-            lock (LockObject)
+            if (_data.Class == oldClass)
             {
-                if (_data.Class == oldClass)
-                {
-                    _data = _data.UpdateClass(newClass);
-                }
-                return _data;
+                _data = _data.UpdateClass(newClass);
             }
+
+            return _data;
         }
 
         /// <summary>
@@ -281,7 +281,10 @@ namespace System.Dynamic
         /// </summary>
         internal void PromoteClass(object oldClass, object newClass)
         {
-            PromoteClassCore((ExpandoClass)oldClass, (ExpandoClass)newClass);
+            lock (LockObject)
+            {
+                PromoteClassCore((ExpandoClass)oldClass, (ExpandoClass)newClass);
+            }
         }
 
         #endregion
@@ -311,6 +314,7 @@ namespace System.Dynamic
 
         private bool ExpandoContainsKey(string key)
         {
+            ContractUtils.AssertLockHeld(LockObject);
             return _data.Class.GetValueIndexCaseSensitive(key) >= 0;
         }
 
@@ -318,7 +322,7 @@ namespace System.Dynamic
         // that uses DebuggerTypeProxy, instead of defining a generic debug view type and
         // using different instantiations. The reason for this is that support for generics
         // with using DebuggerTypeProxy is limited. For C#, DebuggerTypeProxy supports only
-        // open types (from MSDN http://msdn.microsoft.com/en-us/library/d8eyd8zc.aspx).
+        // open types (from MSDN https://docs.microsoft.com/en-us/visualstudio/debugger/using-debuggertypeproxy-attribute).
         private sealed class KeyCollectionDebugView
         {
             private readonly ICollection<string> _collection;
@@ -457,7 +461,7 @@ namespace System.Dynamic
         // that uses DebuggerTypeProxy, instead of defining a generic debug view type and
         // using different instantiations. The reason for this is that support for generics
         // with using DebuggerTypeProxy is limited. For C#, DebuggerTypeProxy supports only
-        // open types (from MSDN http://msdn.microsoft.com/en-us/library/d8eyd8zc.aspx).
+        // open types (from MSDN https://docs.microsoft.com/en-us/visualstudio/debugger/using-debuggertypeproxy-attribute).
         private sealed class ValueCollectionDebugView
         {
             private readonly ICollection<object> _collection;
@@ -712,11 +716,11 @@ namespace System.Dynamic
         void ICollection<KeyValuePair<string, object>>.CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
         {
             ContractUtils.RequiresNotNull(array, nameof(array));
-            ContractUtils.RequiresArrayRange(array, arrayIndex, _count, nameof(arrayIndex), nameof(ICollection<KeyValuePair<string, object>>.Count));
 
-            // We want this to be atomic and not throw
+            // We want this to be atomic and not throw, though we must do the range checks inside this lock.
             lock (LockObject)
             {
+                ContractUtils.RequiresArrayRange(array, arrayIndex, _count, nameof(arrayIndex), nameof(ICollection<KeyValuePair<string, object>>.Count));
                 foreach (KeyValuePair<string, object> item in this)
                 {
                     array[arrayIndex++] = item;
@@ -789,7 +793,7 @@ namespace System.Dynamic
                 ParameterExpression value = Expression.Parameter(typeof(object), "value");
 
                 Expression tryGetValue = Expression.Call(
-                    ExpandoTryGetValue,
+                    s_expandoTryGetValue,
                     GetLimitedSelf(),
                     Expression.Constant(klass, typeof(object)),
                     AstUtils.Constant(index),
@@ -807,11 +811,13 @@ namespace System.Dynamic
                 result = new DynamicMetaObject(
                     Expression.Block(
                         new TrueReadOnlyCollection<ParameterExpression>(value),
-                        Expression.Condition(
-                            tryGetValue,
-                            result.Expression,
-                            fallback.Expression,
-                            typeof(object)
+                        new TrueReadOnlyCollection<Expression>(
+                            Expression.Condition(
+                                tryGetValue,
+                                result.Expression,
+                                fallback.Expression,
+                                typeof(object)
+                            )
                         )
                     ),
                     result.Restrictions.Merge(fallback.Restrictions)
@@ -860,7 +866,7 @@ namespace System.Dynamic
                     originalClass,
                     new DynamicMetaObject(
                         Expression.Call(
-                            ExpandoTrySetValue,
+                            s_expandoTrySetValue,
                             GetLimitedSelf(),
                             Expression.Constant(klass, typeof(object)),
                             AstUtils.Constant(index),
@@ -880,7 +886,7 @@ namespace System.Dynamic
                 int index = Value.Class.GetValueIndex(binder.Name, binder.IgnoreCase, Value);
 
                 Expression tryDelete = Expression.Call(
-                    ExpandoTryDeleteValue,
+                    s_expandoTryDeleteValue,
                     GetLimitedSelf(),
                     Expression.Constant(Value.Class, typeof(object)),
                     AstUtils.Constant(index),
@@ -929,7 +935,7 @@ namespace System.Dynamic
                     ifTestSucceeds = Expression.Block(
                         Expression.Call(
                             null,
-                            ExpandoPromoteClass,
+                            s_expandoPromoteClass,
                             GetLimitedSelf(),
                             Expression.Constant(originalClass, typeof(object)),
                             Expression.Constant(klass, typeof(object))
@@ -942,7 +948,7 @@ namespace System.Dynamic
                     Expression.Condition(
                         Expression.Call(
                             null,
-                            ExpandoCheckVersion,
+                            s_expandoCheckVersion,
                             GetLimitedSelf(),
                             Expression.Constant(originalClass ?? klass, typeof(object))
                         ),

@@ -37,11 +37,19 @@ namespace System.Linq.Expressions
         /// <returns>This expression if no children changed, or an expression with the updated children.</returns>
         public MemberListBinding Update(IEnumerable<ElementInit> initializers)
         {
-            if (initializers == Initializers)
+            if (initializers != null)
             {
-                return this;
+                if (ExpressionUtils.SameElements(ref initializers, Initializers))
+                {
+                    return this;
+                }
             }
+
             return Expression.ListBind(Member, initializers);
+        }
+
+        internal override void ValidateAsDefinedHere(int index)
+        {
         }
     }
 

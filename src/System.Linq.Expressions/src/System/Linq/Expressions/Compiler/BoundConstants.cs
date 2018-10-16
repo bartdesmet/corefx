@@ -25,7 +25,7 @@ namespace System.Linq.Expressions.Compiler
         /// ends up using a JIT temp and defeats the purpose of caching the
         /// value in a local)
         /// </summary>
-        private struct TypedConstant : IEquatable<TypedConstant>
+        private readonly struct TypedConstant : IEquatable<TypedConstant>
         {
             internal readonly object Value;
             internal readonly Type Type;
@@ -138,9 +138,8 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(_constantsType == null);
 
-            if (!_indexes.ContainsKey(value))
+            if (_indexes.TryAdd(value, _values.Count))
             {
-                _indexes.Add(value, _values.Count);
                 _values.Add(value);
                 _types.Add(type);
             }
@@ -270,7 +269,7 @@ namespace System.Linq.Expressions.Compiler
             FieldInfo field = GetConstantsType().GetField("Item" + (index + 1));
 
             lc.IL.Emit(OpCodes.Ldfld, field);
-            lc.IL.EmitConvertToType(field.FieldType, type, false);
+            lc.IL.EmitConvertToType(field.FieldType, type, false, locals: lc);
         }
     }
 }

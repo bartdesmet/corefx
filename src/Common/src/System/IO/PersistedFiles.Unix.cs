@@ -97,7 +97,7 @@ namespace System.IO
                 // if we simply couldn't find a home directory for the current user.
                 // In that case, we pass back the null value and let the caller decide
                 // what to do.
-                const int BufLen = 1024;
+                const int BufLen = Interop.Sys.Passwd.InitialBufferSize;
                 byte* stackBuf = stackalloc byte[BufLen];
                 if (TryGetHomeDirectoryFromPasswd(stackBuf, BufLen, out userHomeDirectory))
                     return userHomeDirectory;
@@ -109,7 +109,7 @@ namespace System.IO
                 {
                     lastBufLen *= 2;
                     byte[] heapBuf = new byte[lastBufLen];
-                    fixed (byte* buf = heapBuf)
+                    fixed (byte* buf = &heapBuf[0])
                     {
                         if (TryGetHomeDirectoryFromPasswd(buf, heapBuf.Length, out userHomeDirectory))
                             return userHomeDirectory;

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Reflection;
 using Xunit;
 
@@ -12,7 +11,7 @@ namespace System.Linq.Expressions.Tests
     {
         #region Test methods
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableByteTest(bool useInterpreter)
         {
@@ -26,7 +25,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableCharTest(bool useInterpreter)
         {
@@ -79,7 +78,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableIntTest(bool useInterpreter)
         {
@@ -93,7 +92,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableLongTest(bool useInterpreter)
         {
@@ -107,7 +106,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableSByteTest(bool useInterpreter)
         {
@@ -121,7 +120,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableShortTest(bool useInterpreter)
         {
@@ -135,7 +134,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableUIntTest(bool useInterpreter)
         {
@@ -149,7 +148,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableULongTest(bool useInterpreter)
         {
@@ -163,7 +162,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableUShortTest(bool useInterpreter)
         {
@@ -177,7 +176,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        [ConditionalTheory(nameof(PlatformDetection) + "." + nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/513
+        [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CheckLiftedModuloNullableNumberTest(bool useInterpreter)
         {

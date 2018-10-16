@@ -12,7 +12,6 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.Serialization;
 using System.Threading;
 
 namespace System.Collections.Concurrent
@@ -37,13 +36,11 @@ namespace System.Collections.Concurrent
     /// </remarks>
     [DebuggerDisplay("Count = {Count}")]
     [DebuggerTypeProxy(typeof(IProducerConsumerCollectionDebugView<>))]
-    [Serializable]
     public class ConcurrentStack<T> : IProducerConsumerCollection<T>, IReadOnlyCollection<T>
     {
         /// <summary>
         /// A simple (internal) node type used to store elements of concurrent stacks and queues.
         /// </summary>
-        [Serializable]
         private class Node
         {
             internal readonly T _value; // Value of the node.
@@ -60,12 +57,8 @@ namespace System.Collections.Concurrent
             }
         }
 
-        [NonSerialized]
         private volatile Node _head; // The stack is a singly linked list, and only remembers the head.
-
         private const int BACKOFF_MAX_YIELDS = 8; // Arbitrary number to cap backoff.
-
-        private T[] _serializationArray; // Used for custom serialization
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ConcurrentStack{T}"/>
@@ -90,45 +83,6 @@ namespace System.Collections.Concurrent
                 throw new ArgumentNullException(nameof(collection));
             }
             InitializeFromCollection(collection);
-        }
-
-        /// <summary>Get the data array to be serialized.</summary>
-        [OnSerializing]
-        private void OnSerializing(StreamingContext context)
-        {
-            // save the data into the serialization array to be saved
-            _serializationArray = ToArray();
-        }
-
-        /// <summary>
-        /// Construct the stack from a previously seiralized one
-        /// </summary>
-        [OnDeserialized]
-        private void OnDeserialized(StreamingContext context)
-        {
-            Debug.Assert(_serializationArray != null);
-
-            // Add the elements to our stack.  We need to add them from head-to-tail, to
-            // preserve the original ordering of the stack before serialization.
-            Node prevNode = null, head = null;
-            for (int i = 0; i < _serializationArray.Length; i++)
-            {
-                Node currNode = new Node(_serializationArray[i]);
-
-                if (prevNode == null)
-                {
-                    head = currNode;
-                }
-                else
-                {
-                    prevNode._next = currNode;
-                }
-
-                prevNode = currNode;
-            }
-
-            _head = head;
-            _serializationArray = null;
         }
 
         /// <summary>
@@ -437,12 +391,10 @@ namespace System.Collections.Concurrent
             while (Interlocked.CompareExchange(
                 ref _head, head, tail._next) != tail._next);
 
-#if FEATURE_TRACING
             if (CDSCollectionETWBCLProvider.Log.IsEnabled())
             {
                 CDSCollectionETWBCLProvider.Log.ConcurrentStack_FastPushFailed(spin.Count);
             }
-#endif
         }
 
         /// <summary>
@@ -655,19 +607,18 @@ namespace System.Collections.Concurrent
             Node head;
             Node next;
             int backoff = 1;
-            Random r = new Random(Environment.TickCount & Int32.MaxValue); // avoid the case where TickCount could return Int32.MinValue
+            Random r = null;
             while (true)
             {
                 head = _head;
                 // Is the stack empty?
                 if (head == null)
                 {
-#if FEATURE_TRACING
                     if (count == 1 && CDSCollectionETWBCLProvider.Log.IsEnabled())
                     {
                         CDSCollectionETWBCLProvider.Log.ConcurrentStack_FastPopFailed(spin.Count);
                     }
-#endif
+
                     poppedHead = null;
                     return 0;
                 }
@@ -681,12 +632,11 @@ namespace System.Collections.Concurrent
                 // Try to swap the new head.  If we succeed, break out of the loop.
                 if (Interlocked.CompareExchange(ref _head, next._next, head) == head)
                 {
-#if FEATURE_TRACING
                     if (count == 1 && CDSCollectionETWBCLProvider.Log.IsEnabled())
                     {
                         CDSCollectionETWBCLProvider.Log.ConcurrentStack_FastPopFailed(spin.Count);
                     }
-#endif
+
                     // Return the popped Node.
                     poppedHead = head;
                     return nodesCount;
@@ -698,7 +648,18 @@ namespace System.Collections.Concurrent
                     spin.SpinOnce();
                 }
 
-                backoff = spin.NextSpinWillYield ? r.Next(1, BACKOFF_MAX_YIELDS) : backoff * 2;
+                if (spin.NextSpinWillYield)
+                {
+                    if (r == null)
+                    {
+                        r = new Random();
+                    }
+                    backoff = r.Next(1, BACKOFF_MAX_YIELDS);
+                }
+                else
+                {
+                    backoff *= 2;
+                }
             }
         }
 #pragma warning restore 0420

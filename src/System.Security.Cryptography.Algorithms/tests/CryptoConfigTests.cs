@@ -5,6 +5,8 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
+using Test.Cryptography;
 using Xunit;
 
 namespace System.Security.Cryptography.CryptoConfigTests
@@ -18,15 +20,77 @@ namespace System.Security.Cryptography.CryptoConfigTests
         }
 
         [Fact]
-        public static void AddOID_NotSupported()
+        public static void AddOID_MapNameToOID_ReturnsMapped()
         {
-            Assert.Throws<PlatformNotSupportedException>(() => CryptoConfig.AddOID(string.Empty, string.Empty));
+            CryptoConfig.AddOID("1.3.14.3.2.28", "SHAFancy");
+            Assert.Equal("1.3.14.3.2.28", CryptoConfig.MapNameToOID("SHAFancy"));
         }
 
         [Fact]
-        public static void AddAlgorithm_NotSupported()
+        public static void AddOID_EmptyString_Throws()
         {
-            Assert.Throws<PlatformNotSupportedException>(() => CryptoConfig.AddAlgorithm(typeof(CryptoConfigTests), string.Empty));
+            AssertExtensions.Throws<ArgumentException>(null, () => CryptoConfig.AddOID(string.Empty, string.Empty));
+        }
+
+        [Fact]
+        public static void AddOID_EmptyNamesArray()
+        {
+            CryptoConfig.AddOID("1.3.14.3.2.28", new string[0]);
+            // There is no verifiable behavior in this case. We only check that we don't throw.
+        }
+
+        [Fact]
+        public static void AddOID_NullOid_Throws()
+        {
+            AssertExtensions.Throws<ArgumentNullException>("oid", () => CryptoConfig.AddOID(null, string.Empty));
+        }
+
+        [Fact]
+        public static void AddOID_NullNames_Throws()
+        {
+            AssertExtensions.Throws<ArgumentNullException>("names", () => CryptoConfig.AddOID(string.Empty, null));
+        }
+
+        [Fact]
+        public static void AddAlgorithm_CreateFromName_ReturnsMapped()
+        {
+            CryptoConfig.AddAlgorithm(typeof(AesCryptoServiceProvider), "AESFancy");
+            Assert.Equal(typeof(AesCryptoServiceProvider).FullName, CryptoConfig.CreateFromName("AESFancy").GetType().FullName);
+        }
+
+        [Fact]
+        public static void AddAlgorithm_NonVisibleType()
+        {
+            AssertExtensions.Throws<ArgumentException>("algorithm", () => CryptoConfig.AddAlgorithm(typeof(AESFancy), "AESFancy"));
+        }
+
+        private class AESFancy
+        {
+        }
+
+        [Fact]
+        public static void AddAlgorithm_EmptyString_Throws()
+        {
+            AssertExtensions.Throws<ArgumentException>(null, () => CryptoConfig.AddAlgorithm(typeof(CryptoConfigTests), string.Empty));
+        }
+
+        [Fact]
+        public static void AddAlgorithm_EmptyNamesArray()
+        {
+            CryptoConfig.AddAlgorithm(typeof(AesCryptoServiceProvider), new string[0]);
+            // There is no verifiable behavior in this case. We only check that we don't throw.
+        }
+
+        [Fact]
+        public static void AddAlgorithm_NullAlgorithm_Throws()
+        {
+            AssertExtensions.Throws<ArgumentNullException>("algorithm", () => CryptoConfig.AddAlgorithm(null, string.Empty));
+        }
+
+        [Fact]
+        public static void AddAlgorithm_NullNames_Throws()
+        {
+            AssertExtensions.Throws<ArgumentNullException>("names", () => CryptoConfig.AddAlgorithm(typeof(CryptoConfigTests), null));
         }
 
         [Fact]
@@ -88,16 +152,16 @@ namespace System.Security.Cryptography.CryptoConfigTests
             get
             {
                 // Random number generator
-                yield return new object[] { "RandomNumberGenerator", "System.Security.Cryptography.RNGCryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.RandomNumberGenerator", "System.Security.Cryptography.RNGCryptoServiceProvider", false };
+                yield return new object[] { "RandomNumberGenerator", "System.Security.Cryptography.RNGCryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.RandomNumberGenerator", "System.Security.Cryptography.RNGCryptoServiceProvider", true };
 
                 // Hash functions
-                yield return new object[] { "SHA", "System.Security.Cryptography.SHA1CryptoServiceProvider", false };
-                yield return new object[] { "SHA1", "System.Security.Cryptography.SHA1CryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.SHA1", "System.Security.Cryptography.SHA1CryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.HashAlgorithm", "System.Security.Cryptography.SHA1CryptoServiceProvider", false };
-                yield return new object[] { "MD5", "System.Security.Cryptography.MD5CryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.MD5", "System.Security.Cryptography.MD5CryptoServiceProvider", false };
+                yield return new object[] { "SHA", "System.Security.Cryptography.SHA1CryptoServiceProvider", true };
+                yield return new object[] { "SHA1", "System.Security.Cryptography.SHA1CryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.SHA1", "System.Security.Cryptography.SHA1CryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.HashAlgorithm", "System.Security.Cryptography.SHA1CryptoServiceProvider", true };
+                yield return new object[] { "MD5", "System.Security.Cryptography.MD5CryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.MD5", "System.Security.Cryptography.MD5CryptoServiceProvider", true };
                 yield return new object[] { "SHA256", typeof(SHA256Managed).FullName, true };
                 yield return new object[] { "SHA-256", typeof(SHA256Managed).FullName, true };
                 yield return new object[] { "System.Security.Cryptography.SHA256", typeof(SHA256Managed).FullName, true };
@@ -112,51 +176,51 @@ namespace System.Security.Cryptography.CryptoConfigTests
                 yield return new object[] { "System.Security.Cryptography.HMAC", "System.Security.Cryptography.HMACSHA1", true };
                 yield return new object[] { "System.Security.Cryptography.KeyedHashAlgorithm", "System.Security.Cryptography.HMACSHA1", true };
                 yield return new object[] { "HMACMD5", "System.Security.Cryptography.HMACMD5", true };
-                yield return new object[] { "System.Security.Cryptography.HMACMD5", null , true };
+                yield return new object[] { "System.Security.Cryptography.HMACMD5", null, true };
                 yield return new object[] { "HMACSHA1", "System.Security.Cryptography.HMACSHA1", true };
-                yield return new object[] { "System.Security.Cryptography.HMACSHA1", null , true };
+                yield return new object[] { "System.Security.Cryptography.HMACSHA1", null, true };
                 yield return new object[] { "HMACSHA256", "System.Security.Cryptography.HMACSHA256", true };
                 yield return new object[] { "System.Security.Cryptography.HMACSHA256", null, true };
                 yield return new object[] { "HMACSHA384", "System.Security.Cryptography.HMACSHA384", true };
-                yield return new object[] { "System.Security.Cryptography.HMACSHA384", null , true };
+                yield return new object[] { "System.Security.Cryptography.HMACSHA384", null, true };
                 yield return new object[] { "HMACSHA512", "System.Security.Cryptography.HMACSHA512", true };
-                yield return new object[] { "System.Security.Cryptography.HMACSHA512", null , true };
+                yield return new object[] { "System.Security.Cryptography.HMACSHA512", null, true };
 
                 // Asymmetric algorithms
-                yield return new object[] { "RSA", "System.Security.Cryptography.RSACryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.RSA", "System.Security.Cryptography.RSACryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.AsymmetricAlgorithm", "System.Security.Cryptography.RSACryptoServiceProvider", false };
-                yield return new object[] { "DSA", "System.Security.Cryptography.DSACryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.DSA", "System.Security.Cryptography.DSACryptoServiceProvider", false };
-                yield return new object[] { "ECDsa", "System.Security.Cryptography.ECDsaCng", false };
+                yield return new object[] { "RSA", "System.Security.Cryptography.RSACryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.RSA", "System.Security.Cryptography.RSACryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.AsymmetricAlgorithm", "System.Security.Cryptography.RSACryptoServiceProvider", true };
+                yield return new object[] { "DSA", "System.Security.Cryptography.DSACryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.DSA", "System.Security.Cryptography.DSACryptoServiceProvider", true };
+                yield return new object[] { "ECDsa", "System.Security.Cryptography.ECDsaCng", true };
                 yield return new object[] { "ECDsaCng", "System.Security.Cryptography.ECDsaCng", false };
-                yield return new object[] { "System.Security.Cryptography.ECDsaCng", null , false };
-                yield return new object[] { "DES", "System.Security.Cryptography.DESCryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.DES", "System.Security.Cryptography.DESCryptoServiceProvider", false };
-                yield return new object[] { "3DES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", false };
-                yield return new object[] { "TripleDES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", false };
-                yield return new object[] { "Triple DES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.TripleDES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", false };
-                yield return new object[] { "RC2", "System.Security.Cryptography.RC2CryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.RC2", "System.Security.Cryptography.RC2CryptoServiceProvider", false };
+                yield return new object[] { "System.Security.Cryptography.ECDsaCng", null, false };
+                yield return new object[] { "DES", "System.Security.Cryptography.DESCryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.DES", "System.Security.Cryptography.DESCryptoServiceProvider", true };
+                yield return new object[] { "3DES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", true };
+                yield return new object[] { "TripleDES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", true };
+                yield return new object[] { "Triple DES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.TripleDES", "System.Security.Cryptography.TripleDESCryptoServiceProvider", true };
+                yield return new object[] { "RC2", "System.Security.Cryptography.RC2CryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.RC2", "System.Security.Cryptography.RC2CryptoServiceProvider", true };
                 yield return new object[] { "Rijndael", typeof(RijndaelManaged).FullName, true };
                 yield return new object[] { "System.Security.Cryptography.Rijndael", typeof(RijndaelManaged).FullName, true };
                 yield return new object[] { "System.Security.Cryptography.SymmetricAlgorithm", typeof(RijndaelManaged).FullName, true };
-                yield return new object[] { "AES", "System.Security.Cryptography.AesCryptoServiceProvider", false };
-                yield return new object[] { "AesCryptoServiceProvider", "System.Security.Cryptography.AesCryptoServiceProvider", false };
-                yield return new object[] { "System.Security.Cryptography.AesCryptoServiceProvider", "System.Security.Cryptography.AesCryptoServiceProvider", false };
+                yield return new object[] { "AES", "System.Security.Cryptography.AesCryptoServiceProvider", true };
+                yield return new object[] { "AesCryptoServiceProvider", "System.Security.Cryptography.AesCryptoServiceProvider", true };
+                yield return new object[] { "System.Security.Cryptography.AesCryptoServiceProvider", "System.Security.Cryptography.AesCryptoServiceProvider", true };
                 yield return new object[] { "AesManaged", typeof(AesManaged).FullName, true };
                 yield return new object[] { "System.Security.Cryptography.AesManaged", typeof(AesManaged).FullName, true };
 
                 // Xml Dsig/ Enc Hash algorithms
-                yield return new object[] { "http://www.w3.org/2000/09/xmldsig#sha1", "System.Security.Cryptography.SHA1CryptoServiceProvider", false };
+                yield return new object[] { "http://www.w3.org/2000/09/xmldsig#sha1", "System.Security.Cryptography.SHA1CryptoServiceProvider", true };
                 yield return new object[] { "http://www.w3.org/2001/04/xmlenc#sha256", typeof(SHA256Managed).FullName, true };
                 yield return new object[] { "http://www.w3.org/2001/04/xmlenc#sha512", typeof(SHA512Managed).FullName, true };
 
                 // Xml Encryption symmetric keys
-                yield return new object[] { "http://www.w3.org/2001/04/xmlenc#des-cbc", "System.Security.Cryptography.DESCryptoServiceProvider", false };
-                yield return new object[] { "http://www.w3.org/2001/04/xmlenc#tripledes-cbc", "System.Security.Cryptography.TripleDESCryptoServiceProvider", false };
-                yield return new object[] { "http://www.w3.org/2001/04/xmlenc#kw-tripledes", "System.Security.Cryptography.TripleDESCryptoServiceProvider", false };
+                yield return new object[] { "http://www.w3.org/2001/04/xmlenc#des-cbc", "System.Security.Cryptography.DESCryptoServiceProvider", true };
+                yield return new object[] { "http://www.w3.org/2001/04/xmlenc#tripledes-cbc", "System.Security.Cryptography.TripleDESCryptoServiceProvider", true };
+                yield return new object[] { "http://www.w3.org/2001/04/xmlenc#kw-tripledes", "System.Security.Cryptography.TripleDESCryptoServiceProvider", true };
                 yield return new object[] { "http://www.w3.org/2001/04/xmlenc#aes128-cbc", typeof(RijndaelManaged).FullName, true };
                 yield return new object[] { "http://www.w3.org/2001/04/xmlenc#kw-aes128", typeof(RijndaelManaged).FullName, true };
                 yield return new object[] { "http://www.w3.org/2001/04/xmlenc#aes192-cbc", typeof(RijndaelManaged).FullName, true };
@@ -181,19 +245,20 @@ namespace System.Security.Cryptography.CryptoConfigTests
                 yield return new object[] { "X509Chain", "System.Security.Cryptography.X509Certificates.X509Chain", true };
 
                 // PKCS9 attributes
-                yield return new object[] { "1.2.840.113549.1.9.3", "System.Security.Cryptography.Pkcs.Pkcs9ContentType", false };
-                yield return new object[] { "1.2.840.113549.1.9.4", "System.Security.Cryptography.Pkcs.Pkcs9MessageDigest", false };
-                yield return new object[] { "1.2.840.113549.1.9.5", "System.Security.Cryptography.Pkcs.Pkcs9SigningTime", false };
-                yield return new object[] { "1.3.6.1.4.1.311.88.2.1", "System.Security.Cryptography.Pkcs.Pkcs9DocumentName", false };
-                yield return new object[] { "1.3.6.1.4.1.311.88.2.2", "System.Security.Cryptography.Pkcs.Pkcs9DocumentDescription", false };
+                yield return new object[] { "1.2.840.113549.1.9.3", "System.Security.Cryptography.Pkcs.Pkcs9ContentType", true };
+                yield return new object[] { "1.2.840.113549.1.9.4", "System.Security.Cryptography.Pkcs.Pkcs9MessageDigest", true };
+                yield return new object[] { "1.2.840.113549.1.9.5", "System.Security.Cryptography.Pkcs.Pkcs9SigningTime", true };
+                yield return new object[] { "1.3.6.1.4.1.311.88.2.1", "System.Security.Cryptography.Pkcs.Pkcs9DocumentName", true };
+                yield return new object[] { "1.3.6.1.4.1.311.88.2.2", "System.Security.Cryptography.Pkcs.Pkcs9DocumentDescription", true };
             }
         }
-
 
         [Theory, MemberData(nameof(AllValidNames))]
         public static void CreateFromName_AllValidNames(string name, string typeName, bool supportsUnixMac)
         {
-            if (supportsUnixMac || RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+            if (supportsUnixMac || isWindows)
             {
                 object obj = CryptoConfig.CreateFromName(name);
                 Assert.NotNull(obj);
@@ -203,7 +268,15 @@ namespace System.Security.Cryptography.CryptoConfigTests
                     typeName = name;
                 }
 
-                Assert.Equal(typeName, obj.GetType().FullName);
+                // ECDsa is special on non-Windows
+                if (isWindows || name != "ECDsa")
+                {
+                    Assert.Equal(typeName, obj.GetType().FullName);
+                }
+                else
+                {
+                    Assert.NotEqual(typeName, obj.GetType().FullName);
+                }
 
                 if (obj is IDisposable)
                 {
@@ -232,6 +305,69 @@ namespace System.Security.Cryptography.CryptoConfigTests
 
             ClassWithCtorArguments ctorObj = (ClassWithCtorArguments)obj;
             Assert.Equal("Hello", ctorObj.MyString);
+        }
+
+        [Fact]
+        public static void EncodeOID_Validation()
+        {
+            Assert.Throws<ArgumentNullException>(() => CryptoConfig.EncodeOID(null));
+            Assert.Throws<FormatException>(() => CryptoConfig.EncodeOID(string.Empty));
+            Assert.Throws<FormatException>(() => CryptoConfig.EncodeOID("BAD.OID"));
+            Assert.Throws<FormatException>(() => CryptoConfig.EncodeOID("1.2.BAD.OID"));
+            Assert.Throws<OverflowException>(() => CryptoConfig.EncodeOID("1." + uint.MaxValue));
+        }
+
+        [Fact]
+        public static void EncodeOID_Compat()
+        {
+            string actual = CryptoConfig.EncodeOID("-1.2.-3").ByteArrayToHex();
+            Assert.Equal("0602DAFD", actual); // Negative values not checked
+        }
+
+        [Fact]
+        public static void EncodeOID_Length_Boundary()
+        {
+            string valueToRepeat = "1.1";
+
+            // Build a string like 1.11.11.11. ... .11.1, which has 0x80 separators.
+            // The BER/DER encoding of an OID has a minimum number of bytes as the number of separator characters,
+            // so this would produce an OID with a length segment of more than one byte, which EncodeOID can't handle.
+            string s = new StringBuilder(valueToRepeat.Length * 0x80).Insert(0, valueToRepeat, 0x80).ToString();
+            Assert.Throws<CryptographicUnexpectedOperationException>(() => CryptoConfig.EncodeOID(s));
+
+            // Try again with one less separator for the boundary case, but the particular output is really long
+            // and would just clutter up this test, so only verify it doesn't throw.
+            s = new StringBuilder(valueToRepeat.Length * 0x7f).Insert(0, valueToRepeat, 0x7f).ToString();
+            CryptoConfig.EncodeOID(s);
+        }
+
+        [Theory]
+        [InlineData(0x4000, "0603818028")]
+        [InlineData(0x200000, "060481808028")]
+        [InlineData(0x10000000, "06058180808028")]
+        [InlineData(0x10000001, "06058180808029")]
+        [InlineData(int.MaxValue, "060127")]
+        public static void EncodeOID_Value_Boundary_And_Compat(uint elementValue, string expectedEncoding)
+        {
+            // Boundary cases in EncodeOID; output may produce the wrong value mathematically due to encoding
+            // algorithm semantics but included here for compat reasons.
+            byte[] actual = CryptoConfig.EncodeOID("1." + elementValue.ToString());
+            byte[] expected = expectedEncoding.HexToByteArray();
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData("SHA1", "1.3.14.3.2.26", "06052B0E03021A")]
+        [InlineData("DES", "1.3.14.3.2.7", "06052B0E030207")]
+        [InlineData("MD5", "1.2.840.113549.2.5", "06082A864886F70D0205")]
+        public static void MapAndEncodeOID(string alg, string expectedOid, string expectedEncoding)
+        {
+            string oid = CryptoConfig.MapNameToOID(alg);
+            Assert.Equal(expectedOid, oid);
+
+            byte[] actual = CryptoConfig.EncodeOID(oid);
+            byte[] expected = expectedEncoding.HexToByteArray();
+            Assert.Equal(expected, actual);
         }
 
         private static void VerifyCreateFromName<TExpected>(string name)

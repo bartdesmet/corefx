@@ -21,6 +21,7 @@ namespace System.Threading
     /// The exception that is thrown when the post-phase action of a <see cref="Barrier"/> fails.
     /// </summary>
     [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class BarrierPostPhaseException : Exception
     {
         /// <summary>
@@ -91,9 +92,9 @@ namespace System.Threading
     public class Barrier : IDisposable
     {
         //This variable holds the basic barrier variables: 
-        // 1- The current particiants count 
+        // 1- The current participants count 
         // 2- The total participants count
-        // 3- The sense flag (true if the cuurrent phase is even, false otherwise)
+        // 3- The sense flag (true if the current phase is even, false otherwise)
         // The first 15 bits are for the total count which means the maximum participants for the barrier is about 32K
         // The 16th bit is dummy
         // The next 15th bit for the current
@@ -106,7 +107,7 @@ namespace System.Threading
         // Bitmask to extract the total count
         private const int TOTAL_MASK = 0x00007FFF;
 
-        // Bitmask to extratc the sense flag
+        // Bitmask to extract the sense flag
         private const int SENSE_MASK = unchecked((int)0x80000000);
 
         // The maximum participants the barrier can operate = 32767 ( 2 power 15 - 1 )
@@ -132,7 +133,6 @@ namespace System.Threading
         private ExecutionContext _ownerThreadContext;
 
         // The EC callback that invokes the post phase action
-        [SecurityCritical]
         private static ContextCallback s_invokePostPhaseAction;
 
         // Post phase action after each phase
@@ -149,7 +149,7 @@ namespace System.Threading
         #region Properties
 
         /// <summary>
-        /// Gets the number of participants in the barrier that haven?t yet signaled
+        /// Gets the number of participants in the barrier that haven't yet signaled
         /// in the current phase.
         /// </summary>
         /// <remarks>
@@ -240,7 +240,7 @@ namespace System.Threading
         /// Extract the three variables current, total and sense from a given big variable
         /// </summary>
         /// <param name="currentTotal">The integer variable that contains the other three variables</param>
-        /// <param name="current">The current cparticipant count</param>
+        /// <param name="current">The current participant count</param>
         /// <param name="total">The total participants count</param>
         /// <param name="sense">The sense flag</param>
         private void GetCurrentTotal(int currentTotal, out int current, out int total, out bool sense)
@@ -254,7 +254,7 @@ namespace System.Threading
         /// Write the three variables current. total and the sense to the m_currentTotal
         /// </summary>
         /// <param name="currentTotal">The old current total to compare</param>
-        /// <param name="current">The current cparticipant count</param>
+        /// <param name="current">The current participant count</param>
         /// <param name="total">The total participants count</param>
         /// <param name="sense">The sense flag</param>
         /// <returns>True if the CAS succeeded, false otherwise</returns>
@@ -353,7 +353,7 @@ namespace System.Threading
 
                 if (SetCurrentTotal(currentTotal, current, total + participantCount, sense))
                 {
-                    // Calculating the first phase for that participant, if the current phase already finished return the nextphase else return the current phase
+                    // Calculating the first phase for that participant, if the current phase already finished return the next phase else return the current phase
                     // To know that the current phase is  the sense doesn't match the 
                     // phase odd even, so that means it didn't yet change the phase count, so currentPhase +1 is returned, otherwise currentPhase is returned
                     long currPhase = CurrentPhaseNumber;
@@ -361,8 +361,8 @@ namespace System.Threading
 
                     // If this participant is going to join the next phase, which means the postPhaseAction is being running, this participants must wait until this done
                     // and its event is reset.
-                    // Without that, if the postPhaseAction takes long time, this means the event ehich the current participant is goint to wait on is still set 
-                    // (FinishPPhase didn't reset it yet) so it should wait until it reset
+                    // Without that, if the postPhaseAction takes long time, this means the event that the current participant is going to wait on is still set
+                    // (FinishPhase didn't reset it yet) so it should wait until it reset
                     if (newPhase != currPhase)
                     {
                         // Wait on the opposite event
@@ -455,7 +455,7 @@ namespace System.Threading
                 {
                     throw new InvalidOperationException(SR.Barrier_RemoveParticipants_InvalidOperation);
                 }
-                // If the remaining participats = current participants, then finish the current phase
+                // If the remaining participants = current participants, then finish the current phase
                 int remaingParticipants = total - participantCount;
                 if (remaingParticipants > 0 && current == remaingParticipants)
                 {
@@ -535,7 +535,7 @@ namespace System.Threading
         /// </exception>
         /// <exception cref="T:System.ObjectDisposedException">The current instance has already been
         /// disposed.</exception>
-        public Boolean SignalAndWait(TimeSpan timeout)
+        public bool SignalAndWait(TimeSpan timeout)
         {
             return SignalAndWait(timeout, new CancellationToken());
         }
@@ -562,9 +562,9 @@ namespace System.Threading
         /// canceled.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The current instance has already been
         /// disposed.</exception>
-        public Boolean SignalAndWait(TimeSpan timeout, CancellationToken cancellationToken)
+        public bool SignalAndWait(TimeSpan timeout, CancellationToken cancellationToken)
         {
-            Int64 totalMilliseconds = (Int64)timeout.TotalMilliseconds;
+            long totalMilliseconds = (long)timeout.TotalMilliseconds;
             if (totalMilliseconds < -1 || totalMilliseconds > int.MaxValue)
             {
                 throw new System.ArgumentOutOfRangeException(nameof(timeout), timeout,
@@ -731,8 +731,8 @@ namespace System.Threading
                     //The phase has not been finished yet, try to update the current count.
                     if (SetCurrentTotal(currentTotal, current - 1, total, sense))
                     {
-                        //if here, then the attempt to backout was successful.
-                        //throw (a fresh) oce if cancellation woke the wait
+                        //if here, then the attempt to back out was successful.
+                        //throw (a fresh) OCE if cancellation woke the wait
                         //or return false if it was the timeout that woke the wait.
                         //
                         if (waitWasCanceled)
@@ -755,7 +755,6 @@ namespace System.Threading
         /// last arrival thread
         /// </summary>
         /// <param name="observedSense">The current phase sense</param>
-        [SecuritySafeCritical]
         private void FinishPhase(bool observedSense)
         {
             // Execute the PHA in try/finally block to reset the variables back in case of it threw an exception
@@ -805,7 +804,6 @@ namespace System.Threading
         /// Helper method to call the post phase action
         /// </summary>
         /// <param name="obj"></param>
-        [SecurityCritical]
         private static void InvokePostPhaseAction(object obj)
         {
             var thisBarrier = (Barrier)obj;
@@ -855,13 +853,13 @@ namespace System.Threading
         /// The reason of discontinuous waiting instead of direct waiting on the event is to avoid the race where the sense is 
         /// changed twice because the next phase is finished (due to either RemoveParticipant is called or another thread joined
         /// the next phase instead of the current thread) so the current thread will be stuck on the event because it is reset back
-        /// The maxwait and the shift numbers are arbitrarily choosen, there were no references picking them
+        /// The maxWait and the shift numbers are arbitrarily chosen, there were no references picking them
         /// </summary>
         /// <param name="currentPhaseEvent">The current phase event</param>
         /// <param name="totalTimeout">wait timeout in milliseconds</param>
         /// <param name="token">cancellation token passed to SignalAndWait</param>
         /// <param name="observedPhase">The current phase number for this thread</param>
-        /// <returns>True if the event is set or the phasenumber changed, false if the timeout expired</returns>
+        /// <returns>True if the event is set or the phase number changed, false if the timeout expired</returns>
         private bool DiscontinuousWait(ManualResetEventSlim currentPhaseEvent, int totalTimeout, CancellationToken token, long observedPhase)
         {
             int maxWait = 100; // 100 ms
@@ -886,7 +884,7 @@ namespace System.Threading
                 maxWait = maxWait >= waitTimeCeiling ? waitTimeCeiling : Math.Min(maxWait << 1, waitTimeCeiling);
             }
 
-            //if we exited the loop because the observed phase doesn't match the current phase, then we have to spin to mske sure
+            //if we exited the loop because the observed phase doesn't match the current phase, then we have to spin to make sure
             //the event is set or the next phase is finished
             WaitCurrentPhase(currentPhaseEvent, observedPhase);
 

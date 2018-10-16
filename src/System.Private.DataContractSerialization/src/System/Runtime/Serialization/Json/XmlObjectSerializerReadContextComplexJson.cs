@@ -14,7 +14,7 @@ using System.Diagnostics;
 
 namespace System.Runtime.Serialization.Json
 {
-#if NET_NATIVE
+#if uapaot
     public class XmlObjectSerializerReadContextComplexJson : XmlObjectSerializerReadContextComplex
 #else
     internal class XmlObjectSerializerReadContextComplexJson : XmlObjectSerializerReadContextComplex
@@ -223,7 +223,7 @@ namespace System.Runtime.Serialization.Json
         {
             bool verifyType = true;
             CollectionDataContract collectionContract = declaredContract as CollectionDataContract;
-            if (collectionContract != null && collectionContract.UnderlyingType.GetTypeInfo().IsInterface)
+            if (collectionContract != null && collectionContract.UnderlyingType.IsInterface)
             {
                 switch (collectionContract.Kind)
                 {
@@ -291,7 +291,7 @@ namespace System.Runtime.Serialization.Json
             string name, ns;
             if (string.IsNullOrEmpty(qname))
             {
-                name = ns = String.Empty;
+                name = ns = string.Empty;
             }
             else
             {
@@ -355,7 +355,7 @@ namespace System.Runtime.Serialization.Json
             return name;
         }
 
-#if !NET_NATIVE
+#if !uapaot
         public static void ThrowDuplicateMemberException(object obj, XmlDictionaryString[] memberNames, int memberIndex)
         {
             throw DiagnosticUtility.ExceptionUtility.ThrowHelperError(new SerializationException(

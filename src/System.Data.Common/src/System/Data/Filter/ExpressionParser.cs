@@ -47,7 +47,7 @@ namespace System.Data
         private const int Expr = 2;   /* The previous operand was a complex expression */
 
 
-        private struct ReservedWords
+        private readonly struct ReservedWords
         {
             internal readonly string _word;      // the word
             internal readonly Tokens _token;
@@ -1196,7 +1196,7 @@ namespace System.Data
         }
 
         /// <summary>
-        ///     is the character a white space character?
+        ///     is the character a whitespace character?
         ///     Consider using CharacterInfo().IsWhiteSpace(ch) (System.Globalization)
         /// </summary>
         private bool IsWhiteSpace(char ch)

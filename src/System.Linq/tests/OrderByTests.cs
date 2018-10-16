@@ -40,8 +40,8 @@ namespace System.Linq.Tests
         public void SameResultsRepeatCallsStringQuery()
         {
             var q = from x1 in new[] { 55, 49, 9, -100, 24, 25, -1, 0 }
-                             from x2 in new[] { "!@#$%^", "C", "AAA", "", null, "Calling Twice", "SoS", String.Empty }
-                             where !String.IsNullOrEmpty(x2)
+                             from x2 in new[] { "!@#$%^", "C", "AAA", "", null, "Calling Twice", "SoS", string.Empty }
+                             where !string.IsNullOrEmpty(x2)
                              select new { a1 = x1, a2 = x2 };
 
             Assert.Equal(q.OrderBy(e => e.a1), q.OrderBy(e => e.a1));
@@ -115,6 +115,15 @@ namespace System.Linq.Tests
             string[] expected = { "Alpha", "dan", "DAN", "Prakash", "Prakash" };
 
             Assert.Equal(expected, source.OrderBy(e => e, StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void RunOnce()
+        {
+            string[] source = { "Prakash", "Alpha", "dan", "DAN", "Prakash" };
+            string[] expected = { "Alpha", "dan", "DAN", "Prakash", "Prakash" };
+
+            Assert.Equal(expected, source.RunOnce().OrderBy(e => e, StringComparer.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -255,14 +264,14 @@ namespace System.Linq.Tests
         public void NullSource()
         {
             IEnumerable<int> source = null;
-            Assert.Throws<ArgumentNullException>("source", () => source.OrderBy(i => i));
+            AssertExtensions.Throws<ArgumentNullException>("source", () => source.OrderBy(i => i));
         }
 
         [Fact]
         public void NullKeySelector()
         {
             Func<DateTime, int> keySelector = null;
-            Assert.Throws<ArgumentNullException>("keySelector", () => Enumerable.Empty<DateTime>().OrderBy(keySelector));
+            AssertExtensions.Throws<ArgumentNullException>("keySelector", () => Enumerable.Empty<DateTime>().OrderBy(keySelector));
         }
 
         [Fact]
@@ -297,6 +306,16 @@ namespace System.Linq.Tests
         }
 
         [Fact]
+        public void LastOnOrderedMatchingCases()
+        {
+            object[] boxedInts = new object[] {0, 1, 2, 9, 1, 2, 3, 9, 4, 5, 7, 8, 9, 0, 1};
+            Assert.Same(boxedInts[12], boxedInts.OrderBy(o => (int)o).Last());
+            Assert.Same(boxedInts[12], boxedInts.OrderBy(o => (int)o).LastOrDefault());
+            Assert.Same(boxedInts[12], boxedInts.OrderBy(o => (int)o).Last(o => (int)o % 2 == 1));
+            Assert.Same(boxedInts[12], boxedInts.OrderBy(o => (int)o).LastOrDefault(o => (int)o % 2 == 1));
+        }
+
+        [Fact]
         public void LastOnEmptyOrderedThrows()
         {
             Assert.Throws<InvalidOperationException>(() => Enumerable.Empty<int>().OrderBy(i => i).Last());
@@ -317,6 +336,110 @@ namespace System.Linq.Tests
             var enumerator = NumberRangeGuaranteedNotCollectionType(0, 3).Shuffle().OrderBy(i => i).GetEnumerator();
             while (enumerator.MoveNext()) { }
             Assert.False(enumerator.MoveNext());
+        }
+
+        [Fact]
+        public void OrderByIsCovariantTestWithCast()
+        {
+            var ordered = Enumerable.Range(0, 100).Select(i => i.ToString()).OrderBy(i => i.Length);
+            IOrderedEnumerable<IComparable> covariantOrdered = ordered;
+            covariantOrdered = covariantOrdered.ThenBy(i => i);
+            string[] expected =
+                Enumerable.Range(0, 100).Select(i => i.ToString()).OrderBy(i => i.Length).ThenBy(i => i).ToArray();
+            Assert.Equal(expected, covariantOrdered);
+        }
+
+        [Fact]
+        public void OrderByIsCovariantTestWithAssignToArgument()
+        {
+            var ordered = Enumerable.Range(0, 100).Select(i => i.ToString()).OrderBy(i => i.Length);
+            IOrderedEnumerable<IComparable> covariantOrdered = ordered.ThenByDescending<IComparable, IComparable>(i => i);
+            string[] expected = Enumerable.Range(0, 100)
+                .Select(i => i.ToString())
+                .OrderBy(i => i.Length)
+                .ThenByDescending(i => i)
+                .ToArray();
+            Assert.Equal(expected, covariantOrdered);
+        }
+
+        [Fact]
+        public void CanObtainFromCovariantIOrderedQueryable()
+        {
+            // If an ordered queryable is cast covariantly and then has ThenBy() called on it,
+            // it depends on IOrderedEnumerable<TElement> also being covariant to allow for
+            // that ThenBy() to be processed within Linq-to-objects, as otherwise there is no
+            // equivalent ThenBy() overload to translate the call to.
+
+            IOrderedQueryable<IComparable> ordered =
+                Enumerable.Range(0, 100).AsQueryable().Select(i => i.ToString()).OrderBy(i => i.Length);
+            ordered = ordered.ThenBy(i => i);
+            string[] expected =
+                Enumerable.Range(0, 100).Select(i => i.ToString()).OrderBy(i => i.Length).ThenBy(i => i).ToArray();
+            Assert.Equal(expected, ordered);
+        }
+
+        [Fact]
+        public void SortsLargeAscendingEnumerableCorrectly()
+        {
+            const int Items = 1_000_000;
+            IEnumerable<int> expected = NumberRangeGuaranteedNotCollectionType(0, Items);
+
+            IEnumerable<int> unordered = expected.Select(i => i);
+            IOrderedEnumerable<int> ordered = unordered.OrderBy(i => i);
+
+            Assert.Equal(expected, ordered);
+        }
+
+        [Fact]
+        public void SortsLargeDescendingEnumerableCorrectly()
+        {
+            const int Items = 1_000_000;
+            IEnumerable<int> expected = NumberRangeGuaranteedNotCollectionType(0, Items);
+
+            IEnumerable<int> unordered = expected.Select(i => Items - i - 1);
+            IOrderedEnumerable<int> ordered = unordered.OrderBy(i => i);
+
+            Assert.Equal(expected, ordered);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(8)]
+        [InlineData(16)]
+        [InlineData(1024)]
+        [InlineData(4096)]
+        [InlineData(1_000_000)]
+        public void SortsRandomizedEnumerableCorrectly(int items)
+        {
+            var r = new Random(42);
+
+            int[] randomized = Enumerable.Range(0, items).Select(i => r.Next()).ToArray();
+            int[] ordered = ForceNotCollection(randomized).OrderBy(i => i).ToArray();
+
+            Array.Sort(randomized);
+            Assert.Equal(randomized, ordered);
+        }
+
+        [Theory]
+        [InlineData(new[] { 1 })]
+        [InlineData(new[] { 1, 2 })]
+        [InlineData(new[] { 2, 1 })]
+        [InlineData(new[] { 1, 2, 3, 4, 5 })]
+        [InlineData(new[] { 5, 4, 3, 2, 1 })]
+        [InlineData(new[] { 4, 3, 2, 1, 5, 9, 8, 7, 6 })]
+        [InlineData(new[] { 2, 4, 6, 8, 10, 5, 3, 7, 1, 9 })]
+        public void TakeOne(IEnumerable<int> source)
+        {
+            int count = 0;
+            foreach (int x in source.OrderBy(i => i).Take(1))
+            {
+                count++;
+                Assert.Equal(source.Min(), x);
+            }
+            Assert.Equal(1, count);
         }
     }
 }

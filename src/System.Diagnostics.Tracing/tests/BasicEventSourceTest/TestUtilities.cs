@@ -2,7 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#if USE_MDT_EVENTSOURCE
+using Microsoft.Diagnostics.Tracing;
+#else
 using System.Diagnostics.Tracing;
+#endif
 using System.Diagnostics;
 using Xunit;
 using System;
@@ -11,6 +15,10 @@ namespace BasicEventSourceTests
 {
     internal class TestUtilities
     {
+        // Specifies whether the process is elevated or not.
+        private static readonly Lazy<bool> s_isElevated = new Lazy<bool>(() => AdminHelpers.IsProcessElevated());
+        internal static bool IsProcessElevated => s_isElevated.Value;
+
         /// <summary>
         /// Confirms that there are no EventSources running.  
         /// </summary>
@@ -22,8 +30,15 @@ namespace BasicEventSourceTests
             string eventSourceNames = "";
             foreach (var eventSource in EventSource.GetSources())
             {
-                if (eventSource.Name != "System.Threading.Tasks.TplEventSource"
-                   && eventSource.Name != "System.Diagnostics.Eventing.FrameworkEventSource")
+                // Exempt sources built in to the framework that might be used by types involved in the tests
+                if (eventSource.Name != "System.Threading.Tasks.TplEventSource" &&
+                    eventSource.Name != "System.Diagnostics.Eventing.FrameworkEventSource" &&
+                    eventSource.Name != "System.Buffers.ArrayPoolEventSource" &&
+                    eventSource.Name != "System.Threading.SynchronizationEventSource" &&
+                    eventSource.Name != "System.Runtime.InteropServices.InteropEventProvider" &&
+                    eventSource.Name != "System.Reflection.Runtime.Tracing" &&
+                    eventSource.Name != "Microsoft-Windows-DotNETRuntime"
+                    )
                 {
                     eventSourceNames += eventSource.Name + " ";
                 }

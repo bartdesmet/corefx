@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -26,10 +25,7 @@ namespace System.Linq.Expressions.Tests
         {
             public class Visitor : ExpressionVisitor
             {
-                protected override Expression VisitExtension(Expression node)
-                {
-                    return MarkerExtension;
-                }
+                protected override Expression VisitExtension(Expression node) => MarkerExtension;
             }
 
             public IncompleteExpressionOverride()
@@ -37,68 +33,41 @@ namespace System.Linq.Expressions.Tests
             {
             }
 
-            public Expression VisitChildren()
-            {
-                return VisitChildren(new Visitor());
-            }
+            public Expression VisitChildren() => VisitChildren(new Visitor());
         }
 
         private class ClaimedReducibleOverride : IncompleteExpressionOverride
         {
-            public override bool CanReduce
-            {
-                get { return true; }
-            }
+            public override bool CanReduce => true;
         }
 
         private class ReducesToSame : ClaimedReducibleOverride
         {
-            public override Expression Reduce()
-            {
-                return this;
-            }
+            public override Expression Reduce() => this;
         }
 
         private class ReducesToNull : ClaimedReducibleOverride
         {
-            public override Expression Reduce()
-            {
-                return null;
-            }
+            public override Expression Reduce() => null;
         }
 
         private class ReducesToLongTyped : ClaimedReducibleOverride
         {
             private class ReducedToLongTyped : IncompleteExpressionOverride
             {
-                public override Type Type
-                {
-                    get { return typeof(long); }
-                }
+                public override Type Type => typeof(long);
             }
 
-            public override Type Type
-            {
-                get { return typeof(int); }
-            }
+            public override Type Type => typeof(int);
 
-            public override Expression Reduce()
-            {
-                return new ReducedToLongTyped();
-            }
+            public override Expression Reduce() => new ReducedToLongTyped();
         }
 
         private class Reduces : ClaimedReducibleOverride
         {
-            public override Type Type
-            {
-                get { return typeof(int); }
-            }
+            public override Type Type => typeof(int);
 
-            public override Expression Reduce()
-            {
-                return new Reduces();
-            }
+            public override Expression Reduce() => new Reduces();
         }
 
         private class ReducesFromStrangeNodeType : Expression
@@ -164,14 +133,8 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        public static IEnumerable<object[]> SomeTypes
-        {
-            get
-            {
-                return new[] { typeof(int), typeof(void), typeof(object), typeof(DateTime), typeof(string), typeof(ExpressionTests), typeof(ExpressionType) }
-                    .Select(type => new object[] { type });
-            }
-        }
+        public static IEnumerable<object[]> SomeTypes => new[] { typeof(int), typeof(void), typeof(object), typeof(DateTime), typeof(string), typeof(ExpressionTests), typeof(ExpressionType) }
+    .Select(type => new object[] { type });
 
         [Fact]
         public void NodeTypeMustBeOverridden()
@@ -238,7 +201,7 @@ namespace System.Linq.Expressions.Tests
         public void VisitChildrenThrowsAsNotReducible()
         {
             var exp = new IncompleteExpressionOverride();
-            Assert.Throws<ArgumentException>(null, () => exp.VisitChildren());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.VisitChildren());
         }
 
         [Fact]
@@ -258,42 +221,42 @@ namespace System.Linq.Expressions.Tests
         public void ReduceAndCheckThrowsByDefault()
         {
             var exp = new IncompleteExpressionOverride();
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public void ReduceExtensionsThrowsByDefault()
         {
             var exp = new IncompleteExpressionOverride();
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public void IfClaimCanReduceMustReduce()
         {
             var exp = new ClaimedReducibleOverride();
-            Assert.Throws<ArgumentException>(null, () => exp.Reduce());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.Reduce());
         }
 
         [Fact]
         public void ReduceAndCheckThrowOnReduceToSame()
         {
             var exp = new ReducesToSame();
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public void ReduceAndCheckThrowOnReduceToNull()
         {
             var exp = new ReducesToNull();
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public void ReduceAndCheckThrowOnReducedTypeNotAssignable()
         {
             var exp = new ReducesToLongTyped();
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
 #pragma warning disable 0169, 0414 // Accessed through reflection.
@@ -307,10 +270,7 @@ namespace System.Linq.Expressions.Tests
             set { }
         }
 
-        private static int Unwritable
-        {
-            get { return 0; }
-        }
+        private static int Unwritable => 0;
 
         private class UnreadableIndexableClass
         {
@@ -322,10 +282,7 @@ namespace System.Linq.Expressions.Tests
 
         private class UnwritableIndexableClass
         {
-            public int this[int index]
-            {
-                get { return 0; }
-            }
+            public int this[int index] => 0;
         }
 
         [Fact]
@@ -354,13 +311,7 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        public static IEnumerable<object[]> UnreadableExpressionData
-        {
-            get
-            {
-                return UnreadableExpressions.Concat(new Expression[1]).Select(exp => new object[] { exp });
-            }
-        }
+        public static IEnumerable<object[]> UnreadableExpressionData => UnreadableExpressions.Concat(new Expression[1]).Select(exp => new object[] { exp });
 
         public static IEnumerable<Expression> WritableExpressions
         {
@@ -386,44 +337,32 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
-        public static IEnumerable<object[]> UnwritableExpressionData
-        {
-            get
-            {
-                return UnwritableExpressions.Select(exp => new object[] { exp });
-            }
-        }
+        public static IEnumerable<object[]> UnwritableExpressionData => UnwritableExpressions.Select(exp => new object[] { exp });
 
-        public static IEnumerable<object[]> WritableExpressionData
-        {
-            get
-            {
-                return WritableExpressions.Select(exp => new object[] { exp });
-            }
-        }
+        public static IEnumerable<object[]> WritableExpressionData => WritableExpressions.Select(exp => new object[] { exp });
 
         [Theory, MemberData(nameof(UnreadableExpressionData))]
         public void ConfirmCannotRead(Expression unreadableExpression)
         {
             if (unreadableExpression == null)
-                Assert.Throws<ArgumentNullException>("expression", () => Expression.Increment(unreadableExpression));
+                AssertExtensions.Throws<ArgumentNullException>("expression", () => Expression.Increment(unreadableExpression));
             else
-                Assert.Throws<ArgumentException>("expression", () => Expression.Increment(unreadableExpression));
+                AssertExtensions.Throws<ArgumentException>("expression", () => Expression.Increment(unreadableExpression));
         }
 
         [Fact]
         public void ConfirmCannotReadSequence()
         {
-            Assert.Throws<ArgumentException>("expressions[0]", () => Expression.Block(typeof(void), UnreadableExpressions));
+            AssertExtensions.Throws<ArgumentException>("expressions[0]", () => Expression.Block(typeof(void), UnreadableExpressions));
         }
 
         [Theory, MemberData(nameof(UnwritableExpressionData))]
         public void ConfirmCannotWrite(Expression unwritableExpression)
         {
             if (unwritableExpression == null)
-                Assert.Throws<ArgumentNullException>("left", () => Expression.Assign(unwritableExpression, Expression.Constant(0)));
+                AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.Assign(unwritableExpression, Expression.Constant(0)));
             else
-                Assert.Throws<ArgumentException>("left", () => Expression.Assign(unwritableExpression, Expression.Constant(0)));
+                AssertExtensions.Throws<ArgumentException>("left", () => Expression.Assign(unwritableExpression, Expression.Constant(0)));
         }
 
         [Theory, MemberData(nameof(WritableExpressionData))]
@@ -435,21 +374,21 @@ namespace System.Linq.Expressions.Tests
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CompileIrreduciebleExtension(bool useInterpreter)
         {
-            var exp = Expression.Lambda<Action>(new IrreducibleWithTypeAndNodeType());
-            Assert.Throws<ArgumentException>(null, () => exp.Compile(useInterpreter));
+            Expression<Action> exp = Expression.Lambda<Action>(new IrreducibleWithTypeAndNodeType());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.Compile(useInterpreter));
         }
 
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CompileIrreduciebleStrangeNodeTypeExtension(bool useInterpreter)
         {
-            var exp = Expression.Lambda<Action>(new IrreduceibleWithTypeAndStrangeNodeType());
-            Assert.Throws<ArgumentException>(null, () => exp.Compile(useInterpreter));
+            Expression<Action> exp = Expression.Lambda<Action>(new IrreduceibleWithTypeAndStrangeNodeType());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.Compile(useInterpreter));
         }
 
         [Theory, ClassData(typeof(CompilationTypes))]
         public void CompileReducibleStrangeNodeTypeExtension(bool useInterpreter)
         {
-            var exp = Expression.Lambda<Func<int>>(new ReducesFromStrangeNodeType());
+            Expression<Func<int>> exp = Expression.Lambda<Func<int>>(new ReducesFromStrangeNodeType());
             Assert.Equal(3, exp.Compile(useInterpreter)());
         }
 
@@ -459,7 +398,7 @@ namespace System.Linq.Expressions.Tests
             var e1 = new ExtensionNoToString();
             Assert.Equal($"[{typeof(ExtensionNoToString).FullName}]", e1.ToString());
 
-            var e2 = Expression.Add(Expression.Constant(1), new ExtensionToString());
+            BinaryExpression e2 = Expression.Add(Expression.Constant(1), new ExtensionToString());
             Assert.Equal($"(1 + bar)", e2.ToString());
         }
     }

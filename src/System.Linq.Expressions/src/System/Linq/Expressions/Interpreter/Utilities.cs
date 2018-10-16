@@ -6,8 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading;
+using System.Runtime.ExceptionServices;
 
 namespace System.Linq.Expressions.Interpreter
 {
@@ -26,7 +25,7 @@ namespace System.Linq.Expressions.Interpreter
             // the arity is small enough to fit in Func<...> or Action<...>
             if (types.Length > MaximumArity || types.Any(t => t.IsByRef))
             {
-                throw Assert.Unreachable;
+                throw ContractUtils.Unreachable;
             }
 
             Type returnType = types[types.Length - 1];
@@ -78,7 +77,7 @@ namespace System.Linq.Expressions.Interpreter
                     case 17: return typeof(Func<,,,,,,,,,,,,,,,,>).MakeGenericType(types);
                 }
             }
-            throw Assert.Unreachable;
+            throw ContractUtils.Unreachable;
         }
     }
 #endif
@@ -114,47 +113,46 @@ namespace System.Linq.Expressions.Interpreter
                     result = Utils.BoxedFalse;
                     break;
                 case TypeCode.SByte:
-                    result = default(sbyte);
+                    result = Utils.BoxedDefaultSByte;
                     break;
                 case TypeCode.Byte:
-                    result = default(byte);
+                    result = Utils.BoxedDefaultByte;
                     break;
                 case TypeCode.Char:
-                    result = default(char);
+                    result = Utils.BoxedDefaultChar;
                     break;
                 case TypeCode.Int16:
-                    result = default(short);
+                    result = Utils.BoxedDefaultInt16;
                     break;
                 case TypeCode.Int32:
                     result = Utils.BoxedInt0;
                     break;
                 case TypeCode.Int64:
-                    result = default(long);
+                    result = Utils.BoxedDefaultInt64;
                     break;
                 case TypeCode.UInt16:
-                    result = default(ushort);
+                    result = Utils.BoxedDefaultUInt16;
                     break;
                 case TypeCode.UInt32:
-                    result = default(uint);
+                    result = Utils.BoxedDefaultUInt32;
                     break;
                 case TypeCode.UInt64:
-                    result = default(ulong);
+                    result = Utils.BoxedDefaultUInt64;
                     break;
                 case TypeCode.Single:
-                    return default(float);
+                    return Utils.BoxedDefaultSingle;
                 case TypeCode.Double:
-                    return default(double);
-                //case TypeCode.DBNull:
-                //    return default(DBNull);
+                    return Utils.BoxedDefaultDouble;
                 case TypeCode.DateTime:
-                    return default(DateTime);
+                    return Utils.BoxedDefaultDateTime;
                 case TypeCode.Decimal:
-                    return default(decimal);
+                    return Utils.BoxedDefaultDecimal;
                 default:
+                    // Also covers DBNull which is a class.
                     return null;
             }
 
-            if (type.GetTypeInfo().IsEnum)
+            if (type.IsEnum)
             {
                 result = Enum.ToObject(type, result);
             }
@@ -165,55 +163,14 @@ namespace System.Linq.Expressions.Interpreter
 
     internal static class ExceptionHelpers
     {
-#if FEATURE_STACK_TRACES
-        private const string prevStackTraces = "PreviousStackTraces";
-#endif
-
         /// <summary>
         /// Updates an exception before it's getting re-thrown so
         /// we can present a reasonable stack trace to the user.
         /// </summary>
-        public static Exception UpdateForRethrow(Exception rethrow)
+        public static void UnwrapAndRethrow(TargetInvocationException exception)
         {
-#if FEATURE_STACK_TRACES
-            List<StackTrace> prev;
-
-            // we don't have any dynamic stack trace data, capture the data we can
-            // from the raw exception object.
-            StackTrace st = new StackTrace(rethrow, true);
-
-            if (!TryGetAssociatedStackTraces(rethrow, out prev))
-            {
-                prev = new List<StackTrace>();
-                AssociateStackTraces(rethrow, prev);
-            }
-
-            prev.Add(st);
-
-#endif // FEATURE_STACK_TRACES
-            return rethrow;
+            ExceptionDispatchInfo.Throw(exception.InnerException);
         }
-#if FEATURE_STACK_TRACES
-        /// <summary>
-        /// Returns all the stack traces associates with an exception
-        /// </summary>
-        public static IList<StackTrace> GetExceptionStackTraces(Exception rethrow)
-        {
-            List<StackTrace> result;
-            return TryGetAssociatedStackTraces(rethrow, out result) ? result : null;
-        }
-
-        private static void AssociateStackTraces(Exception e, List<StackTrace> traces)
-        {
-            e.Data[prevStackTraces] = traces;
-        }
-
-        private static bool TryGetAssociatedStackTraces(Exception e, out List<StackTrace> traces)
-        {
-            traces = e.Data[prevStackTraces] as List<StackTrace>;
-            return traces != null;
-        }
-#endif // FEATURE_STACK_TRACES
     }
 
     /// <summary>
@@ -223,24 +180,7 @@ namespace System.Linq.Expressions.Interpreter
     {
         private KeyValuePair<TKey, TValue>[] _keysAndValues;
         private Dictionary<TKey, TValue> _dict;
-        private int _count;
-        private const int _arraySize = 10;
-
-        public HybridReferenceDictionary()
-        {
-        }
-
-        public HybridReferenceDictionary(int initialCapicity)
-        {
-            if (initialCapicity > _arraySize)
-            {
-                _dict = new Dictionary<TKey, TValue>(initialCapicity);
-            }
-            else
-            {
-                _keysAndValues = new KeyValuePair<TKey, TValue>[initialCapicity];
-            }
-        }
+        private const int ArraySize = 10;
 
         public bool TryGetValue(TKey key, out TValue value)
         {
@@ -265,13 +205,13 @@ namespace System.Linq.Expressions.Interpreter
             return false;
         }
 
-        public bool Remove(TKey key)
+        public void Remove(TKey key)
         {
             Debug.Assert(key != null);
 
             if (_dict != null)
             {
-                return _dict.Remove(key);
+                _dict.Remove(key);
             }
             else if (_keysAndValues != null)
             {
@@ -280,13 +220,10 @@ namespace System.Linq.Expressions.Interpreter
                     if (_keysAndValues[i].Key == key)
                     {
                         _keysAndValues[i] = new KeyValuePair<TKey, TValue>();
-                        _count--;
-                        return true;
+                        return;
                     }
                 }
             }
-
-            return false;
         }
 
         public bool ContainsKey(TKey key)
@@ -297,11 +234,13 @@ namespace System.Linq.Expressions.Interpreter
             {
                 return _dict.ContainsKey(key);
             }
-            else if (_keysAndValues != null)
+
+            KeyValuePair<TKey, TValue>[] keysAndValues = _keysAndValues;
+            if (keysAndValues != null)
             {
-                for (int i = 0; i < _keysAndValues.Length; i++)
+                for (int i = 0; i < keysAndValues.Length; i++)
                 {
-                    if (_keysAndValues[i].Key == key)
+                    if (keysAndValues[i].Key == key)
                     {
                         return true;
                     }
@@ -309,18 +248,6 @@ namespace System.Linq.Expressions.Interpreter
             }
 
             return false;
-        }
-
-        public int Count
-        {
-            get
-            {
-                if (_dict != null)
-                {
-                    return _dict.Count;
-                }
-                return _count;
-            }
         }
 
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
@@ -359,7 +286,7 @@ namespace System.Linq.Expressions.Interpreter
                     return res;
                 }
 
-                throw new KeyNotFoundException();
+                throw new KeyNotFoundException(SR.Format(SR.Arg_KeyNotFoundWithKey, key.ToString()));
             }
             set
             {
@@ -390,13 +317,12 @@ namespace System.Linq.Expressions.Interpreter
                     }
                     else
                     {
-                        _keysAndValues = new KeyValuePair<TKey, TValue>[_arraySize];
+                        _keysAndValues = new KeyValuePair<TKey, TValue>[ArraySize];
                         index = 0;
                     }
 
                     if (index != -1)
                     {
-                        _count++;
                         _keysAndValues[index] = new KeyValuePair<TKey, TValue>(key, value);
                     }
                     else

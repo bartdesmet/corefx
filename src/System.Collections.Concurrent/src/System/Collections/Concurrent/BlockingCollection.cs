@@ -57,7 +57,7 @@ namespace System.Collections.Concurrent
 
         #region Properties
         /// <summary>Gets the bounded capacity of this <see cref="T:System.Collections.Concurrent.BlockingCollection{T}"/> instance.</summary>
-        /// <value>The bounded capacity of this collection, or int.MaxValue if no bound was supplied.</value>
+        /// <value>The bounded capacity of this collection, or -1 if no bound was supplied.</value>
         /// <exception cref="T:System.ObjectDisposedException">The <see
         /// cref="T:System.Collections.Concurrent.BlockingCollection{T}"/> has been disposed.</exception>
         public int BoundedCapacity
@@ -987,7 +987,7 @@ nameof(boundedCapacity), boundedCapacity,
             uint startTime = 0;
             if (millisecondsTimeout != Timeout.Infinite)
             {
-                startTime = (uint)Environment.TickCount;
+                startTime = unchecked((uint)Environment.TickCount);
             }
 
             // Fast path for adding if there is at least one unbounded collection
@@ -1133,7 +1133,7 @@ nameof(boundedCapacity), boundedCapacity,
             // The function must be called in case the time out is not infinite
             Debug.Assert(originalWaitMillisecondsTimeout != Timeout.Infinite);
 
-            uint elapsedMilliseconds = (uint)Environment.TickCount - startTime;
+            uint elapsedMilliseconds = unchecked((uint)Environment.TickCount - startTime);
 
             // Check the elapsed milliseconds is greater than max int because this property is uint
             if (elapsedMilliseconds > int.MaxValue)
@@ -1389,7 +1389,7 @@ nameof(boundedCapacity), boundedCapacity,
             uint startTime = 0;
             if (millisecondsTimeout != Timeout.Infinite)
             {
-                startTime = (uint)Environment.TickCount;
+                startTime = unchecked((uint)Environment.TickCount);
             }
 
 
@@ -1617,7 +1617,7 @@ nameof(boundedCapacity), boundedCapacity,
             }
             catch (ArgumentException)
             {
-                throw new ArgumentException(SR.BlockingCollection_CopyTo_TooManyElems, nameof(index));
+                throw new ArgumentException(SR.Collection_CopyTo_TooManyElems, nameof(index));
             }
             catch (RankException)
             {
@@ -1757,10 +1757,10 @@ nameof(collections), SR.BlockingCollection_ValidateCollectionsArray_DispElems);
         private static void ValidateTimeout(TimeSpan timeout)
         {
             long totalMilliseconds = (long)timeout.TotalMilliseconds;
-            if ((totalMilliseconds < 0 || totalMilliseconds > Int32.MaxValue) && (totalMilliseconds != Timeout.Infinite))
+            if ((totalMilliseconds < 0 || totalMilliseconds > int.MaxValue) && (totalMilliseconds != Timeout.Infinite))
             {
                 throw new ArgumentOutOfRangeException(nameof(timeout), timeout,
-                    String.Format(CultureInfo.InvariantCulture, SR.BlockingCollection_TimeoutInvalid, Int32.MaxValue));
+                    string.Format(CultureInfo.InvariantCulture, SR.BlockingCollection_TimeoutInvalid, int.MaxValue));
             }
         }
 
@@ -1774,7 +1774,7 @@ nameof(collections), SR.BlockingCollection_ValidateCollectionsArray_DispElems);
             if ((millisecondsTimeout < 0) && (millisecondsTimeout != Timeout.Infinite))
             {
                 throw new ArgumentOutOfRangeException(nameof(millisecondsTimeout), millisecondsTimeout,
-                    String.Format(CultureInfo.InvariantCulture, SR.BlockingCollection_TimeoutInvalid, Int32.MaxValue));
+                    string.Format(CultureInfo.InvariantCulture, SR.BlockingCollection_TimeoutInvalid, int.MaxValue));
             }
         }
 

@@ -25,10 +25,22 @@ namespace System.Diagnostics
     ///   
     ///   This EventSource defines a EventSource argument called 'FilterAndPayloadSpecs' that defines
     ///   what DiagnsoticSources to enable and what parts of the payload to serialize into the key-value
-    ///   list that will be forwarded to the EventSource.    If it is empty, all serializable parts of
-    ///   every DiagnosticSource event will be forwarded (this is NOT recommended for monitoring but 
-    ///   can be useful for discovery).
+    ///   list that will be forwarded to the EventSource.    If it is empty, values of properties of the 
+    ///   diagnostic source payload are dumped as strings (using ToString()) and forwarded to the EventSource.  
+    ///   For what people think of as serializable object strings, primitives this gives you want you want. 
+    ///   (the value of the property in string form) for what people think of as non-serializable objects 
+    ///   (e.g. HttpContext) the ToString() method is typically not defined, so you get the Object.ToString() 
+    ///   implementation that prints the type name.  This is useful since this is the information you need 
+    ///   (the type of the property) to discover the field names so you can create a transform specification
+    ///   that will pick off the properties you desire.  
     ///   
+    ///   Once you have the particular values you desire, the implicit payload elements are typically not needed
+    ///   anymore and you can prefix the Transform specification with a '-' which suppresses the implicit 
+    ///   transform (you only get the values of the properties you specifically ask for.  
+    /// 
+    ///   Logically a transform specification is simply a fetching specification X.Y.Z along with a name to give
+    ///   it in the output (which defaults to the last name in the fetch specification).  
+    /// 
     ///   The FilterAndPayloadSpecs is one long string with the following structures
     ///   
     ///   * It is a newline separated list of FILTER_AND_PAYLOAD_SPEC
@@ -84,7 +96,7 @@ namespace System.Diagnostics
     /// 
     /// * How data is logged in the EventSource 
     /// 
-    /// By default all data from Diagnostic sources is logged to the the DiagnosticEventSouce event called 'Event' 
+    /// By default all data from DiagnosticSources is logged to the DiagnosticEventSouce event called 'Event' 
     /// which has three fields  
     /// 
     ///     string SourceName, 
@@ -112,9 +124,9 @@ namespace System.Diagnostics
     ///     "MyDiagnosticSource/SecurityStart@Activity2Start\r\n" + 
     ///     "MyDiagnosticSource/SecurityStop@Activity2Stop\r\n" 
     /// 
-    /// Defines that RequestStart will be logged with the EventSource Event Activity1Start (and the cooresponding stop) which
-    /// means that all events caused between these two markers will have an activity ID assocatied with this start event.  
-    /// Simmilarly SecurityStart is mapped to Activity2Start.    
+    /// Defines that RequestStart will be logged with the EventSource Event Activity1Start (and the corresponding stop) which
+    /// means that all events caused between these two markers will have an activity ID associated with this start event.  
+    /// Similarly SecurityStart is mapped to Activity2Start.    
     /// 
     /// Note you can map many DiangosticSource events to the same EventSource Event (e.g. Activity1Start).  As long as the
     /// activities don't nest, you can reuse the same event name (since the payloads have the DiagnosticSource name which can
@@ -164,7 +176,9 @@ namespace System.Diagnostics
                 "httpContext.Request.Path;" +
                 "httpContext.Request.QueryString" +
             "\n" +
-            "Microsoft.AspNetCore/Microsoft.AspNetCore.Hosting.EndRequest@Activity1Stop:-";
+            "Microsoft.AspNetCore/Microsoft.AspNetCore.Hosting.EndRequest@Activity1Stop:-" +
+                "httpContext.TraceIdentifier;" +
+                "httpContext.Response.StatusCode";
 
         // Setting EntityFrameworkCoreCommands is like having this in the FilterAndPayloadSpecs string
         // It turns on basic SQL commands.
@@ -427,7 +441,7 @@ namespace System.Diagnostics
                 for (;;)
                 {
                     // Skip trailing whitespace.
-                    while (0 < endIdx && Char.IsWhiteSpace(filterAndPayloadSpecs[endIdx - 1]))
+                    while (0 < endIdx && char.IsWhiteSpace(filterAndPayloadSpecs[endIdx - 1]))
                         --endIdx;
 
                     int newlineIdx = filterAndPayloadSpecs.LastIndexOf('\n', endIdx - 1, endIdx);
@@ -436,7 +450,7 @@ namespace System.Diagnostics
                         startIdx = newlineIdx + 1;  // starts after the newline, or zero if we don't find one.   
 
                     // Skip leading whitespace
-                    while (startIdx < endIdx && Char.IsWhiteSpace(filterAndPayloadSpecs[startIdx]))
+                    while (startIdx < endIdx && char.IsWhiteSpace(filterAndPayloadSpecs[startIdx]))
                         startIdx++;
 
                     specList = new FilterAndTransform(filterAndPayloadSpecs, startIdx, endIdx, eventSource, specList);
@@ -640,8 +654,7 @@ namespace System.Diagnostics
                             foreach (var property in curTypeInfo.DeclaredProperties)
                             {
                                 var propertyType = property.PropertyType;
-                                if (propertyType == typeof(string) || propertyType.GetTypeInfo().IsPrimitive)
-                                    newSerializableArgs = new TransformSpec(property.Name, 0, property.Name.Length, newSerializableArgs);
+                                newSerializableArgs = new TransformSpec(property.Name, 0, property.Name.Length, newSerializableArgs);
                             }
                             _expectedArgType = argType;
                             _implicitTransforms = Reverse(newSerializableArgs);
@@ -858,7 +871,7 @@ namespace System.Diagnostics
         }
 
         /// <summary>
-        /// CallbackObserver is a adapter class that creates an observer (which you can pass
+        /// CallbackObserver is an adapter class that creates an observer (which you can pass
         /// to IObservable.Subscribe), and calls the given callback every time the 'next' 
         /// operation on the IObserver happens. 
         /// </summary>

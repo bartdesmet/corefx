@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Reflection;
@@ -12,13 +11,20 @@ using System.Runtime.CompilerServices;
 
 namespace System.Linq.Expressions.Compiler
 {
+    internal interface ILocalCache
+    {
+        LocalBuilder GetLocal(Type type);
+
+        void FreeLocal(LocalBuilder local);
+    }
+
     /// <summary>
     /// LambdaCompiler is responsible for compiling individual lambda (LambdaExpression). The complete tree may
     /// contain multiple lambdas, the Compiler class is responsible for compiling the whole tree, individual
     /// lambdas are then compiled by the LambdaCompiler.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1506:AvoidExcessiveClassCoupling")]
-    internal sealed partial class LambdaCompiler
+    internal sealed partial class LambdaCompiler : ILocalCache
     {
         private delegate void WriteBack(LambdaCompiler compiler);
 
@@ -52,7 +58,7 @@ namespace System.Linq.Expressions.Compiler
         private readonly BoundConstants _boundConstants;
 
         // Free list of locals, so we reuse them rather than creating new ones
-        private readonly KeyedQueue<Type, LocalBuilder> _freeLocals = new KeyedQueue<Type, LocalBuilder>();
+        private readonly KeyedStack<Type, LocalBuilder> _freeLocals = new KeyedStack<Type, LocalBuilder>();
 
         // Type of the closure with hoisted variables the lambda is invoked on
         private readonly Type _closureType;
@@ -105,9 +111,6 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private LambdaCompiler(AnalyzedTree tree, LambdaExpression lambda, MethodBuilder method, CompilerScope parent)
         {
-            _tree = tree;
-            _lambda = lambda;
-
             // These are populated by AnalyzeTree/VariableBinder
             _scope = tree.Scopes[lambda];
             _boundConstants = tree.Constants[lambda];
@@ -131,7 +134,9 @@ namespace System.Linq.Expressions.Compiler
                 method.DefineParameter(i + startIndex, ParameterAttributes.None, parameters[i].Name);
             }
 
-            _typeBuilder = (TypeBuilder)method.DeclaringType.GetTypeInfo();
+            _tree = tree;
+            _lambda = lambda;
+            _typeBuilder = (TypeBuilder)method.DeclaringType;
             _method = method;
 
             _ilg = method.GetILGenerator();
@@ -187,11 +192,6 @@ namespace System.Linq.Expressions.Compiler
             _boundConstants.EmitCacheConstants(this);
         }
 
-        public override string ToString()
-        {
-            return _method.ToString();
-        }
-
         internal ILGenerator IL => _ilg;
 
         internal IParameterProvider Parameters => _lambda;
@@ -213,6 +213,8 @@ namespace System.Linq.Expressions.Compiler
         /// <returns>The compiled delegate.</returns>
         internal static Delegate Compile(LambdaExpression lambda)
         {
+            lambda.ValidateArgumentCount();
+
             // 1. Bind lambda
             AnalyzedTree tree = AnalyzeLambda(ref lambda, true);
 
@@ -265,34 +267,12 @@ namespace System.Linq.Expressions.Compiler
             return tree;
         }
 
-        internal LocalBuilder GetLocal(Type type)
+        public LocalBuilder GetLocal(Type type) => _freeLocals.TryPop(type) ?? _ilg.DeclareLocal(type);
+
+        public void FreeLocal(LocalBuilder local)
         {
-            Debug.Assert(type != null);
-
-            LocalBuilder local;
-            if (_freeLocals.TryDequeue(type, out local))
-            {
-                Debug.Assert(type == local.LocalType);
-                return local;
-            }
-
-            return _ilg.DeclareLocal(type);
-        }
-
-        internal void FreeLocal(LocalBuilder local)
-        {
-            if (local != null)
-            {
-                _freeLocals.Enqueue(local.LocalType, local);
-            }
-        }
-
-        internal LocalBuilder GetNamedLocal(Type type, ParameterExpression variable)
-        {
-            Debug.Assert(type != null && variable != null);
-
-            LocalBuilder lb = _ilg.DeclareLocal(type);
-            return lb;
+            Debug.Assert(local != null);
+            _freeLocals.Push(local.LocalType, local);
         }
 
         /// <summary>
@@ -355,7 +335,7 @@ namespace System.Linq.Expressions.Compiler
             //       invoked on DynamicMethod suffers. Passing the argument as object and casting
             //       it inside the lambda turns out to be faster. EmitClosureToLocal ensures this
             //       is only done once.
-            _ilg.EmitConvertToType(typeof(object), _environmentType, false);
+            _ilg.EmitConvertToType(typeof(object), _environmentType, false, locals: this);
         }
 
         private Delegate CreateDelegate()

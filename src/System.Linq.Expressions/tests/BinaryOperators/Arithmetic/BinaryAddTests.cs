@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -202,7 +201,7 @@ namespace System.Linq.Expressions.Tests
 
             Func<ushort> f = e.Compile(useInterpreter);
 
-            Assert.Equal((ushort)(a + b), f());
+            Assert.Equal(unchecked((ushort)(a + b)), f());
         }
 
         private static void VerifyUShortAddOvf(ushort a, ushort b, bool useInterpreter)
@@ -235,7 +234,7 @@ namespace System.Linq.Expressions.Tests
 
             Func<short> f = e.Compile(useInterpreter);
 
-            Assert.Equal((short)(a + b), f());
+            Assert.Equal(unchecked((short)(a + b)), f());
         }
 
         private static void VerifyShortAddOvf(short a, short b, bool useInterpreter)
@@ -267,7 +266,7 @@ namespace System.Linq.Expressions.Tests
 
             Func<uint> f = e.Compile(useInterpreter);
 
-            Assert.Equal(a + b, f());
+            Assert.Equal(unchecked(a + b), f());
         }
 
         private static void VerifyUIntAddOvf(uint a, uint b, bool useInterpreter)
@@ -299,7 +298,7 @@ namespace System.Linq.Expressions.Tests
 
             Func<int> f = e.Compile(useInterpreter);
 
-            Assert.Equal(a + b, f());
+            Assert.Equal(unchecked(a + b), f());
         }
 
         private static void VerifyIntAddOvf(int a, int b, bool useInterpreter)
@@ -331,7 +330,7 @@ namespace System.Linq.Expressions.Tests
 
             Func<ulong> f = e.Compile(useInterpreter);
 
-            Assert.Equal(a + b, f());
+            Assert.Equal(unchecked(a + b), f());
         }
 
         private static void VerifyULongAddOvf(ulong a, ulong b, bool useInterpreter)
@@ -370,7 +369,7 @@ namespace System.Linq.Expressions.Tests
 
             Func<long> f = e.Compile(useInterpreter);
 
-            Assert.Equal(a + b, f());
+            Assert.Equal(unchecked(a + b), f());
         }
 
         private static void VerifyLongAddOvf(long a, long b, bool useInterpreter)
@@ -488,7 +487,7 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.Add(Expression.Constant(0), Expression.Constant(0));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
@@ -497,31 +496,31 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.AddChecked(Expression.Constant(0), Expression.Constant(0));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public static void ThrowsOnLeftNull()
         {
-            Assert.Throws<ArgumentNullException>("left", () => Expression.Add(null, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.Add(null, Expression.Constant("")));
         }
 
         [Fact]
         public static void ThrowsOnRightNull()
         {
-            Assert.Throws<ArgumentNullException>("right", () => Expression.Add(Expression.Constant(""), null));
+            AssertExtensions.Throws<ArgumentNullException>("right", () => Expression.Add(Expression.Constant(""), null));
         }
 
         [Fact]
         public static void CheckedThrowsOnLeftNull()
         {
-            Assert.Throws<ArgumentNullException>("left", () => Expression.AddChecked(null, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.AddChecked(null, Expression.Constant("")));
         }
 
         [Fact]
         public static void CheckedThrowsOnRightNull()
         {
-            Assert.Throws<ArgumentNullException>("right", () => Expression.AddChecked(Expression.Constant(""), null));
+            AssertExtensions.Throws<ArgumentNullException>("right", () => Expression.AddChecked(Expression.Constant(""), null));
         }
 
         private static class Unreadable<T>
@@ -536,37 +535,37 @@ namespace System.Linq.Expressions.Tests
         public static void ThrowsOnLeftUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("left", () => Expression.Add(value, Expression.Constant(1)));
+            AssertExtensions.Throws<ArgumentException>("left", () => Expression.Add(value, Expression.Constant(1)));
         }
 
         [Fact]
         public static void ThrowsOnRightUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("right", () => Expression.Add(Expression.Constant(1), value));
+            AssertExtensions.Throws<ArgumentException>("right", () => Expression.Add(Expression.Constant(1), value));
         }
 
         [Fact]
         public static void CheckedThrowsOnLeftUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("left", () => Expression.AddChecked(value, Expression.Constant(1)));
+            AssertExtensions.Throws<ArgumentException>("left", () => Expression.AddChecked(value, Expression.Constant(1)));
         }
 
         [Fact]
         public static void CheckedThrowsOnRightUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("right", () => Expression.Add(Expression.Constant(1), value));
+            AssertExtensions.Throws<ArgumentException>("right", () => Expression.Add(Expression.Constant(1), value));
         }
 
         [Fact]
         public static void ToStringTest()
         {
-            var e1 = Expression.Add(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
+            BinaryExpression e1 = Expression.Add(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
             Assert.Equal("(a + b)", e1.ToString());
 
-            var e2 = Expression.AddChecked(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
+            BinaryExpression e2 = Expression.AddChecked(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
             Assert.Equal("(a + b)", e2.ToString());
         }
     }

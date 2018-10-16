@@ -18,7 +18,7 @@ namespace System.Net.WebSockets.Client.Tests
 
         [OuterLoop] // TODO: Issue #11345
         [ConditionalTheory(nameof(WebSocketsSupported)), MemberData(nameof(UnavailableWebSocketServers))]
-        public async Task ConnectAsync_NotWebSocketServer_ThrowsWebSocketExceptionWithMessage(Uri server)
+        public async Task ConnectAsync_NotWebSocketServer_ThrowsWebSocketExceptionWithMessage(Uri server, string exceptionMessage)
         {
             using (var cws = new ClientWebSocket())
             {
@@ -28,7 +28,12 @@ namespace System.Net.WebSockets.Client.Tests
 
                 Assert.Equal(WebSocketError.Success, ex.WebSocketErrorCode);
                 Assert.Equal(WebSocketState.Closed, cws.State);
-                Assert.Equal(ResourceHelper.GetExceptionMessage("net_webstatus_ConnectFailure"), ex.Message);
+
+                // .NET Framework and UAP implmentations have different exception message from .NET Core.
+                if (!PlatformDetection.IsFullFramework && !PlatformDetection.IsUap)
+                {
+                    Assert.Equal(exceptionMessage, ex.Message);
+                }
             }
         }
 
@@ -68,17 +73,61 @@ namespace System.Net.WebSockets.Client.Tests
                 Assert.Equal(WebSocketState.Open, cws.State);
 
                 byte[] buffer = new byte[65536];
-                var segment = new ArraySegment<byte>(buffer, 0, buffer.Length);
                 WebSocketReceiveResult recvResult;
                 using (var cts = new CancellationTokenSource(TimeOutMilliseconds))
                 {
-                    recvResult = await cws.ReceiveAsync(segment, cts.Token);
+                    recvResult = await ReceiveEntireMessageAsync(cws, new ArraySegment<byte>(buffer), cts.Token);
                 }
 
                 Assert.Equal(WebSocketMessageType.Text, recvResult.MessageType);
-                string headers = WebSocketData.GetTextFromBuffer(segment);
+                string headers = WebSocketData.GetTextFromBuffer(new ArraySegment<byte>(buffer, 0, recvResult.Count));
                 Assert.True(headers.Contains("X-CustomHeader1:Value1"));
                 Assert.True(headers.Contains("X-CustomHeader2:Value2"));
+
+                await cws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+            }
+        }
+
+        [ActiveIssue(18784, TargetFrameworkMonikers.NetFramework)]
+        [OuterLoop]
+        [ConditionalTheory(nameof(WebSocketsSupported))]
+        public async Task ConnectAsync_AddHostHeader_Success()
+        {
+            Uri server = System.Net.Test.Common.Configuration.WebSockets.RemoteEchoServer;
+
+            // Send via the physical address such as "corefx-net.cloudapp.net"
+            // Set the Host header to logical address like "subdomain.corefx-net.cloudapp.net"
+            // Verify the scenario works and the remote server received "Host: subdomain.corefx-net.cloudapp.net"
+            string logicalHost = "subdomain." + server.Host;
+
+            using (var cws = new ClientWebSocket())
+            {
+                // Set the Host header to the logical address
+                cws.Options.SetRequestHeader("Host", logicalHost);
+                using (var cts = new CancellationTokenSource(TimeOutMilliseconds))
+                {
+                    // Connect using the physical address
+                    Task taskConnect = cws.ConnectAsync(server, cts.Token);
+                    Assert.True(
+                        (cws.State == WebSocketState.None) ||
+                        (cws.State == WebSocketState.Connecting) ||
+                        (cws.State == WebSocketState.Open),
+                        "State immediately after ConnectAsync incorrect: " + cws.State);
+                    await taskConnect;
+                }
+
+                Assert.Equal(WebSocketState.Open, cws.State);
+
+                byte[] buffer = new byte[65536];
+                WebSocketReceiveResult recvResult;
+                using (var cts = new CancellationTokenSource(TimeOutMilliseconds))
+                {
+                    recvResult = await ReceiveEntireMessageAsync(cws, new ArraySegment<byte>(buffer), cts.Token);
+                }
+
+                Assert.Equal(WebSocketMessageType.Text, recvResult.MessageType);
+                string headers = WebSocketData.GetTextFromBuffer(new ArraySegment<byte>(buffer, 0, recvResult.Count));
+                Assert.Contains($"Host:{logicalHost}", headers, StringComparison.Ordinal);
 
                 await cws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
             }
@@ -92,8 +141,15 @@ namespace System.Net.WebSockets.Client.Tests
             {
                 Assert.Null(cws.Options.Cookies);
                 cws.Options.Cookies = new CookieContainer();
-                cws.Options.Cookies.Add(server, new Cookie("Cookies", "Are Yummy"));
-                cws.Options.Cookies.Add(server, new Cookie("Especially", "Chocolate Chip"));
+
+                Cookie cookie1 = new Cookie("Cookies", "Are Yummy");
+                Cookie cookie2 = new Cookie("Especially", "Chocolate Chip");
+                Cookie secureCookie = new Cookie("Occasionally", "Raisin");
+                secureCookie.Secure = true;
+
+                cws.Options.Cookies.Add(server, cookie1);
+                cws.Options.Cookies.Add(server, cookie2);
+                cws.Options.Cookies.Add(server, secureCookie);
 
                 using (var cts = new CancellationTokenSource(TimeOutMilliseconds))
                 {
@@ -109,17 +165,18 @@ namespace System.Net.WebSockets.Client.Tests
                 Assert.Equal(WebSocketState.Open, cws.State);
 
                 byte[] buffer = new byte[65536];
-                var segment = new ArraySegment<byte>(buffer);
                 WebSocketReceiveResult recvResult;
                 using (var cts = new CancellationTokenSource(TimeOutMilliseconds))
                 {
-                    recvResult = await cws.ReceiveAsync(segment, cts.Token);
+                    recvResult = await ReceiveEntireMessageAsync(cws, new ArraySegment<byte>(buffer), cts.Token);
                 }
 
                 Assert.Equal(WebSocketMessageType.Text, recvResult.MessageType);
-                string headers = WebSocketData.GetTextFromBuffer(segment);
+                string headers = WebSocketData.GetTextFromBuffer(new ArraySegment<byte>(buffer, 0, recvResult.Count));
+
                 Assert.True(headers.Contains("Cookies=Are Yummy"));
                 Assert.True(headers.Contains("Especially=Chocolate Chip"));
+                Assert.Equal(server.Scheme == "wss", headers.Contains("Occasionally=Raisin"));
 
                 await cws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
             }

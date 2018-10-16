@@ -5,10 +5,11 @@
 Namespace Global.Microsoft.VisualBasic.CompilerServices
     <Global.System.Diagnostics.DebuggerNonUserCode()>
     <Global.System.ComponentModel.EditorBrowsable(Global.System.ComponentModel.EditorBrowsableState.Never)>
-    Public Class IncompleteInitialization
+    Public NotInheritable Class IncompleteInitialization
         Inherits Global.System.Exception
         Public Sub New()
             MyBase.New()
         End Sub
+
     End Class
 End Namespace

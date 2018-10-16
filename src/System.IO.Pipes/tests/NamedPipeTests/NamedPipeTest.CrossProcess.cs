@@ -8,20 +8,21 @@ using Xunit;
 
 namespace System.IO.Pipes.Tests
 {
+    [ActiveIssue(22271, TargetFrameworkMonikers.UapNotUapAot)]
     public sealed class NamedPipeTest_CrossProcess : RemoteExecutorTestBase
     {
         [Fact]
         public void PingPong_Sync()
         {
             // Create names for two pipes
-            string outName = Path.GetRandomFileName();
-            string inName = Path.GetRandomFileName();
+            string outName = GetUniquePipeName();
+            string inName = GetUniquePipeName();
 
             // Create the two named pipes, one for each direction, then create
             // another process with which to communicate
             using (var outbound = new NamedPipeServerStream(outName, PipeDirection.Out))
             using (var inbound = new NamedPipeClientStream(".", inName, PipeDirection.In))
-            using (RemoteInvoke(PingPong_OtherProcess, outName, inName))
+            using (RemoteInvoke(new Func<string, string, int>(PingPong_OtherProcess), outName, inName))
             {
                 // Wait for both pipes to be connected
                 Task.WaitAll(outbound.WaitForConnectionAsync(), inbound.ConnectAsync());
@@ -40,14 +41,14 @@ namespace System.IO.Pipes.Tests
         public async Task PingPong_Async()
         {
             // Create names for two pipes
-            string outName = Path.GetRandomFileName();
-            string inName = Path.GetRandomFileName();
+            string outName = GetUniquePipeName();
+            string inName = GetUniquePipeName();
 
             // Create the two named pipes, one for each direction, then create
             // another process with which to communicate
             using (var outbound = new NamedPipeServerStream(outName, PipeDirection.Out))
             using (var inbound = new NamedPipeClientStream(".", inName, PipeDirection.In))
-            using (RemoteInvoke(PingPong_OtherProcess, outName, inName))
+            using (RemoteInvoke(new Func<string, string, int>(PingPong_OtherProcess), outName, inName))
             {
                 // Wait for both pipes to be connected
                 await Task.WhenAll(outbound.WaitForConnectionAsync(), inbound.ConnectAsync());
@@ -83,6 +84,15 @@ namespace System.IO.Pipes.Tests
                 }
             }
             return SuccessExitCode;
+        }
+
+        private static string GetUniquePipeName()
+        {
+            if (PlatformDetection.IsInAppContainer)
+            {
+                return @"LOCAL\" + Path.GetRandomFileName();
+            }
+            return Path.GetRandomFileName();
         }
 
     }

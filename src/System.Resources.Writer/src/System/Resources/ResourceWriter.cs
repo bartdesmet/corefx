@@ -23,7 +23,6 @@ using System.Globalization;
 using System.Runtime.Versioning;
 using System.Runtime.Serialization;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 
 namespace System.Resources
 {
@@ -59,7 +58,7 @@ namespace System.Resources
         {
             if (fileName == null)
                 throw new ArgumentNullException(nameof(fileName));
-            Contract.EndContractBlock();
+
             _output = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None);
             _resourceList = new SortedDictionary<string, object>(FastResourceComparer.Default);
             _caseInsensitiveDups = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -71,7 +70,7 @@ namespace System.Resources
                 throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite)
                 throw new ArgumentException(SR.Argument_StreamNotWritable);
-            Contract.EndContractBlock();
+
             _output = stream;
             _resourceList = new SortedDictionary<string, object>(FastResourceComparer.Default);
             _caseInsensitiveDups = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -84,7 +83,7 @@ namespace System.Resources
         {
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
-            Contract.EndContractBlock();
+
             if (_resourceList == null)
                 throw new InvalidOperationException(SR.InvalidOperation_ResourceWriterSaved);
 
@@ -100,7 +99,7 @@ namespace System.Resources
         {
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
-            Contract.EndContractBlock();
+
             if (_resourceList == null)
                 throw new InvalidOperationException(SR.InvalidOperation_ResourceWriterSaved);
  
@@ -125,7 +124,7 @@ namespace System.Resources
         {
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
-            Contract.EndContractBlock();
+
             if (_resourceList == null)
                 throw new InvalidOperationException(SR.InvalidOperation_ResourceWriterSaved);
  
@@ -140,7 +139,7 @@ namespace System.Resources
         {
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
-            Contract.EndContractBlock();
+
             if (_resourceList == null)
                 throw new InvalidOperationException(SR.InvalidOperation_ResourceWriterSaved);
  
@@ -174,7 +173,7 @@ namespace System.Resources
         {
             if (name == null)
                 throw new ArgumentNullException(nameof(name));
-            Contract.EndContractBlock();
+
             if (_resourceList == null)
                 throw new InvalidOperationException(SR.InvalidOperation_ResourceWriterSaved);
  
@@ -191,7 +190,7 @@ namespace System.Resources
                 throw new ArgumentNullException(nameof(typeName));
             if (serializedData == null)
                 throw new ArgumentNullException(nameof(serializedData));
-            Contract.EndContractBlock();
+
             if (_resourceList == null)
                 throw new InvalidOperationException(SR.InvalidOperation_ResourceWriterSaved);
  
@@ -296,6 +295,7 @@ namespace System.Resources
             bw.Write((int)resMgrHeaderBlob.Length);
 
             // Write the rest of the ResMgr header
+            Debug.Assert(resMgrHeaderBlob.Length > 0, "ResourceWriter: Expected non empty header");
             resMgrHeaderBlob.Seek(0, SeekOrigin.Begin);
             resMgrHeaderBlob.CopyTo(bw.BaseStream, (int)resMgrHeaderBlob.Length);
             // End ResourceManager header
@@ -418,8 +418,11 @@ namespace System.Resources
                 bw.Write(startOfDataSection);
 
                 // Write name section.
-                nameSection.Seek(0, SeekOrigin.Begin);
-                nameSection.CopyTo(bw.BaseStream, (int)nameSection.Length);
+                if (nameSection.Length > 0)
+                {
+                    nameSection.Seek(0, SeekOrigin.Begin);
+                    nameSection.CopyTo(bw.BaseStream, (int)nameSection.Length);
+                }
                 names.Dispose();
 
                 // Write data section.
@@ -521,7 +524,7 @@ namespace System.Resources
 
         private void WriteValue(ResourceTypeCode typeCode, object value, BinaryWriter writer)
         {
-            Contract.Requires(writer != null);
+            Debug.Assert(writer != null);
 
             switch (typeCode)
             {
@@ -639,13 +642,12 @@ namespace System.Resources
                     }
 
                 default:
-                    Contract.Assert(typeCode >= ResourceTypeCode.StartOfUserTypes, string.Format(CultureInfo.InvariantCulture, "ResourceReader: Unsupported ResourceTypeCode in .resources file!  {0}", typeCode));
+                    Debug.Assert(typeCode >= ResourceTypeCode.StartOfUserTypes, string.Format(CultureInfo.InvariantCulture, "ResourceReader: Unsupported ResourceTypeCode in .resources file!  {0}", typeCode));
                     throw new PlatformNotSupportedException(SR.NotSupported_BinarySerializedResources);
             }
         }
     }
 
-    [Serializable]
     internal enum ResourceTypeCode {
         // Primitives
         Null = 0,

@@ -2,50 +2,68 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Internal.Runtime.Augments;
-using System;
 using System.Collections;
-using System.IO;
+using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
+using System.Runtime.CompilerServices;
+using Internal.Runtime.Augments;
 
 namespace System
 {
     public static partial class Environment
     {
+        public static string GetEnvironmentVariable(string variable)
+        {
+            return EnvironmentAugments.GetEnvironmentVariable(variable);
+        }
+
+        public static string GetEnvironmentVariable(string variable, EnvironmentVariableTarget target)
+        {
+            return EnvironmentAugments.GetEnvironmentVariable(variable, target);
+        }
+
+        public static IDictionary GetEnvironmentVariables()
+        {
+            // To maintain complete compatibility with prior versions we need to return a Hashtable.
+            // We did ship a prior version of Core with LowLevelDictionary, which does iterate the
+            // same (e.g. yields DictionaryEntry), but it is not a public type.
+            //
+            // While we could pass Hashtable back from CoreCLR the type is also defined here. We only
+            // want to surface the local Hashtable.
+            return EnvironmentAugments.EnumerateEnvironmentVariables().ToHashtable();
+        }
+
+        public static IDictionary GetEnvironmentVariables(EnvironmentVariableTarget target)
+        {
+            // See comments in GetEnvironmentVariables()
+            return EnvironmentAugments.EnumerateEnvironmentVariables(target).ToHashtable();
+        }
+
+        private static Hashtable ToHashtable(this IEnumerable<KeyValuePair<string, string>> pairs)
+        {
+            Hashtable hashTable = new Hashtable();
+            foreach (KeyValuePair<string, string> pair in pairs)
+            {
+                hashTable.Add(pair.Key, pair.Value);
+            }
+            return hashTable;
+        }
+
+        public static void SetEnvironmentVariable(string variable, string value)
+        {
+            EnvironmentAugments.SetEnvironmentVariable(variable, value);
+        }
+
+        public static void SetEnvironmentVariable(string variable, string value, EnvironmentVariableTarget target)
+        {
+            EnvironmentAugments.SetEnvironmentVariable(variable, value, target);
+        }
+
         public static string CommandLine
         {
             get
             {
-                StringBuilder sb = StringBuilderCache.Acquire();
-
-                foreach (string arg in GetCommandLineArgs())
-                {
-                    bool containsQuotes = false, containsWhitespace = false;
-                    foreach (char c in arg)
-                    {
-                        if (char.IsWhiteSpace(c))
-                        {
-                            containsWhitespace = true;
-                        }
-                        else if (c == '"')
-                        {
-                            containsQuotes = true;
-                        }
-                    }
-
-                    string quote = containsWhitespace ? "\"" : "";
-                    string formattedArg = containsQuotes && containsWhitespace ? arg.Replace("\"", "\\\"") : arg;
-
-                    sb.Append(quote).Append(formattedArg).Append(quote).Append(' ');
-                }
-
-                if (sb.Length > 0)
-                {
-                    sb.Length--;
-                }
-
-                return StringBuilderCache.GetStringAndRelease(sb);
+                return PasteArguments.Paste(GetCommandLineArgs(), pasteFirstArgumentUsingArgV0Rules: true);
             }
         }
 
@@ -93,42 +111,6 @@ namespace System
 
         public static string[] GetCommandLineArgs() => EnvironmentAugments.GetCommandLineArgs();
 
-        public static string GetEnvironmentVariable(string variable) 
-        {
-            if (variable == null)
-            {
-                throw new ArgumentNullException(nameof(variable));
-            }
-
-            // separated from the EnvironmentVariableTarget overload to help with tree shaking in common case
-            return GetEnvironmentVariableCore(variable);
-        }
-
-        public static string GetEnvironmentVariable(string variable, EnvironmentVariableTarget target)
-        {
-            if (variable == null)
-            {
-                throw new ArgumentNullException(nameof(variable));
-            }
-
-            ValidateTarget(target);
-
-            return GetEnvironmentVariableCore(variable, target);
-        }
-
-        public static IDictionary GetEnvironmentVariables()
-        {
-            // separated from the EnvironmentVariableTarget overload to help with tree shaking in common case
-            return GetEnvironmentVariablesCore();
-        }
-
-        public static IDictionary GetEnvironmentVariables(EnvironmentVariableTarget target)
-        {
-            ValidateTarget(target);
-
-            return GetEnvironmentVariablesCore(target);
-        }
-
         public static string GetFolderPath(SpecialFolder folder) => GetFolderPath(folder, SpecialFolderOption.None);
 
         public static string GetFolderPath(SpecialFolder folder, SpecialFolderOption option)
@@ -151,62 +133,19 @@ namespace System
         public static bool Is64BitProcess => IntPtr.Size == 8;
 
         public static bool Is64BitOperatingSystem => Is64BitProcess || Is64BitOperatingSystemWhen32BitProcess;
-        
-        public static void SetEnvironmentVariable(string variable, string value)
-        {
-            ValidateVariableAndValue(variable, ref value);
-
-            // separated from the EnvironmentVariableTarget overload to help with tree shaking in common case
-            SetEnvironmentVariableCore(variable, value);
-        }
-
-        public static void SetEnvironmentVariable(string variable, string value, EnvironmentVariableTarget target)
-        {
-            ValidateVariableAndValue(variable, ref value);
-            ValidateTarget(target);
-
-            SetEnvironmentVariableCore(variable, value, target);
-        }
-
-        private static void ValidateVariableAndValue(string variable, ref string value)
-        {
-            const int MaxEnvVariableValueLength = 32767;
-
-            if (variable == null)
-            {
-                throw new ArgumentNullException(nameof(variable));
-            }
-            if (variable.Length == 0)
-            {
-                throw new ArgumentException(SR.Argument_StringZeroLength, nameof(variable));
-            }
-            if (variable[0] == '\0')
-            {
-                throw new ArgumentException(SR.Argument_StringFirstCharIsZero, nameof(variable));
-            }
-            if (variable.Length >= MaxEnvVariableValueLength)
-            {
-                throw new ArgumentException(SR.Argument_LongEnvVarValue, nameof(variable));
-            }
-            if (variable.IndexOf('=') != -1)
-            {
-                throw new ArgumentException(SR.Argument_IllegalEnvVarName, nameof(variable));
-            }
-
-            if (string.IsNullOrEmpty(value) || value[0] == '\0')
-            {
-                // Explicitly null out value if it's empty
-                value = null;
-            }
-            else if (value.Length >= MaxEnvVariableValueLength)
-            {
-                throw new ArgumentException(SR.Argument_LongEnvVarValue, nameof(value));
-            }
-        }
 
         public static OperatingSystem OSVersion => s_osVersion.Value;
 
-        public static string StackTrace => EnvironmentAugments.StackTrace;
+        public static int ProcessorCount => EnvironmentAugments.ProcessorCount;
+
+        public static string StackTrace
+        {
+            [MethodImpl(MethodImplOptions.NoInlining)] // Prevent inlining from affecting where the stacktrace starts
+            get
+            {
+                return EnvironmentAugments.StackTrace;
+            }
+        }
 
         public static int TickCount => EnvironmentAugments.TickCount;
 
@@ -237,21 +176,18 @@ namespace System
                         object result = processType.GetTypeInfo().GetDeclaredProperty("WorkingSet64")?.GetMethod?.Invoke(currentProcess, null);
                         if (result is long) return (long)result;
                     }
+                    catch (TargetInvocationException tie)
+                    {
+                        if(tie.InnerException != null)
+                            throw tie.InnerException;
+
+                        throw tie;
+                    }
                     finally { currentProcess.Dispose(); }
                 }
 
                 // Could not get the current working set.
                 return 0;
-            }
-        }
-
-        private static void ValidateTarget(EnvironmentVariableTarget target)
-        {
-            if (target != EnvironmentVariableTarget.Process &&
-                target != EnvironmentVariableTarget.Machine &&
-                target != EnvironmentVariableTarget.User)
-            {
-                throw new ArgumentOutOfRangeException(nameof(target), target, SR.Format(SR.Arg_EnumIllegalVal, target));
             }
         }
     }

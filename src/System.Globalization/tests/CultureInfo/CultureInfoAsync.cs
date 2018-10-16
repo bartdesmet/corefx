@@ -10,6 +10,9 @@ namespace System.Globalization.Tests
     public class CultureInfoAsync
     {        
         [Fact]
+        // async current cultures feature is supported on 4.6.1 and up on Windows desktop framework
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        [ActiveIssue("https://github.com/dotnet/corert/issues/3747 - Port async-aware CultureInfo property from CoreCLR", TargetFrameworkMonikers.UapAot)]
         public void TestCurrentCulturesAsync()
         {
             CultureInfo currentCulture = CultureInfo.CurrentCulture;
@@ -39,6 +42,9 @@ namespace System.Globalization.Tests
         }
         
         [Fact]
+        // async current cultures feature is supported on 4.6.1 and up on Windows desktop framework
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        [ActiveIssue("https://github.com/dotnet/corert/issues/3747 - Port async-aware CultureInfo property from CoreCLR", TargetFrameworkMonikers.UapAot)]
         public void TestCurrentCulturesWithAwait()
         {
             CultureInfo currentCulture = CultureInfo.CurrentCulture;

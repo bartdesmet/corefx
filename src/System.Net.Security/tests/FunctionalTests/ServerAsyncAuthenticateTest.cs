@@ -3,9 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Net.Sockets;
 using System.Net.Test.Common;
-using System.Runtime.ExceptionServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -35,7 +35,6 @@ namespace System.Net.Security.Tests
             _serverCertificate.Dispose();
         }
 
-        [OuterLoop] // TODO: Issue #11345
         [Theory]
         [ClassData(typeof(SslProtocolSupport.SupportedSslProtocolsTestData))]
         public async Task ServerAsyncAuthenticate_EachSupportedProtocol_Success(SslProtocols protocol)
@@ -43,22 +42,6 @@ namespace System.Net.Security.Tests
             await ServerAsyncSslHelper(protocol, protocol);
         }
 
-        [OuterLoop] // TODO: Issue #11345
-        [Theory]
-        [ClassData(typeof(SslProtocolSupport.UnsupportedSslProtocolsTestData))]
-        public async Task ServerAsyncAuthenticate_EachServerUnsupportedProtocol_Fail(SslProtocols protocol)
-        {
-            await Assert.ThrowsAsync<NotSupportedException>(() =>
-            {
-                return ServerAsyncSslHelper(
-                    SslProtocolSupport.SupportedSslProtocols,
-                    protocol,
-                    expectedToFail: true);
-            });
-        }
-
-        [OuterLoop] // TODO: Issue #11345
-        [ActiveIssue(11170)]
         [Theory]
         [MemberData(nameof(ProtocolMismatchData))]
         public async Task ServerAsyncAuthenticate_MismatchProtocols_Fails(
@@ -66,8 +49,7 @@ namespace System.Net.Security.Tests
             SslProtocols clientProtocol,
             Type expectedException)
         {
-            await Assert.ThrowsAsync(
-                expectedException,
+            Exception e = await Record.ExceptionAsync(
                 () =>
                 {
                     return ServerAsyncSslHelper(
@@ -75,23 +57,11 @@ namespace System.Net.Security.Tests
                         clientProtocol,
                         expectedToFail: true);
                 });
+
+            Assert.NotNull(e);
+            Assert.IsAssignableFrom(expectedException, e);
         }
 
-        [OuterLoop] // TODO: Issue #11345
-        [Fact]
-        public async Task ServerAsyncAuthenticate_UnsuportedAllServer_Fail()
-        {
-            await Assert.ThrowsAsync<NotSupportedException>(() =>
-            {
-                return ServerAsyncSslHelper(
-                    SslProtocolSupport.SupportedSslProtocols,
-                    SslProtocolSupport.UnsupportedSslProtocols,
-                    expectedToFail: true);
-            });
-        }
-
-        [ActiveIssue(8744)]
-        [OuterLoop] // TODO: Issue #11345
         [Theory]
         [ClassData(typeof(SslProtocolSupport.SupportedSslProtocolsTestData))]
         public async Task ServerAsyncAuthenticate_AllClientVsIndividualServerSupportedProtocols_Success(
@@ -102,6 +72,11 @@ namespace System.Net.Security.Tests
 
         private static IEnumerable<object[]> ProtocolMismatchData()
         {
+#pragma warning disable 0618
+            yield return new object[] { SslProtocols.Ssl2, SslProtocols.Ssl3, typeof(Exception) };
+            yield return new object[] { SslProtocols.Ssl2, SslProtocols.Tls12, typeof(Exception) };
+            yield return new object[] { SslProtocols.Ssl3, SslProtocols.Tls12, typeof(Exception) };
+#pragma warning restore 0618
             yield return new object[] { SslProtocols.Tls, SslProtocols.Tls11, typeof(AuthenticationException) };
             yield return new object[] { SslProtocols.Tls, SslProtocols.Tls12, typeof(AuthenticationException) };
             yield return new object[] { SslProtocols.Tls11, SslProtocols.Tls, typeof(TimeoutException) };

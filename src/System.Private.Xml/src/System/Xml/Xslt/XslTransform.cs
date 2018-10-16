@@ -4,18 +4,13 @@
 
 namespace System.Xml.Xsl
 {
-    using System.Reflection;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
     using System.Xml.XPath;
     using System.Xml.Xsl.XsltOld;
-    using MS.Internal.Xml.XPath;
-    using MS.Internal.Xml.Cache;
-    using System.Collections.Generic;
     using System.Xml.Xsl.XsltOld.Debugger;
-    using System.Runtime.Versioning;
 
-    [Obsolete("This class has been deprecated. Please use System.Xml.Xsl.XslCompiledTransform instead. http://go.microsoft.com/fwlink/?linkid=14202")]
     public sealed class XslTransform
     {
         private XmlResolver _documentResolver = null;
@@ -27,7 +22,9 @@ namespace System.Xml.Xsl
                 if (_isDocumentResolverSet)
                     return _documentResolver;
                 else
-                    return XmlNullResolver.Singleton;
+                {
+                    return CreateDefaultResolver();
+                }
             }
         }
 
@@ -54,7 +51,7 @@ namespace System.Xml.Xsl
 
         public void Load(XmlReader stylesheet)
         {
-            Load(stylesheet, XmlNullResolver.Singleton);
+            Load(stylesheet, CreateDefaultResolver());
         }
         public void Load(XmlReader stylesheet, XmlResolver resolver)
         {
@@ -67,7 +64,7 @@ namespace System.Xml.Xsl
 
         public void Load(IXPathNavigable stylesheet)
         {
-            Load(stylesheet, XmlNullResolver.Singleton);
+            Load(stylesheet, CreateDefaultResolver());
         }
         public void Load(IXPathNavigable stylesheet, XmlResolver resolver)
         {
@@ -84,7 +81,7 @@ namespace System.Xml.Xsl
             {
                 throw new ArgumentNullException(nameof(stylesheet));
             }
-            Load(stylesheet, XmlNullResolver.Singleton);
+            Load(stylesheet, CreateDefaultResolver());
         }
 
         public void Load(XPathNavigator stylesheet, XmlResolver resolver)
@@ -99,7 +96,7 @@ namespace System.Xml.Xsl
         public void Load(string url)
         {
             XmlTextReaderImpl tr = new XmlTextReaderImpl(url);
-            Compile(Compiler.LoadDocument(tr).CreateNavigator(), XmlNullResolver.Singleton);
+            Compile(Compiler.LoadDocument(tr).CreateNavigator(), CreateDefaultResolver());
         }
 
         public void Load(string url, XmlResolver resolver)
@@ -241,7 +238,7 @@ namespace System.Xml.Xsl
             Transform(input.CreateNavigator(), args, output, _DocumentResolver);
         }
 
-        public void Transform(String inputfile, String outputfile, XmlResolver resolver)
+        public void Transform(string inputfile, string outputfile, XmlResolver resolver)
         {
             FileStream fs = null;
             try
@@ -260,7 +257,7 @@ namespace System.Xml.Xsl
             }
         }
 
-        public void Transform(String inputfile, String outputfile)
+        public void Transform(string inputfile, string outputfile)
         {
             Transform(inputfile, outputfile, _DocumentResolver);
         }
@@ -288,57 +285,15 @@ namespace System.Xml.Xsl
             get { return _debugger; }
         }
 
-#if false
-        internal XslTransform(IXsltDebugger debugger) {
-            this.debugger = debugger;
-        }
-#endif
-
-        internal XslTransform(object debugger)
+        private static XmlResolver CreateDefaultResolver()
         {
-            if (debugger != null)
+            if (LocalAppContextSwitches.AllowDefaultResolver)
             {
-                _debugger = new DebuggerAddapter(debugger);
+                return new XmlUrlResolver();
             }
-        }
-
-        private class DebuggerAddapter : IXsltDebugger
-        {
-            private object _unknownDebugger;
-            private MethodInfo _getBltIn;
-            private MethodInfo _onCompile;
-            private MethodInfo _onExecute;
-            public DebuggerAddapter(object unknownDebugger)
+            else
             {
-                _unknownDebugger = unknownDebugger;
-                BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
-                Type unknownType = unknownDebugger.GetType();
-                _getBltIn = unknownType.GetMethod("GetBuiltInTemplatesUri", flags);
-                _onCompile = unknownType.GetMethod("OnInstructionCompile", flags);
-                _onExecute = unknownType.GetMethod("OnInstructionExecute", flags);
-            }
-            // ------------------ IXsltDebugger ---------------
-            public string GetBuiltInTemplatesUri()
-            {
-                if (_getBltIn == null)
-                {
-                    return null;
-                }
-                return (string)_getBltIn.Invoke(_unknownDebugger, new object[] { });
-            }
-            public void OnInstructionCompile(XPathNavigator styleSheetNavigator)
-            {
-                if (_onCompile != null)
-                {
-                    _onCompile.Invoke(_unknownDebugger, new object[] { styleSheetNavigator });
-                }
-            }
-            public void OnInstructionExecute(IXsltProcessor xsltProcessor)
-            {
-                if (_onExecute != null)
-                {
-                    _onExecute.Invoke(_unknownDebugger, new object[] { xsltProcessor });
-                }
+                return XmlNullResolver.Singleton;
             }
         }
     }

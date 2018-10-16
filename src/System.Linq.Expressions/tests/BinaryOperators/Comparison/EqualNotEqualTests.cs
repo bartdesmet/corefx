@@ -28,6 +28,7 @@ namespace System.Linq.Expressions.Tests
                 yield return new object[] { new ushort[] { 0, 1, ushort.MaxValue }, useInterpreter };
                 yield return new object[] { new TestClass[] { new TestClass(), new TestClass() }, useInterpreter };
                 yield return new object[] { new TestEnum[] { new TestEnum(), new TestEnum() }, useInterpreter };
+                yield return new object[] { new E[] {E.A, E.B, (E)int.MinValue}, useInterpreter };
 
                 yield return new object[] { new bool?[] { null, true, false }, useInterpreter };
                 yield return new object[] { new byte?[] { null, 0, 1, byte.MaxValue }, useInterpreter };
@@ -42,6 +43,7 @@ namespace System.Linq.Expressions.Tests
                 yield return new object[] { new uint?[] { null, 0, 1, uint.MaxValue }, useInterpreter };
                 yield return new object[] { new ulong?[] { null, 0, 1, ulong.MaxValue }, useInterpreter };
                 yield return new object[] { new ushort?[] { null, 0, 1, ushort.MaxValue }, useInterpreter };
+                yield return new object[] { new E?[] {null, E.A, E.B, (E)int.MaxValue, (E)int.MinValue}, useInterpreter };
             }
         }
 
@@ -115,7 +117,7 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.Equal(Expression.Constant(0), Expression.Constant(0));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
@@ -124,21 +126,21 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.NotEqual(Expression.Constant(0), Expression.Constant(0));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public static void ThrowsOnLeftNull()
         {
-            Assert.Throws<ArgumentNullException>("left", () => Expression.Equal(null, Expression.Constant("")));
-            Assert.Throws<ArgumentNullException>("left", () => Expression.NotEqual(null, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.Equal(null, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.NotEqual(null, Expression.Constant("")));
         }
 
         [Fact]
         public static void ThrowsOnRightNull()
         {
-            Assert.Throws<ArgumentNullException>("right", () => Expression.Equal(Expression.Constant(""), null));
-            Assert.Throws<ArgumentNullException>("right", () => Expression.NotEqual(Expression.Constant(""), null));
+            AssertExtensions.Throws<ArgumentNullException>("right", () => Expression.Equal(Expression.Constant(""), null));
+            AssertExtensions.Throws<ArgumentNullException>("right", () => Expression.NotEqual(Expression.Constant(""), null));
         }
 
         private static class Unreadable<T>
@@ -153,16 +155,16 @@ namespace System.Linq.Expressions.Tests
         public static void ThrowsOnLeftUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("left", () => Expression.Equal(value, Expression.Constant(1)));
-            Assert.Throws<ArgumentException>("left", () => Expression.NotEqual(value, Expression.Constant(1)));
+            AssertExtensions.Throws<ArgumentException>("left", () => Expression.Equal(value, Expression.Constant(1)));
+            AssertExtensions.Throws<ArgumentException>("left", () => Expression.NotEqual(value, Expression.Constant(1)));
         }
 
         [Fact]
         public static void ThrowsOnRightUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("right", () => Expression.Equal(Expression.Constant(1), value));
-            Assert.Throws<ArgumentException>("right", () => Expression.NotEqual(Expression.Constant(1), value));
+            AssertExtensions.Throws<ArgumentException>("right", () => Expression.Equal(Expression.Constant(1), value));
+            AssertExtensions.Throws<ArgumentException>("right", () => Expression.NotEqual(Expression.Constant(1), value));
         }
 
         [Theory, ClassData(typeof(CompilationTypes))]
@@ -194,15 +196,89 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void Equal_ToString()
         {
-            var e = Expression.Equal(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
+            BinaryExpression e = Expression.Equal(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
             Assert.Equal("(a == b)", e.ToString());
         }
 
         [Fact]
         public static void NotEqual_ToString()
         {
-            var e = Expression.NotEqual(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
+            BinaryExpression e = Expression.NotEqual(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
             Assert.Equal("(a != b)", e.ToString());
+        }
+
+        [Fact]
+        public static void CannotPreformEqualityOnValueTypesWithoutOperators()
+        {
+            var uvConst = Expression.Constant(new UselessValue());
+            Assert.Throws<InvalidOperationException>(() => Expression.Equal(uvConst, uvConst));
+            Assert.Throws<InvalidOperationException>(() => Expression.NotEqual(uvConst, uvConst));
+        }
+
+        [Theory, ClassData(typeof(CompilationTypes))]
+        public static void CanPerformEqualityOnNullableWithoutOperatorsToConstantNull(bool useInterpreter)
+        {
+            var nullConst = Expression.Constant(null, typeof(UselessValue?));
+            var uvConst = Expression.Constant(new UselessValue(), typeof(UselessValue?));
+            var exp = Expression.Lambda<Func<bool>>(Expression.Equal(nullConst, uvConst));
+            var func = exp.Compile(useInterpreter);
+            Assert.False(func());
+
+            exp = Expression.Lambda<Func<bool>>(Expression.Equal(uvConst, nullConst));
+            func = exp.Compile(useInterpreter);
+            Assert.False(func());
+        }
+
+        [Theory, ClassData(typeof(CompilationTypes))]
+        public static void CanPerformInequalityOnNullableWithoutOperatorsToConstantNull(bool useInterpreter)
+        {
+            var nullConst = Expression.Constant(null, typeof(UselessValue?));
+            var uvConst = Expression.Constant(new UselessValue(), typeof(UselessValue?));
+            var exp = Expression.Lambda<Func<bool>>(Expression.NotEqual(nullConst, uvConst));
+            var func = exp.Compile(useInterpreter);
+            Assert.True(func());
+
+            exp = Expression.Lambda<Func<bool>>(Expression.NotEqual(uvConst, nullConst));
+            func = exp.Compile(useInterpreter);
+            Assert.True(func());
+        }
+
+        [Fact]
+        public static void CannotDoNullComparisonWithoutOperatorIfBothNullConstants()
+        {
+            var typedNullConst = Expression.Constant(null, typeof(UselessValue?));
+            Assert.Throws<InvalidOperationException>(() => Expression.Equal(typedNullConst, typedNullConst));
+        }
+
+        // DBNull having a different type code to other objects could result in bugs surrounding it if
+        // that type code got incorrectly used.
+
+        [Theory, ClassData(typeof(CompilationTypes))]
+        public static void CanCompareDBNullEqual(bool useInterpreter)
+        {
+            var x = Expression.Parameter(typeof(DBNull));
+            var y = Expression.Parameter(typeof(DBNull));
+            var lambda = Expression.Lambda<Func<DBNull, DBNull, bool>>(Expression.Equal(x, y), x, y);
+            var func = lambda.Compile(useInterpreter);
+            foreach(var xVal in new[] { DBNull.Value, null})
+                foreach(var yVal in new[] { DBNull.Value, null})
+                    Assert.Equal(xVal == yVal, func(xVal, yVal));
+        }
+
+        [Theory, ClassData(typeof(CompilationTypes))]
+        public static void CanCompareDBNullNotEqual(bool useInterpreter)
+        {
+            var x = Expression.Parameter(typeof(DBNull));
+            var y = Expression.Parameter(typeof(DBNull));
+            var lambda = Expression.Lambda<Func<DBNull, DBNull, bool>>(Expression.NotEqual(x, y), x, y);
+            var func = lambda.Compile(useInterpreter);
+            foreach(var xVal in new[] { DBNull.Value, null})
+                foreach(var yVal in new[] { DBNull.Value, null})
+                    Assert.Equal(xVal != yVal, func(xVal, yVal));
+        }
+
+        private struct UselessValue
+        {
         }
 
         public class TestClass { }

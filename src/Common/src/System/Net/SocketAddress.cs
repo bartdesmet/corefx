@@ -22,14 +22,15 @@ namespace System.Net.Internals
 #endif
     class SocketAddress
     {
-        internal readonly static int IPv6AddressSize = SocketAddressPal.IPv6AddressSize;
-        internal readonly static int IPv4AddressSize = SocketAddressPal.IPv4AddressSize;
+        internal static readonly int IPv6AddressSize = SocketAddressPal.IPv6AddressSize;
+        internal static readonly int IPv4AddressSize = SocketAddressPal.IPv4AddressSize;
 
         internal int InternalSize;
         internal byte[] Buffer;
 
         private const int MinSize = 2;
         private const int MaxSize = 32; // IrDA requires 32 bytes
+        private const int DataOffset = 2;
         private bool _changed = true;
         private int _hash;
 
@@ -103,19 +104,17 @@ namespace System.Net.Internals
 
             if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
             {
-                SocketAddressPal.SetIPv6Address(Buffer, ipAddress.GetAddressBytes(), (uint)ipAddress.ScopeId);
+                Span<byte> addressBytes = stackalloc byte[IPAddressParserStatics.IPv6AddressBytes];
+                ipAddress.TryWriteBytes(addressBytes, out int bytesWritten);
+                Debug.Assert(bytesWritten == IPAddressParserStatics.IPv6AddressBytes);
+
+                SocketAddressPal.SetIPv6Address(Buffer, addressBytes, (uint)ipAddress.ScopeId);
             }
             else
             {
-#if SYSTEM_NET_PRIMITIVES_DLL
-#pragma warning disable 618
+#pragma warning disable CS0618 // using Obsolete Address API because it's the more efficient option in this case
                 uint address = unchecked((uint)ipAddress.Address);
-#pragma warning restore 618
-#else
-                byte[] ipAddressBytes = ipAddress.GetAddressBytes();
-                Debug.Assert(ipAddressBytes.Length == 4);
-                uint address = ipAddressBytes.NetworkBytesToNetworkUInt32(0);
-#endif
+#pragma warning restore CS0618
 
                 Debug.Assert(ipAddress.AddressFamily == AddressFamily.InterNetwork);
                 SocketAddressPal.SetIPv4Address(Buffer, address);
@@ -134,7 +133,7 @@ namespace System.Net.Internals
             {
                 Debug.Assert(Size >= IPv6AddressSize);
 
-                byte[] address = new byte[IPAddressParserStatics.IPv6AddressBytes];
+                Span<byte> address = stackalloc byte[IPAddressParserStatics.IPv6AddressBytes];
                 uint scope;
                 SocketAddressPal.GetIPv6Address(Buffer, address, out scope);
 
@@ -230,16 +229,18 @@ namespace System.Net.Internals
 
         public override string ToString()
         {
-            StringBuilder bytes = new StringBuilder();
-            for (int i = SocketAddressPal.DataOffset; i < this.Size; i++)
+            var sb = new StringBuilder().Append(Family.ToString()).Append(':').Append(Size).Append(":{");
+
+            for (int i = DataOffset; i < Size; i++)
             {
-                if (i > SocketAddressPal.DataOffset)
+                if (i > DataOffset)
                 {
-                    bytes.Append(",");
+                    sb.Append(',');
                 }
-                bytes.Append(this[i].ToString(NumberFormatInfo.InvariantInfo));
+                sb.Append(this[i]);
             }
-            return Family.ToString() + ":" + Size.ToString(NumberFormatInfo.InvariantInfo) + ":{" + bytes.ToString() + "}";
+
+            return sb.Append('}').ToString();
         }
     }
 }

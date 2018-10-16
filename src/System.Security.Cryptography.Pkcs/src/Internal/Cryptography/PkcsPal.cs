@@ -3,8 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Text;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
@@ -70,7 +68,7 @@ namespace Internal.Cryptography
         public abstract Exception CreateDecryptAfterEncryptException();
 
         /// <summary>
-        /// If you call Decrupt() after a Decrypt(), the framework throws CryptographicException(CRYPT_E_INVALID_MSG_TYPE) on Windows.
+        /// If you call Decrypt() after a Encrypt(), the framework throws CryptographicException(CRYPT_E_INVALID_MSG_TYPE) on Windows.
         /// This method encapsulates what other OS's decide to throw in this situation.
         /// </summary>
         public abstract Exception CreateDecryptTwiceException();
@@ -81,13 +79,23 @@ namespace Internal.Cryptography
         public abstract byte[] GetSubjectKeyIdentifier(X509Certificate2 certificate);
 
         /// <summary>
-        /// Get the one (and only) instance of PkcsPal.
+        /// Retrieve a private key object for the certificate to use with signing.
+        /// </summary>
+        public abstract T GetPrivateKeyForSigning<T>(X509Certificate2 certificate, bool silent) where T : AsymmetricAlgorithm;
+
+        /// <summary>
+        /// Retrieve a private key object for the certificate to use with decryption.
+        /// </summary>
+        public abstract T GetPrivateKeyForDecryption<T>(X509Certificate2 certificate, bool silent) where T : AsymmetricAlgorithm;
+
+        /// <summary>
+        /// Get the one instance of PkcsPal.
         /// </summary>
         public static PkcsPal Instance
         {
             get
             {
-                // Wondering where "s_instance" is declared? It's declared in Pal\Windows\PkcsPal.cs and Pal\Unix\PkcsPal.cs, since the static initializer
+                // Wondering where "s_instance" is declared? It's declared in Pal\Windows\PkcsPal.Windows.cs and Pal\AnyOS\PkcsPal.AnyOS.cs, since the static initializer
                 // for that field is platform-specific.
                 return s_instance;
             }

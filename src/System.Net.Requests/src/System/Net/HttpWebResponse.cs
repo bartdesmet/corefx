@@ -19,7 +19,6 @@ namespace System.Net
     ///    <see cref='System.Net.WebResponse'/> class.
     /// </para>
     /// </devdoc>
-    [Serializable]
     public class HttpWebResponse : WebResponse, ISerializable
     {
         private HttpResponseMessage _httpResponseMessage;
@@ -31,33 +30,21 @@ namespace System.Net
 
         public HttpWebResponse() { }
 
-        [ObsoleteAttribute("Serialization is obsoleted for this type.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [ObsoleteAttribute("Serialization is obsoleted for this type.  https://go.microsoft.com/fwlink/?linkid=14202")]
         protected HttpWebResponse(SerializationInfo serializationInfo, StreamingContext streamingContext) : base(serializationInfo, streamingContext)
         {
-            _webHeaderCollection = (WebHeaderCollection)serializationInfo.GetValue("_HttpResponseHeaders", typeof(WebHeaderCollection));
-            _requestUri = (Uri)serializationInfo.GetValue("_Uri", typeof(Uri));
-            Version version = (Version)serializationInfo.GetValue("_Version", typeof(Version));
-            _isVersionHttp11 = version.Equals(HttpVersion.Version11);            
-            ContentLength = serializationInfo.GetInt64("_ContentLength");                        
+            throw new PlatformNotSupportedException();
         }
-     
+
         void ISerializable.GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
         {
-            GetObjectData(serializationInfo, streamingContext);
+            throw new PlatformNotSupportedException();
         }
 
         protected override void GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
-        {           
-            serializationInfo.AddValue("_HttpResponseHeaders", _webHeaderCollection, typeof(WebHeaderCollection));
-            serializationInfo.AddValue("_Uri", _requestUri, typeof(Uri));
-            serializationInfo.AddValue("_Version", ProtocolVersion, typeof(Version));
-            serializationInfo.AddValue("_StatusCode", StatusCode);
-            serializationInfo.AddValue("_ContentLength", ContentLength);
-            serializationInfo.AddValue("_Verb", Method);
-            serializationInfo.AddValue("_StatusDescription", StatusDescription);            
-            base.GetObjectData(serializationInfo, streamingContext);
+        {
+            throw new PlatformNotSupportedException();
         }
-
 
         internal HttpWebResponse(HttpResponseMessage _message, Uri requestUri, CookieContainer cookieContainer)
         {
@@ -114,7 +101,7 @@ namespace System.Net
                         {
                             builder.Append(',');
                         }
-                        
+
                         builder.Append(value);
                         ndx++;
                     }
@@ -128,8 +115,7 @@ namespace System.Net
             }
         }
 
-     
-        public String ContentEncoding
+        public string ContentEncoding
         {
             get
             {
@@ -152,7 +138,7 @@ namespace System.Net
                 _cookies = value;
             }
         }
-      
+
         public DateTime LastModified
         {
             get
@@ -163,12 +149,17 @@ namespace System.Net
                 {
                     return DateTime.Now;
                 }
-                DateTime dtOut;
-                HttpDateParse.ParseHttpDate(lastmodHeaderValue, out dtOut);
-                return dtOut;
+
+                if (HttpDateParser.TryStringToDate(lastmodHeaderValue, out var dateTimeOffset))
+                {
+                    return dateTimeOffset.LocalDateTime;
+                }
+                else
+                {
+                    throw new ProtocolViolationException(SR.net_baddate);
+                }
             }
         }
-
 
         /// <devdoc>
         ///    <para>
@@ -179,11 +170,10 @@ namespace System.Net
         {
             get
             {
-                CheckDisposed();                
-                return string.IsNullOrEmpty( Headers["Server"])?  string.Empty : Headers["Server"];
+                CheckDisposed();
+                return string.IsNullOrEmpty(Headers["Server"]) ? string.Empty : Headers["Server"];
             }
         }
-
 
         // HTTP Version
         /// <devdoc>
@@ -273,14 +263,13 @@ namespace System.Net
         {
             get
             {
-                CheckDisposed();                                
+                CheckDisposed();
                 string contentType = Headers["Content-Type"];
 
                 if (_characterSet == null && !string.IsNullOrWhiteSpace(contentType))
                 {
-
                     //sets characterset so the branch is never executed again.
-                    _characterSet = String.Empty;
+                    _characterSet = string.Empty;
 
                     //first string is the media type
                     string srchString = contentType.ToLower();
@@ -296,17 +285,14 @@ namespace System.Net
                     int i = srchString.IndexOf(";");
                     if (i > 0)
                     {
-
                         //search the parameters
                         while ((i = srchString.IndexOf("charset", i)) >= 0)
                         {
-
                             i += 7;
 
                             //make sure the word starts with charset
                             if (srchString[i - 8] == ';' || srchString[i - 8] == ' ')
                             {
-
                                 //skip whitespace
                                 while (i < srchString.Length && srchString[i] == ' ')
                                     i++;
@@ -346,7 +332,7 @@ namespace System.Net
             {
                 return true;
             }
-        }       
+        }
 
         public override Stream GetResponseStream()
         {
@@ -358,7 +344,7 @@ namespace System.Net
         {
             CheckDisposed();
             string headerValue = Headers[headerName];
-            return ((headerValue == null) ? String.Empty : headerValue);
+            return ((headerValue == null) ? string.Empty : headerValue);
         }
 
         public override void Close()

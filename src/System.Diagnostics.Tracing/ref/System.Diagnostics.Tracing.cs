@@ -54,9 +54,10 @@ namespace System.Diagnostics.Tracing
         public bool DisableEvent(int eventId) { throw null; }
         public bool EnableEvent(int eventId) { throw null; }
     }
-    public class EventCounter {
+    public class EventCounter : IDisposable {
         public EventCounter(string name, EventSource eventSource) { }
         public void WriteMetric(float value) { }
+        public void Dispose() { }
     }
     [System.AttributeUsageAttribute((System.AttributeTargets)(12), Inherited = false)]
     public partial class EventDataAttribute : System.Attribute
@@ -116,6 +117,8 @@ namespace System.Diagnostics.Tracing
     }
     public abstract partial class EventListener : System.IDisposable
     {
+        public event EventHandler<EventSourceCreatedEventArgs> EventSourceCreated;
+        public event EventHandler<EventWrittenEventArgs> EventWritten;
         protected EventListener() { }
         public void DisableEvents(System.Diagnostics.Tracing.EventSource eventSource) { }
         public virtual void Dispose() { }
@@ -124,7 +127,7 @@ namespace System.Diagnostics.Tracing
         public void EnableEvents(System.Diagnostics.Tracing.EventSource eventSource, System.Diagnostics.Tracing.EventLevel level, System.Diagnostics.Tracing.EventKeywords matchAnyKeyword, System.Collections.Generic.IDictionary<string, string> arguments) { }
         protected static int EventSourceIndex(System.Diagnostics.Tracing.EventSource eventSource) { throw null; }
         protected internal virtual void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource eventSource) { }
-        protected internal abstract void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData);
+        protected internal virtual void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs eventData) { }
     }
     [System.FlagsAttribute]
     public enum EventManifestOptions
@@ -159,7 +162,7 @@ namespace System.Diagnostics.Tracing
         public EventSource(string eventSourceName, System.Diagnostics.Tracing.EventSourceSettings config) { }
         public EventSource(string eventSourceName, System.Diagnostics.Tracing.EventSourceSettings config, params string[] traits) { }
         public System.Exception ConstructionException { get { throw null; } }
-        public static System.Guid CurrentThreadActivityId {[System.Security.SecuritySafeCriticalAttribute]get { throw null; } }
+        public static System.Guid CurrentThreadActivityId { get { throw null; } }
         public System.Guid Guid { get { throw null; } }
         public string Name { get { throw null; } }
         public System.Diagnostics.Tracing.EventSourceSettings Settings { get { throw null; } }
@@ -206,15 +209,14 @@ namespace System.Diagnostics.Tracing
         protected void WriteEvent(int eventId, string arg1, string arg2) { }
         protected void WriteEvent(int eventId, string arg1, string arg2, string arg3) { }
         [System.CLSCompliantAttribute(false)]
-        [System.Security.SecurityCriticalAttribute]
         protected unsafe void WriteEventCore(int eventId, int eventDataCount, System.Diagnostics.Tracing.EventSource.EventData* data) { }
         protected void WriteEventWithRelatedActivityId(int eventId, System.Guid relatedActivityId, params object[] args) { }
         [System.CLSCompliantAttribute(false)]
-        [System.Security.SecurityCriticalAttribute]
         protected unsafe void WriteEventWithRelatedActivityIdCore(int eventId, System.Guid* relatedActivityId, int eventDataCount, System.Diagnostics.Tracing.EventSource.EventData* data) { }
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         protected internal partial struct EventData
         {
+            private int _dummy;
             public System.IntPtr DataPointer { get { throw null; } set { } }
             public int Size { get { throw null; } set { } }
         }
@@ -227,6 +229,11 @@ namespace System.Diagnostics.Tracing
         public string LocalizationResources { get { throw null; } set { } }
         public string Name { get { throw null; } set { } }
     }
+    public class EventSourceCreatedEventArgs : EventArgs
+    {
+        public EventSourceCreatedEventArgs() { }
+        public EventSource EventSource { get; }
+    }
     public partial class EventSourceException : System.Exception
     {
         public EventSourceException() { }
@@ -237,6 +244,7 @@ namespace System.Diagnostics.Tracing
     [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct EventSourceOptions
     {
+        private int _dummy;
         public System.Diagnostics.Tracing.EventActivityOptions ActivityOptions { get { throw null; } set { } }
         public System.Diagnostics.Tracing.EventKeywords Keywords { get { throw null; } set { } }
         public System.Diagnostics.Tracing.EventLevel Level { get { throw null; } set { } }
@@ -263,7 +271,7 @@ namespace System.Diagnostics.Tracing
     public partial class EventWrittenEventArgs : System.EventArgs
     {
         internal EventWrittenEventArgs() { }
-        public System.Guid ActivityId {[System.Security.SecurityCriticalAttribute]get { throw null; } }
+        public System.Guid ActivityId { get { throw null; } }
         public System.Diagnostics.Tracing.EventChannel Channel { get { throw null; } }
         public int EventId { get { throw null; } }
         public string EventName { get { throw null; } }
@@ -274,10 +282,12 @@ namespace System.Diagnostics.Tracing
         public System.Diagnostics.Tracing.EventOpcode Opcode { get { throw null; } }
         public System.Collections.ObjectModel.ReadOnlyCollection<object> Payload { get { throw null; } }
         public System.Collections.ObjectModel.ReadOnlyCollection<string> PayloadNames { get { throw null; } }
-        public System.Guid RelatedActivityId {[System.Security.SecurityCriticalAttribute]get { throw null; } }
+        public System.Guid RelatedActivityId { get { throw null; } }
         public System.Diagnostics.Tracing.EventTags Tags { get { throw null; } }
         public System.Diagnostics.Tracing.EventTask Task { get { throw null; } }
         public byte Version { get { throw null; } }
+        public long OSThreadId { get { throw null; } }
+        public DateTime TimeStamp { get { throw null; } }
     }
     [System.AttributeUsageAttribute((System.AttributeTargets)(64))]
     public sealed partial class NonEventAttribute : System.Attribute

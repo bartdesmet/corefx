@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.ComponentModel;
 
 namespace Microsoft.CSharp.RuntimeBinder
 {
@@ -11,6 +10,7 @@ namespace Microsoft.CSharp.RuntimeBinder
     /// Represents information about a <see cref="CSharpInvokeBinder" /> or <see cref="CSharpInvokeMemberBinder" /> that
     /// is not specific to any particular argument given to those operations.
     /// </summary>
+    [Flags]
     internal enum CSharpCallFlags
     {
         /// <summary>

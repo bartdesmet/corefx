@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -145,33 +144,33 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.ReferenceEqual(Expression.Constant(""), Expression.Constant(""));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public void ThrowsOnLeftNull()
         {
-            Assert.Throws<ArgumentNullException>("left", () => Expression.ReferenceEqual(null, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.ReferenceEqual(null, Expression.Constant("")));
         }
 
         [Fact]
         public void ThrowsOnRightNull()
         {
-            Assert.Throws<ArgumentNullException>("right", () => Expression.ReferenceEqual(Expression.Constant(""), null));
+            AssertExtensions.Throws<ArgumentNullException>("right", () => Expression.ReferenceEqual(Expression.Constant(""), null));
         }
 
         [Fact]
         public static void ThrowsOnLeftUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<string>), "WriteOnly");
-            Assert.Throws<ArgumentException>("left", () => Expression.ReferenceEqual(value, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentException>("left", () => Expression.ReferenceEqual(value, Expression.Constant("")));
         }
 
         [Fact]
         public static void ThrowsOnRightUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<string>), "WriteOnly");
-            Assert.Throws<ArgumentException>("right", () => Expression.ReferenceEqual(Expression.Constant(""), value));
+            AssertExtensions.Throws<ArgumentException>("right", () => Expression.ReferenceEqual(Expression.Constant(""), value));
         }
 
         [Fact]
@@ -181,18 +180,18 @@ namespace System.Linq.Expressions.Tests
             Expression e2 = Expression.Constant("foo");
             Expression e3 = Expression.Constant("qux");
 
-            var eq = Expression.ReferenceEqual(e1, e2);
+            BinaryExpression eq = Expression.ReferenceEqual(e1, e2);
 
             Assert.Same(eq, eq.Update(e1, null, e2));
 
-            var eq1 = eq.Update(e1, null, e3);
+            BinaryExpression eq1 = eq.Update(e1, null, e3);
             Assert.Equal(ExpressionType.Equal, eq1.NodeType);
             Assert.Same(e1, eq1.Left);
             Assert.Same(e3, eq1.Right);
             Assert.Null(eq1.Conversion);
             Assert.Null(eq1.Method);
 
-            var eq2 = eq.Update(e3, null, e2);
+            BinaryExpression eq2 = eq.Update(e3, null, e2);
             Assert.Equal(ExpressionType.Equal, eq2.NodeType);
             Assert.Same(e3, eq2.Left);
             Assert.Same(e2, eq2.Right);

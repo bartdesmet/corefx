@@ -80,17 +80,6 @@ namespace System.Net.Security
         {
             return SSPIWrapper.QueryContextAttributes(GlobalSSPI.SSPIAuth, securityContext, Interop.SspiCli.ContextAttribute.SECPKG_ATTR_NAMES) as string;
         }
-
-        internal static string QueryContextAuthenticationPackage(SafeDeleteContext securityContext)
-        {
-            var negotiationInfoClass = SSPIWrapper.QueryContextAttributes(GlobalSSPI.SSPIAuth, securityContext, Interop.SspiCli.ContextAttribute.SECPKG_ATTR_NEGOTIATION_INFO) as NegotiationInfoClass;
-            return negotiationInfoClass?.AuthenticationPackage;
-        }
-
-        internal static string QueryContextClientSpecifiedSpn(SafeDeleteContext securityContext)
-        {
-            return SSPIWrapper.QueryContextAttributes(GlobalSSPI.SSPIAuth, securityContext, Interop.SspiCli.ContextAttribute.SECPKG_ATTR_CLIENT_SPECIFIED_TARGET) as string;
-        }
         
         internal static void ValidateImpersonationLevel(TokenImpersonationLevel impersonationLevel)
         {
@@ -120,7 +109,7 @@ namespace System.Net.Security
 
             try
             {
-                int maxCount = checked(Int32.MaxValue - 4 - sizes.cbBlockSize - sizes.cbSecurityTrailer);
+                int maxCount = checked(int.MaxValue - 4 - sizes.cbBlockSize - sizes.cbSecurityTrailer);
 
                 if (count > maxCount || count < 0)
                 {
@@ -250,7 +239,7 @@ namespace System.Net.Security
 
             if (securityBuffer[1].type != SecurityBufferType.SECBUFFER_DATA)
             {
-                throw new InternalException();
+                throw new InternalException(securityBuffer[1].type);
             }
 
             newOffset = securityBuffer[1].offset;
@@ -301,7 +290,7 @@ namespace System.Net.Security
 
             if (securityBuffer[1].type != realDataType)
             {
-                throw new InternalException();
+                throw new InternalException(securityBuffer[1].type);
             }
 
             newOffset = securityBuffer[1].offset;

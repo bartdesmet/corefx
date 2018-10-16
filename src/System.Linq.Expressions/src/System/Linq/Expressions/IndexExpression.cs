@@ -73,7 +73,7 @@ namespace System.Linq.Expressions
         /// </summary>
         public ReadOnlyCollection<Expression> Arguments
         {
-            get { return ReturnReadOnly(ref _arguments); }
+            get { return ExpressionUtils.ReturnReadOnly(ref _arguments); }
         }
 
         /// <summary>
@@ -86,11 +86,15 @@ namespace System.Linq.Expressions
         /// <returns>This expression if no children changed, or an expression with the updated children.</returns>
         public IndexExpression Update(Expression @object, IEnumerable<Expression> arguments)
         {
-            if (@object == Object && arguments == Arguments)
+            if (@object == Object & arguments != null)
             {
-                return this;
+                if (ExpressionUtils.SameElements(ref arguments, Arguments))
+                {
+                    return this;
+                }
             }
-            return Expression.MakeIndex(@object, Indexer, arguments);
+
+            return MakeIndex(@object, Indexer, arguments);
         }
 
         /// <summary>
@@ -168,7 +172,7 @@ namespace System.Linq.Expressions
         /// <returns>The created <see cref="IndexExpression"/>.</returns>
         public static IndexExpression ArrayAccess(Expression array, IEnumerable<Expression> indexes)
         {
-            RequiresCanRead(array, nameof(array));
+            ExpressionUtils.RequiresCanRead(array, nameof(array));
 
             Type arrayType = array.Type;
             if (!arrayType.IsArray)
@@ -184,7 +188,7 @@ namespace System.Linq.Expressions
 
             foreach (Expression e in indexList)
             {
-                RequiresCanRead(e, nameof(indexes));
+                ExpressionUtils.RequiresCanRead(e, nameof(indexes));
                 if (e.Type != typeof(int))
                 {
                     throw Error.ArgumentMustBeArrayIndexType(nameof(indexes));
@@ -207,10 +211,10 @@ namespace System.Linq.Expressions
         /// <returns>The created <see cref="IndexExpression"/>.</returns>
         public static IndexExpression Property(Expression instance, string propertyName, params Expression[] arguments)
         {
-            RequiresCanRead(instance, nameof(instance));
+            ExpressionUtils.RequiresCanRead(instance, nameof(instance));
             ContractUtils.RequiresNotNull(propertyName, nameof(propertyName));
             PropertyInfo pi = FindInstanceProperty(instance.Type, propertyName, arguments);
-            return Property(instance, pi, arguments);
+            return MakeIndexProperty(instance, pi, nameof(propertyName), arguments.ToReadOnly());
         }
 
         #region methods for finding a PropertyInfo by its name
@@ -237,7 +241,7 @@ namespace System.Linq.Expressions
                 }
                 else
                 {
-                    throw Error.InstancePropertyWithSpecifiedParametersNotDefinedForType(propertyName, GetArgTypesString(arguments), type);
+                    throw Error.InstancePropertyWithSpecifiedParametersNotDefinedForType(propertyName, GetArgTypesString(arguments), type, nameof(propertyName));
                 }
             }
             return pi;
@@ -253,7 +257,7 @@ namespace System.Linq.Expressions
                 {
                     argTypesStr.Append(", ");
                 }
-                argTypesStr.Append(arguments[i].Type.Name);
+                argTypesStr.Append(arguments[i]?.Type.Name);
             }
             argTypesStr.Append(')');
             return argTypesStr.ToString();
@@ -292,15 +296,20 @@ namespace System.Linq.Expressions
             else
             {
                 mi = pi.GetSetMethod(nonPublic: true);
+                if (mi == null)
+                {
+                    return false;
+                }
                 //The setter has an additional parameter for the value to set,
                 //need to remove the last type to match the arguments.
-                parms = mi.GetParametersCached().RemoveLast();
+                parms = mi.GetParametersCached();
+                if (parms.Length == 0)
+                {
+                    return false;
+                }
+                parms = parms.RemoveLast();
             }
 
-            if (mi == null)
-            {
-                return false;
-            }
             if (args == null)
             {
                 return parms.Length == 0;
@@ -340,10 +349,12 @@ namespace System.Linq.Expressions
         /// <param name="indexer">The <see cref="PropertyInfo"/> that represents the property to index.</param>
         /// <param name="arguments">An <see cref="IEnumerable{T}"/> of <see cref="Expression"/> objects that are used to index the property.</param>
         /// <returns>The created <see cref="IndexExpression"/>.</returns>
-        public static IndexExpression Property(Expression instance, PropertyInfo indexer, IEnumerable<Expression> arguments)
+        public static IndexExpression Property(Expression instance, PropertyInfo indexer, IEnumerable<Expression> arguments) =>
+            MakeIndexProperty(instance, indexer, nameof(indexer), arguments.ToReadOnly());
+
+        private static IndexExpression MakeIndexProperty(Expression instance, PropertyInfo indexer, string paramName, ReadOnlyCollection<Expression> argList)
         {
-            ReadOnlyCollection<Expression> argList = arguments.ToReadOnly();
-            ValidateIndexedProperty(instance, indexer, ref argList);
+            ValidateIndexedProperty(instance, indexer, paramName, ref argList);
             return new IndexExpression(instance, indexer, argList);
         }
 
@@ -352,29 +363,34 @@ namespace System.Linq.Expressions
         //
         // Does reflection help us out at all? Expression.Property skips all of
         // these checks, so either it needs more checks or we need less here.
-        private static void ValidateIndexedProperty(Expression instance, PropertyInfo indexer, ref ReadOnlyCollection<Expression> argList)
+        private static void ValidateIndexedProperty(Expression instance, PropertyInfo indexer, string paramName, ref ReadOnlyCollection<Expression> argList)
         {
             // If both getter and setter specified, all their parameter types
             // should match, with exception of the last setter parameter which
             // should match the type returned by the get method.
             // Accessor parameters cannot be ByRef.
 
-            ContractUtils.RequiresNotNull(indexer, nameof(indexer));
+            ContractUtils.RequiresNotNull(indexer, paramName);
             if (indexer.PropertyType.IsByRef)
             {
-                throw Error.PropertyCannotHaveRefType(nameof(indexer));
+                throw Error.PropertyCannotHaveRefType(paramName);
             }
             if (indexer.PropertyType == typeof(void))
             {
-                throw Error.PropertyTypeCannotBeVoid(nameof(indexer));
+                throw Error.PropertyTypeCannotBeVoid(paramName);
             }
 
             ParameterInfo[] getParameters = null;
             MethodInfo getter = indexer.GetGetMethod(nonPublic: true);
             if (getter != null)
             {
+                if (getter.ReturnType != indexer.PropertyType)
+                {
+                    throw Error.PropertyTypeMustMatchGetter(paramName);
+                }
+
                 getParameters = getter.GetParametersCached();
-                ValidateAccessor(instance, getter, getParameters, ref argList, nameof(indexer));
+                ValidateAccessor(instance, getter, getParameters, ref argList, paramName);
             }
 
             MethodInfo setter = indexer.GetSetMethod(nonPublic: true);
@@ -383,52 +399,51 @@ namespace System.Linq.Expressions
                 ParameterInfo[] setParameters = setter.GetParametersCached();
                 if (setParameters.Length == 0)
                 {
-                    throw Error.SetterHasNoParams(nameof(indexer));
+                    throw Error.SetterHasNoParams(paramName);
                 }
 
                 // valueType is the type of the value passed to the setter (last parameter)
                 Type valueType = setParameters[setParameters.Length - 1].ParameterType;
                 if (valueType.IsByRef)
                 {
-                    throw Error.PropertyCannotHaveRefType(nameof(indexer));
+                    throw Error.PropertyCannotHaveRefType(paramName);
                 }
                 if (setter.ReturnType != typeof(void))
                 {
-                    throw Error.SetterMustBeVoid(nameof(indexer));
+                    throw Error.SetterMustBeVoid(paramName);
                 }
                 if (indexer.PropertyType != valueType)
                 {
-                    throw Error.PropertyTypeMustMatchSetter(nameof(indexer));
+                    throw Error.PropertyTypeMustMatchSetter(paramName);
                 }
 
                 if (getter != null)
                 {
                     if (getter.IsStatic ^ setter.IsStatic)
                     {
-                        throw Error.BothAccessorsMustBeStatic(nameof(indexer));
+                        throw Error.BothAccessorsMustBeStatic(paramName);
                     }
                     if (getParameters.Length != setParameters.Length - 1)
                     {
-                        throw Error.IndexesOfSetGetMustMatch(nameof(indexer));
+                        throw Error.IndexesOfSetGetMustMatch(paramName);
                     }
 
                     for (int i = 0; i < getParameters.Length; i++)
                     {
                         if (getParameters[i].ParameterType != setParameters[i].ParameterType)
                         {
-                            throw Error.IndexesOfSetGetMustMatch(nameof(indexer));
+                            throw Error.IndexesOfSetGetMustMatch(paramName);
                         }
                     }
                 }
                 else
                 {
-                    ValidateAccessor(instance, setter, setParameters.RemoveLast(), ref argList, nameof(indexer));
+                    ValidateAccessor(instance, setter, setParameters.RemoveLast(), ref argList, paramName);
                 }
             }
-
-            if (getter == null && setter == null)
+            else if (getter == null)
             {
-                throw Error.PropertyDoesNotHaveAccessor(indexer, nameof(indexer));
+                throw Error.PropertyDoesNotHaveAccessor(indexer, paramName);
             }
         }
 
@@ -437,15 +452,26 @@ namespace System.Linq.Expressions
             ContractUtils.RequiresNotNull(arguments, nameof(arguments));
 
             ValidateMethodInfo(method, nameof(method));
-            if ((method.CallingConvention & CallingConventions.VarArgs) != 0) throw Error.AccessorsCannotHaveVarArgs(nameof(method));
+            if ((method.CallingConvention & CallingConventions.VarArgs) != 0)
+            {
+                throw Error.AccessorsCannotHaveVarArgs(paramName);
+            }
+
             if (method.IsStatic)
             {
-                if (instance != null) throw Error.OnlyStaticMethodsHaveNullInstance();
+                if (instance != null)
+                {
+                    throw Error.OnlyStaticPropertiesHaveNullInstance(nameof(instance));
+                }
             }
             else
             {
-                if (instance == null) throw Error.OnlyStaticMethodsHaveNullInstance();
-                RequiresCanRead(instance, nameof(instance));
+                if (instance == null)
+                {
+                    throw Error.OnlyStaticPropertiesHaveNullInstance(nameof(instance));
+                }
+
+                ExpressionUtils.RequiresCanRead(instance, nameof(instance));
                 ValidateCallInstanceType(instance.Type, method);
             }
 
@@ -465,7 +491,7 @@ namespace System.Linq.Expressions
                 {
                     Expression arg = arguments[i];
                     ParameterInfo pi = indexes[i];
-                    RequiresCanRead(arg, nameof(arguments), i);
+                    ExpressionUtils.RequiresCanRead(arg, nameof(arguments), i);
 
                     Type pType = pi.ParameterType;
                     if (pType.IsByRef) throw Error.AccessorsCannotHaveByRefArgs(nameof(indexes), i);

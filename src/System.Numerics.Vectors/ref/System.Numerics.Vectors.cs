@@ -8,7 +8,6 @@
 
 namespace System.Numerics
 {
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Matrix3x2 : System.IEquatable<System.Numerics.Matrix3x2>
     {
         public float M11;
@@ -53,7 +52,6 @@ namespace System.Numerics
         public static System.Numerics.Matrix3x2 Subtract(System.Numerics.Matrix3x2 value1, System.Numerics.Matrix3x2 value2) { throw null; }
         public override string ToString() { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Matrix4x4 : System.IEquatable<System.Numerics.Matrix4x4>
     {
         public float M11;
@@ -128,7 +126,6 @@ namespace System.Numerics
         public static System.Numerics.Matrix4x4 Transform(System.Numerics.Matrix4x4 value, System.Numerics.Quaternion rotation) { throw null; }
         public static System.Numerics.Matrix4x4 Transpose(System.Numerics.Matrix4x4 matrix) { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Plane : System.IEquatable<System.Numerics.Plane>
     {
         public float D;
@@ -150,7 +147,6 @@ namespace System.Numerics
         public static System.Numerics.Plane Transform(System.Numerics.Plane plane, System.Numerics.Matrix4x4 matrix) { throw null; }
         public static System.Numerics.Plane Transform(System.Numerics.Plane plane, System.Numerics.Quaternion rotation) { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Quaternion : System.IEquatable<System.Numerics.Quaternion>
     {
         public float W;
@@ -217,6 +213,18 @@ namespace System.Numerics
         public static System.Numerics.Vector<float> ConditionalSelect(System.Numerics.Vector<int> condition, System.Numerics.Vector<float> left, System.Numerics.Vector<float> right) { throw null; }
         public static System.Numerics.Vector<double> ConditionalSelect(System.Numerics.Vector<long> condition, System.Numerics.Vector<double> left, System.Numerics.Vector<double> right) { throw null; }
         public static System.Numerics.Vector<T> ConditionalSelect<T>(System.Numerics.Vector<T> condition, System.Numerics.Vector<T> left, System.Numerics.Vector<T> right) where T : struct { throw null; }
+        public static System.Numerics.Vector<float> ConvertToSingle(System.Numerics.Vector<int> value) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<float> ConvertToSingle(System.Numerics.Vector<uint> value) { throw null; }
+        public static System.Numerics.Vector<int> ConvertToInt32(System.Numerics.Vector<float> value) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<uint> ConvertToUInt32(System.Numerics.Vector<float> value) { throw null; }
+        public static System.Numerics.Vector<double> ConvertToDouble(System.Numerics.Vector<long> value) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<double> ConvertToDouble(System.Numerics.Vector<ulong> value) { throw null; }
+        public static System.Numerics.Vector<long> ConvertToInt64(System.Numerics.Vector<double> value) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<ulong> ConvertToUInt64(System.Numerics.Vector<double> value) { throw null; }
         public static System.Numerics.Vector<T> Divide<T>(System.Numerics.Vector<T> left, System.Numerics.Vector<T> right) where T : struct { throw null; }
         public static T Dot<T>(System.Numerics.Vector<T> left, System.Numerics.Vector<T> right) where T : struct { throw null; }
         public static System.Numerics.Vector<long> Equals(System.Numerics.Vector<double> left, System.Numerics.Vector<double> right) { throw null; }
@@ -259,18 +267,43 @@ namespace System.Numerics
         public static System.Numerics.Vector<T> Multiply<T>(T left, System.Numerics.Vector<T> right) where T : struct { throw null; }
         public static System.Numerics.Vector<T> Multiply<T>(System.Numerics.Vector<T> left, T right) where T : struct { throw null; }
         public static System.Numerics.Vector<T> Multiply<T>(System.Numerics.Vector<T> left, System.Numerics.Vector<T> right) where T : struct { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<byte> Narrow(System.Numerics.Vector<ushort> source1, System.Numerics.Vector<ushort> source2) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<ushort> Narrow(System.Numerics.Vector<uint> source1, System.Numerics.Vector<uint> source2) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<uint> Narrow(System.Numerics.Vector<ulong> source1, System.Numerics.Vector<ulong> source2) { throw null; }
+        [System.CLSCompliant(false)]
+        public static System.Numerics.Vector<sbyte> Narrow(System.Numerics.Vector<short> source1, System.Numerics.Vector<short> source2) { throw null; }
+        public static System.Numerics.Vector<short> Narrow(System.Numerics.Vector<int> source1, System.Numerics.Vector<int> source2) { throw null; }
+        public static System.Numerics.Vector<int> Narrow(System.Numerics.Vector<long> source1, System.Numerics.Vector<long> source2) { throw null; }
+        public static System.Numerics.Vector<float> Narrow(System.Numerics.Vector<double> source1, System.Numerics.Vector<double> source2) { throw null; }
         public static System.Numerics.Vector<T> Negate<T>(System.Numerics.Vector<T> value) where T : struct { throw null; }
         public static System.Numerics.Vector<T> OnesComplement<T>(System.Numerics.Vector<T> value) where T : struct { throw null; }
         public static System.Numerics.Vector<T> SquareRoot<T>(System.Numerics.Vector<T> value) where T : struct { throw null; }
         public static System.Numerics.Vector<T> Subtract<T>(System.Numerics.Vector<T> left, System.Numerics.Vector<T> right) where T : struct { throw null; }
+        [System.CLSCompliant(false)]
+        public static void Widen(System.Numerics.Vector<byte> source, out System.Numerics.Vector<ushort> dest1, out System.Numerics.Vector<ushort> dest2) { dest1 = default(System.Numerics.Vector<ushort>); dest2 = default(System.Numerics.Vector<ushort>); }
+        [System.CLSCompliant(false)]
+        public static void Widen(System.Numerics.Vector<ushort> source, out System.Numerics.Vector<uint> dest1, out System.Numerics.Vector<uint> dest2) { dest1 = default(System.Numerics.Vector<uint>); dest2 = default(System.Numerics.Vector<uint>); }
+        [System.CLSCompliant(false)]
+        public static void Widen(System.Numerics.Vector<uint> source, out System.Numerics.Vector<ulong> dest1, out System.Numerics.Vector<ulong> dest2) { dest1 = default(System.Numerics.Vector<ulong>); dest2 = default(System.Numerics.Vector<ulong>); }
+        [System.CLSCompliant(false)]
+        public static void Widen(System.Numerics.Vector<sbyte> source, out System.Numerics.Vector<short> dest1, out System.Numerics.Vector<short> dest2) { dest1 = default(System.Numerics.Vector<short>); dest2 = default(System.Numerics.Vector<short>); }
+        public static void Widen(System.Numerics.Vector<short> source, out System.Numerics.Vector<int> dest1, out System.Numerics.Vector<int> dest2) { dest1 = default(System.Numerics.Vector<int>); dest2 = default(System.Numerics.Vector<int>); }
+        public static void Widen(System.Numerics.Vector<int> source, out System.Numerics.Vector<long> dest1, out System.Numerics.Vector<long> dest2) { dest1 = default(System.Numerics.Vector<long>); dest2 = default(System.Numerics.Vector<long>); }
+        public static void Widen(System.Numerics.Vector<float> source, out System.Numerics.Vector<double> dest1, out System.Numerics.Vector<double> dest2) { dest1 = default(System.Numerics.Vector<double>); dest2 = default(System.Numerics.Vector<double>); }
         public static System.Numerics.Vector<T> Xor<T>(System.Numerics.Vector<T> left, System.Numerics.Vector<T> right) where T : struct { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Vector<T> : System.IEquatable<System.Numerics.Vector<T>>, System.IFormattable where T : struct
     {
+        private int _dummy;
         public Vector(T value) { throw null; }
         public Vector(T[] values) { throw null; }
         public Vector(T[] values, int index) { throw null; }
+#if HAS_SPAN
+        public Vector(Span<T> values) { throw null; }
+#endif
         public static int Count { get { throw null; } }
         public T this[int index] { get { throw null; } }
         public static System.Numerics.Vector<T> One { get { throw null; } }
@@ -311,7 +344,6 @@ namespace System.Numerics
         public string ToString(string format) { throw null; }
         public string ToString(string format, System.IFormatProvider formatProvider) { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Vector2 : System.IEquatable<System.Numerics.Vector2>, System.IFormattable
     {
         public float X;
@@ -367,7 +399,6 @@ namespace System.Numerics
         public static System.Numerics.Vector2 TransformNormal(System.Numerics.Vector2 normal, System.Numerics.Matrix3x2 matrix) { throw null; }
         public static System.Numerics.Vector2 TransformNormal(System.Numerics.Vector2 normal, System.Numerics.Matrix4x4 matrix) { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Vector3 : System.IEquatable<System.Numerics.Vector3>, System.IFormattable
     {
         public float X;
@@ -425,7 +456,6 @@ namespace System.Numerics
         public static System.Numerics.Vector3 Transform(System.Numerics.Vector3 value, System.Numerics.Quaternion rotation) { throw null; }
         public static System.Numerics.Vector3 TransformNormal(System.Numerics.Vector3 normal, System.Numerics.Matrix4x4 matrix) { throw null; }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct Vector4 : System.IEquatable<System.Numerics.Vector4>, System.IFormattable
     {
         public float W;

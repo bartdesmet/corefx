@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
@@ -12,14 +12,14 @@ namespace System.Diagnostics
 {
     internal class StackTraceSymbols : IDisposable
     {
-        private readonly Dictionary<IntPtr, MetadataReaderProvider> _metadataCache;
+        private readonly ConcurrentDictionary<IntPtr, MetadataReaderProvider> _metadataCache;
 
         /// <summary>
         /// Create an instance of this class.
         /// </summary>
         public StackTraceSymbols()
         {
-            _metadataCache = new Dictionary<IntPtr, MetadataReaderProvider>();
+            _metadataCache = new ConcurrentDictionary<IntPtr, MetadataReaderProvider>();
         }
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace System.Diagnostics
         {
             foreach (MetadataReaderProvider provider in _metadataCache.Values)
             {
-                provider.Dispose();
+                provider?.Dispose();
             }
 
             _metadataCache.Clear();
@@ -121,27 +121,25 @@ namespace System.Diagnostics
             IntPtr cacheKey = (inMemoryPdbAddress != IntPtr.Zero) ? inMemoryPdbAddress : loadedPeAddress;
 
             MetadataReaderProvider provider;
-            if (_metadataCache.TryGetValue(cacheKey, out provider))
+            while (!_metadataCache.TryGetValue(cacheKey, out provider))
             {
-                return provider.GetMetadataReader();
+                provider = (inMemoryPdbAddress != IntPtr.Zero) ?
+                            TryOpenReaderForInMemoryPdb(inMemoryPdbAddress, inMemoryPdbSize) :
+                            TryOpenReaderFromAssemblyFile(assemblyPath, loadedPeAddress, loadedPeSize);
+
+                 // If the add loses the race with another thread, then the dispose the provider just 
+                 // created and return the provider already in the cache.
+                 if (_metadataCache.TryAdd(cacheKey, provider))
+                     break;
+
+                 provider?.Dispose();
             }
 
-            provider = (inMemoryPdbAddress != IntPtr.Zero) ?
-                TryOpenReaderForInMemoryPdb(inMemoryPdbAddress, inMemoryPdbSize) :
-                TryOpenReaderFromAssemblyFile(assemblyPath, loadedPeAddress, loadedPeSize);
-
-            if (provider == null)
-            {
-                return null;
-            }
-
-            _metadataCache.Add(cacheKey, provider);
-
-            // The reader has already been open, so this doesn't throw:
-            return provider.GetMetadataReader();
+            // The reader has already been open, so this doesn't throw.
+            return provider?.GetMetadataReader();
         }
 
-        private unsafe static MetadataReaderProvider TryOpenReaderForInMemoryPdb(IntPtr inMemoryPdbAddress, int inMemoryPdbSize)
+        private static unsafe MetadataReaderProvider TryOpenReaderForInMemoryPdb(IntPtr inMemoryPdbAddress, int inMemoryPdbSize)
         {
             Debug.Assert(inMemoryPdbAddress != IntPtr.Zero);
 
@@ -167,7 +165,7 @@ namespace System.Diagnostics
             }
         }
 
-        private unsafe static PEReader TryGetPEReader(string assemblyPath, IntPtr loadedPeAddress, int loadedPeSize)
+        private static unsafe PEReader TryGetPEReader(string assemblyPath, IntPtr loadedPeAddress, int loadedPeSize)
         {
             // TODO: https://github.com/dotnet/corefx/issues/11406
             //if (loadedPeAddress != IntPtr.Zero && loadedPeSize > 0)
@@ -198,7 +196,7 @@ namespace System.Diagnostics
                 if (peReader.TryOpenAssociatedPortablePdb(assemblyPath, TryOpenFile, out provider, out pdbPath))
                 {
                     // TODO: 
-                    // Consider caching the provider in a global cache (accross stack traces) if the PDB is embedded (pdbPath == null),
+                    // Consider caching the provider in a global cache (across stack traces) if the PDB is embedded (pdbPath == null),
                     // as decompressing embedded PDB takes some time.
                     return provider;
                 }

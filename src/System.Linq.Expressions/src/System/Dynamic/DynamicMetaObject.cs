@@ -3,9 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Dynamic.Utils;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace System.Dynamic
 {
@@ -15,7 +15,7 @@ namespace System.Dynamic
     public class DynamicMetaObject
     {
         /// <summary>
-        /// Represents an empty array of type <see cref="DynamicMetaObject"/>. This field is read only.
+        /// Represents an empty array of type <see cref="DynamicMetaObject"/>. This field is read-only.
         /// </summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2105:ArrayFieldsShouldNotBeReadOnly")]
         public static readonly DynamicMetaObject[] EmptyMetaObjects = Array.Empty<DynamicMetaObject>();
@@ -43,9 +43,12 @@ namespace System.Dynamic
         public DynamicMetaObject(Expression expression, BindingRestrictions restrictions, object value)
             : this(expression, restrictions)
         {
-            Value = value;
-            HasValue = true;
+            _value = value;
         }
+
+        // having sentinel value means having no value. (this way we do not need a separate hasValue field)
+        private static readonly object s_noValueSentinel = new object();
+        private readonly object _value = s_noValueSentinel;
 
         /// <summary>
         /// The expression representing the <see cref="DynamicMetaObject"/> during the dynamic binding process.
@@ -60,12 +63,12 @@ namespace System.Dynamic
         /// <summary>
         /// The runtime value represented by this <see cref="DynamicMetaObject"/>.
         /// </summary>
-        public object Value { get; }
+        public object Value => HasValue ? _value : null;
 
         /// <summary>
         /// Gets a value indicating whether the <see cref="DynamicMetaObject"/> has the runtime value.
         /// </summary>
-        public bool HasValue { get; }
+        public bool HasValue => _value != s_noValueSentinel;
 
         /// <summary>
         /// Gets the <see cref="Type"/> of the runtime value or null if the <see cref="DynamicMetaObject"/> has no value associated with it.
@@ -78,7 +81,7 @@ namespace System.Dynamic
                 {
                     Type ct = Expression.Type;
                     // valuetype at compile time, type cannot change.
-                    if (ct.GetTypeInfo().IsValueType)
+                    if (ct.IsValueType)
                     {
                         return ct;
                     }
@@ -244,10 +247,7 @@ namespace System.Dynamic
         /// </summary>
         /// <returns>The list of dynamic member names.</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate")]
-        public virtual IEnumerable<string> GetDynamicMemberNames()
-        {
-            return Array.Empty<string>();
-        }
+        public virtual IEnumerable<string> GetDynamicMemberNames() => Array.Empty<string>();
 
         /// <summary>
         /// Returns the list of expressions represented by the <see cref="DynamicMetaObject"/> instances.
@@ -264,7 +264,7 @@ namespace System.Dynamic
                 DynamicMetaObject mo = objects[i];
                 ContractUtils.RequiresNotNull(mo, nameof(objects));
                 Expression expr = mo.Expression;
-                ContractUtils.RequiresNotNull(expr, nameof(objects));
+                Debug.Assert(expr != null, "Unexpected null expression; ctor should have caught this.");
                 res[i] = expr;
             }
 

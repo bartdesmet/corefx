@@ -6,10 +6,9 @@ namespace System.Reflection {
     using System;
     using System.Runtime.Versioning;
 
-    [System.Runtime.InteropServices.ComVisible(true)]
     public class AssemblyNameProxy : MarshalByRefObject
     {
-        public AssemblyName GetAssemblyName(String assemblyFile)
+        public AssemblyName GetAssemblyName(string assemblyFile)
         {
             return AssemblyName.GetAssemblyName(assemblyFile);
         }

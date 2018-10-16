@@ -183,7 +183,7 @@ namespace System.Xml
 
         private bool CanOptimizeReadElementContent()
         {
-            return (_arrayState == ArrayState.None);
+            return (_arrayState == ArrayState.None && !Signing);
         }
 
         public override float ReadElementContentAsFloat()
@@ -364,6 +364,8 @@ namespace System.Xml
         {
             if (this.Node.ReadState == ReadState.Closed)
                 return false;
+
+            SignNode();
             if (_isTextWithEndElement)
             {
                 _isTextWithEndElement = false;
@@ -1003,11 +1005,14 @@ namespace System.Xml
         {
             byte[] buffer = new byte[5];
             buffer[0] = (byte)nodeType;
-            buffer[1] = (byte)length;
-            length >>= 8;
-            buffer[2] = (byte)length;
-            length >>= 8;
-            buffer[3] = (byte)length;
+            unchecked
+            {
+                buffer[1] = (byte)length;
+                length >>= 8;
+                buffer[2] = (byte)length;
+                length >>= 8;
+                buffer[3] = (byte)length;
+            }
             length >>= 8;
             buffer[4] = (byte)length;
             BufferReader.InsertBytes(buffer, 0, buffer.Length);
@@ -1153,13 +1158,13 @@ namespace System.Xml
                     type = typeof(bool);
                     break;
                 case XmlBinaryNodeType.Int16TextWithEndElement:
-                    type = typeof(Int16);
+                    type = typeof(short);
                     break;
                 case XmlBinaryNodeType.Int32TextWithEndElement:
-                    type = typeof(Int32);
+                    type = typeof(int);
                     break;
                 case XmlBinaryNodeType.Int64TextWithEndElement:
-                    type = typeof(Int64);
+                    type = typeof(long);
                     break;
                 case XmlBinaryNodeType.FloatTextWithEndElement:
                     type = typeof(float);
@@ -1201,12 +1206,12 @@ namespace System.Xml
 
         private bool IsStartArray(string localName, string namespaceUri, XmlBinaryNodeType nodeType)
         {
-            return IsStartElement(localName, namespaceUri) && _arrayState == ArrayState.Element && _arrayNodeType == nodeType;
+            return IsStartElement(localName, namespaceUri) && _arrayState == ArrayState.Element && _arrayNodeType == nodeType && !Signing;
         }
 
         private bool IsStartArray(XmlDictionaryString localName, XmlDictionaryString namespaceUri, XmlBinaryNodeType nodeType)
         {
-            return IsStartElement(localName, namespaceUri) && _arrayState == ArrayState.Element && _arrayNodeType == nodeType;
+            return IsStartElement(localName, namespaceUri) && _arrayState == ArrayState.Element && _arrayNodeType == nodeType && !Signing;
         }
 
         private void CheckArray(Array array, int offset, int count)
@@ -1249,11 +1254,11 @@ namespace System.Xml
             return base.ReadArray(localName, namespaceUri, array, offset, count);
         }
 
-        private unsafe int ReadArray(Int16[] array, int offset, int count)
+        private unsafe int ReadArray(short[] array, int offset, int count)
         {
             CheckArray(array, offset, count);
             int actual = Math.Min(count, _arrayCount);
-            fixed (Int16* items = &array[offset])
+            fixed (short* items = &array[offset])
             {
                 BufferReader.UnsafeReadArray((byte*)items, (byte*)&items[actual]);
             }
@@ -1261,25 +1266,25 @@ namespace System.Xml
             return actual;
         }
 
-        public override int ReadArray(string localName, string namespaceUri, Int16[] array, int offset, int count)
+        public override int ReadArray(string localName, string namespaceUri, short[] array, int offset, int count)
         {
             if (IsStartArray(localName, namespaceUri, XmlBinaryNodeType.Int16TextWithEndElement) && BitConverter.IsLittleEndian)
                 return ReadArray(array, offset, count);
             return base.ReadArray(localName, namespaceUri, array, offset, count);
         }
 
-        public override int ReadArray(XmlDictionaryString localName, XmlDictionaryString namespaceUri, Int16[] array, int offset, int count)
+        public override int ReadArray(XmlDictionaryString localName, XmlDictionaryString namespaceUri, short[] array, int offset, int count)
         {
             if (IsStartArray(localName, namespaceUri, XmlBinaryNodeType.Int16TextWithEndElement) && BitConverter.IsLittleEndian)
                 return ReadArray(array, offset, count);
             return base.ReadArray(localName, namespaceUri, array, offset, count);
         }
 
-        private unsafe int ReadArray(Int32[] array, int offset, int count)
+        private unsafe int ReadArray(int[] array, int offset, int count)
         {
             CheckArray(array, offset, count);
             int actual = Math.Min(count, _arrayCount);
-            fixed (Int32* items = &array[offset])
+            fixed (int* items = &array[offset])
             {
                 BufferReader.UnsafeReadArray((byte*)items, (byte*)&items[actual]);
             }
@@ -1287,25 +1292,25 @@ namespace System.Xml
             return actual;
         }
 
-        public override int ReadArray(string localName, string namespaceUri, Int32[] array, int offset, int count)
+        public override int ReadArray(string localName, string namespaceUri, int[] array, int offset, int count)
         {
             if (IsStartArray(localName, namespaceUri, XmlBinaryNodeType.Int32TextWithEndElement) && BitConverter.IsLittleEndian)
                 return ReadArray(array, offset, count);
             return base.ReadArray(localName, namespaceUri, array, offset, count);
         }
 
-        public override int ReadArray(XmlDictionaryString localName, XmlDictionaryString namespaceUri, Int32[] array, int offset, int count)
+        public override int ReadArray(XmlDictionaryString localName, XmlDictionaryString namespaceUri, int[] array, int offset, int count)
         {
             if (IsStartArray(localName, namespaceUri, XmlBinaryNodeType.Int32TextWithEndElement) && BitConverter.IsLittleEndian)
                 return ReadArray(array, offset, count);
             return base.ReadArray(localName, namespaceUri, array, offset, count);
         }
 
-        private unsafe int ReadArray(Int64[] array, int offset, int count)
+        private unsafe int ReadArray(long[] array, int offset, int count)
         {
             CheckArray(array, offset, count);
             int actual = Math.Min(count, _arrayCount);
-            fixed (Int64* items = &array[offset])
+            fixed (long* items = &array[offset])
             {
                 BufferReader.UnsafeReadArray((byte*)items, (byte*)&items[actual]);
             }
@@ -1313,14 +1318,14 @@ namespace System.Xml
             return actual;
         }
 
-        public override int ReadArray(string localName, string namespaceUri, Int64[] array, int offset, int count)
+        public override int ReadArray(string localName, string namespaceUri, long[] array, int offset, int count)
         {
             if (IsStartArray(localName, namespaceUri, XmlBinaryNodeType.Int64TextWithEndElement) && BitConverter.IsLittleEndian)
                 return ReadArray(array, offset, count);
             return base.ReadArray(localName, namespaceUri, array, offset, count);
         }
 
-        public override int ReadArray(XmlDictionaryString localName, XmlDictionaryString namespaceUri, Int64[] array, int offset, int count)
+        public override int ReadArray(XmlDictionaryString localName, XmlDictionaryString namespaceUri, long[] array, int offset, int count)
         {
             if (IsStartArray(localName, namespaceUri, XmlBinaryNodeType.Int64TextWithEndElement) && BitConverter.IsLittleEndian)
                 return ReadArray(array, offset, count);
@@ -1491,6 +1496,11 @@ namespace System.Xml
             None,
             Element,
             Content
+        }
+
+        protected override XmlSigningNodeWriter CreateSigningNodeWriter()
+        {
+            return new XmlSigningNodeWriter(false);
         }
     }
 }

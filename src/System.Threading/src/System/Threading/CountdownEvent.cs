@@ -346,7 +346,7 @@ namespace System.Threading
                 {
                     return false;
                 }
-                else if (observedCount > (Int32.MaxValue - signalCount))
+                else if (observedCount > (int.MaxValue - signalCount))
                 {
                     throw new InvalidOperationException(SR.CountdownEvent_Increment_AlreadyMax);
                 }
@@ -375,7 +375,7 @@ namespace System.Threading
         /// thread-safe and may not be used concurrently with other members of this instance.
         /// </remarks>
         /// <exception cref="T:System.ObjectDisposedException">The current instance has already been
-        /// disposed..</exception>
+        /// disposed.</exception>
         public void Reset()
         {
             Reset(_initialCount);
@@ -392,7 +392,7 @@ namespace System.Threading
         /// </remarks>
         /// <exception cref="T:System.ArgumentOutOfRangeException"><paramref name="count"/> is
         /// less than 0.</exception>
-        /// <exception cref="T:System.ObjectDisposedException">The current instance has alread been disposed.</exception>
+        /// <exception cref="T:System.ObjectDisposedException">The current instance has already been disposed.</exception>
         public void Reset(int count)
         {
             ThrowIfDisposed();

@@ -15,12 +15,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
-using System.Security;
 using System.Threading.Tasks.Dataflow.Internal;
+
+#if USE_INTERNAL_THREADING
 using System.Threading.Tasks.Dataflow.Internal.Threading;
+#endif
 
 namespace System.Threading.Tasks.Dataflow
 {
@@ -132,39 +132,11 @@ namespace System.Threading.Tasks.Dataflow
             {
                 Debug.Assert(_userProvidedPredicate != null, "User-provided predicate is required.");
 
-                return _userProvidedPredicate(item); // avoid state object allocation if execution context isn't needed
-            }
-
-            /// <summary>Manually closes over state necessary in FilteredLinkPropagator.</summary>
-            private sealed class PredicateContextState
-            {
-                /// <summary>The input to be filtered.</summary>
-                internal readonly T Input;
-                /// <summary>The predicate function.</summary>
-                internal readonly Predicate<T> Predicate;
-                /// <summary>The result of the filtering operation.</summary>
-                internal bool Output;
-
-                /// <summary>Initializes the predicate state.</summary>
-                /// <param name="input">The input to be filtered.</param>
-                /// <param name="predicate">The predicate function.</param>
-                internal PredicateContextState(T input, Predicate<T> predicate)
-                {
-                    Debug.Assert(predicate != null, "A predicate with which to filter is required.");
-                    this.Input = input;
-                    this.Predicate = predicate;
-                }
-
-                /// <summary>Runs the predicate function over the input and stores the result into the output.</summary>
-                internal void Run()
-                {
-                    Debug.Assert(Predicate != null, "Non-null predicate required");
-                    Output = Predicate(Input);
-                }
+                return _userProvidedPredicate(item);
             }
 
             /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Targets/Member[@name="OfferMessage"]/*' />
-            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, Boolean consumeToAccept)
+            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
             {
                 // Validate arguments.  Some targets may have a null source, but FilteredLinkPropagator
                 // is an internal target that should only ever have source non-null.
@@ -185,7 +157,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-            T ISourceBlock<T>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<T> target, out Boolean messageConsumed)
+            T ISourceBlock<T>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<T> target, out bool messageConsumed)
             {
                 // This message should have only made it to the target if it passes the filter, so we shouldn't need to check again.
                 // The real source will also be doing verifications, so we don't need to validate args here.
@@ -275,7 +247,7 @@ namespace System.Threading.Tasks.Dataflow
         /// which will return immediately and will enable the target to postpone the posted message and later consume it 
         /// after SendAsync returns.
         /// </remarks>
-        public static Boolean Post<TInput>(this ITargetBlock<TInput> target, TInput item)
+        public static bool Post<TInput>(this ITargetBlock<TInput> target, TInput item)
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
             return target.OfferMessage(Common.SingleMessageHeader, item, source: null, consumeToAccept: false) == DataflowMessageStatus.Accepted;
@@ -296,7 +268,7 @@ namespace System.Threading.Tasks.Dataflow
         /// never attempts to consume or release the message, the returned task will never complete.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">The <paramref name="target"/> is null (Nothing in Visual Basic).</exception>
-        public static Task<Boolean> SendAsync<TInput>(this ITargetBlock<TInput> target, TInput item)
+        public static Task<bool> SendAsync<TInput>(this ITargetBlock<TInput> target, TInput item)
         {
             return SendAsync<TInput>(target, item, CancellationToken.None);
         }
@@ -324,7 +296,7 @@ namespace System.Threading.Tasks.Dataflow
         /// </returns>
         /// <exception cref="System.ArgumentNullException">The <paramref name="target"/> is null (Nothing in Visual Basic).</exception>
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
-        public static Task<Boolean> SendAsync<TInput>(this ITargetBlock<TInput> target, TInput item, CancellationToken cancellationToken)
+        public static Task<bool> SendAsync<TInput>(this ITargetBlock<TInput> target, TInput item, CancellationToken cancellationToken)
         {
             // Validate arguments.  No validation necessary for item.
             if (target == null) throw new ArgumentNullException(nameof(target));
@@ -385,7 +357,7 @@ namespace System.Threading.Tasks.Dataflow
         /// <remarks>This source must only be passed to a single target, and must only be used once.</remarks>
         [DebuggerDisplay("{DebuggerDisplayContent,nq}")]
         [DebuggerTypeProxy(typeof(SendAsyncSource<>.DebugView))]
-        private sealed class SendAsyncSource<TOutput> : TaskCompletionSource<Boolean>, ISourceBlock<TOutput>, IDebuggerDisplay
+        private sealed class SendAsyncSource<TOutput> : TaskCompletionSource<bool>, ISourceBlock<TOutput>, IDebuggerDisplay
         {
             /// <summary>The target to offer to.</summary>
             private readonly ITargetBlock<TOutput> _target;
@@ -568,7 +540,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <summary>Cached delegate used to cancel a send in response to a cancellation request.</summary>
-            private readonly static Action<object> _cancellationCallback = CancellationHandler;
+            private static readonly Action<object> _cancellationCallback = CancellationHandler;
 
             /// <summary>Attempts to cancel the source passed as state in response to a cancellation request.</summary>
             /// <param name="state">
@@ -656,7 +628,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <summary>Called by the target to consume the buffered message.</summary>
-            TOutput ISourceBlock<TOutput>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out Boolean messageConsumed)
+            TOutput ISourceBlock<TOutput>.ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out bool messageConsumed)
             {
                 // Validate arguments
                 if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
@@ -1157,7 +1129,7 @@ namespace System.Threading.Tasks.Dataflow
         {
             /// <summary>Cached delegate used in ReceiveCoreByLinking on the created timer.  Passed the ReceiveTarget as the argument.</summary>
             /// <remarks>The C# compiler will not cache this delegate by default due to it being a generic method on a non-generic class.</remarks>
-            internal readonly static TimerCallback CachedLinkingTimerCallback = state =>
+            internal static readonly TimerCallback CachedLinkingTimerCallback = state =>
             {
                 var receiveTarget = (ReceiveTarget<T>)state;
                 receiveTarget.TryCleanupAndComplete(ReceiveCoreByLinkingCleanupReason.Timer);
@@ -1165,7 +1137,7 @@ namespace System.Threading.Tasks.Dataflow
 
             /// <summary>Cached delegate used in ReceiveCoreByLinking on the cancellation token. Passed the ReceiveTarget as the state argument.</summary>
             /// <remarks>The C# compiler will not cache this delegate by default due to it being a generic method on a non-generic class.</remarks>
-            internal readonly static Action<object> CachedLinkingCancellationCallback = state =>
+            internal static readonly Action<object> CachedLinkingCancellationCallback = state =>
             {
                 var receiveTarget = (ReceiveTarget<T>)state;
                 receiveTarget.TryCleanupAndComplete(ReceiveCoreByLinkingCleanupReason.Cancellation);
@@ -1197,7 +1169,7 @@ namespace System.Threading.Tasks.Dataflow
 
             /// <summary>Offers a message to be used to complete the TaskCompletionSource.</summary>
             [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
-            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, Boolean consumeToAccept)
+            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
             {
                 // Validate arguments
                 if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
@@ -1375,13 +1347,12 @@ namespace System.Threading.Tasks.Dataflow
                         if (_receivedException == null) _receivedException = CreateExceptionForTimeout();
                         goto case ReceiveCoreByLinkingCleanupReason.SourceProtocolError;
                     case ReceiveCoreByLinkingCleanupReason.SourceProtocolError:
-                    case ReceiveCoreByLinkingCleanupReason.ErrorDuringCleanup:
-                        Debug.Assert(_receivedException != null, "We need an exception with which to fault the task.");
+                    case ReceiveCoreByLinkingCleanupReason.ErrorDuringCleanup:                        
                         System.Threading.Tasks.Task.Factory.StartNew(state =>
                         {
                             // Complete with the received exception
                             var target = (ReceiveTarget<T>)state;
-                            try { target.TrySetException(target._receivedException ?? new Exception()); }
+                            try { target.TrySetException(target._receivedException ?? new InvalidOperationException(SR.InvalidOperation_ErrorDuringCleanup)); }
                             catch (ObjectDisposedException) { /* benign race if returned task is already disposed */ }
                         }, this, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default);
                         break;
@@ -1538,7 +1509,7 @@ namespace System.Threading.Tasks.Dataflow
             /// Cached continuation delegate that unregisters from cancellation and
             /// marshals the antecedent's result to the return value.
             /// </summary>
-            internal readonly static Func<Task<bool>, object, bool> s_handleCompletion = (antecedent, state) =>
+            internal static readonly Func<Task<bool>, object, bool> s_handleCompletion = (antecedent, state) =>
             {
                 var target = state as OutputAvailableAsyncTarget<T>;
                 Debug.Assert(target != null, "Expected non-null target");
@@ -1550,7 +1521,7 @@ namespace System.Threading.Tasks.Dataflow
             /// Cached delegate that cancels the target and unlinks the target from the source.
             /// Expects an OutputAvailableAsyncTarget as the state argument. 
             /// </summary>
-            internal readonly static Action<object> s_cancelAndUnlink = CancelAndUnlink;
+            internal static readonly Action<object> s_cancelAndUnlink = CancelAndUnlink;
 
             /// <summary>Cancels the target and unlinks the target from the source.</summary>
             /// <param name="state">An OutputAvailableAsyncTarget.</param>
@@ -1588,7 +1559,7 @@ namespace System.Threading.Tasks.Dataflow
             internal CancellationTokenRegistration _ctr;
 
             /// <summary>Completes the task when offered a message (but doesn't consume the message).</summary>
-            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, Boolean consumeToAccept)
+            DataflowMessageStatus ITargetBlock<T>.OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
             {
                 if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
                 if (source == null) throw new ArgumentNullException(nameof(source));
@@ -1721,7 +1692,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Sources/Member[@name="ConsumeMessage"]/*' />
-            public TOutput ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out Boolean messageConsumed)
+            public TOutput ConsumeMessage(DataflowMessageHeader messageHeader, ITargetBlock<TOutput> target, out bool messageConsumed)
             {
                 return _source.ConsumeMessage(messageHeader, target, out messageConsumed);
             }
@@ -1804,7 +1775,7 @@ namespace System.Threading.Tasks.Dataflow
         /// <exception cref="System.ArgumentNullException">The <paramref name="action1"/> is null (Nothing in Visual Basic).</exception>
         /// <exception cref="System.ArgumentNullException">The <paramref name="source2"/> is null (Nothing in Visual Basic).</exception>
         /// <exception cref="System.ArgumentNullException">The <paramref name="action2"/> is null (Nothing in Visual Basic).</exception>
-        public static Task<Int32> Choose<T1, T2>(
+        public static Task<int> Choose<T1, T2>(
             ISourceBlock<T1> source1, Action<T1> action1,
             ISourceBlock<T2> source2, Action<T2> action2)
         {
@@ -1843,7 +1814,7 @@ namespace System.Threading.Tasks.Dataflow
         /// <exception cref="System.ArgumentNullException">The <paramref name="action2"/> is null (Nothing in Visual Basic).</exception>
         /// <exception cref="System.ArgumentNullException">The <paramref name="dataflowBlockOptions"/> is null (Nothing in Visual Basic).</exception>
         [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope")]
-        public static Task<Int32> Choose<T1, T2>(
+        public static Task<int> Choose<T1, T2>(
             ISourceBlock<T1> source1, Action<T1> action1,
             ISourceBlock<T2> source2, Action<T2> action2,
             DataflowBlockOptions dataflowBlockOptions)
@@ -1890,7 +1861,7 @@ namespace System.Threading.Tasks.Dataflow
         /// <exception cref="System.ArgumentNullException">The <paramref name="action2"/> is null (Nothing in Visual Basic).</exception>
         /// <exception cref="System.ArgumentNullException">The <paramref name="source3"/> is null (Nothing in Visual Basic).</exception>
         /// <exception cref="System.ArgumentNullException">The <paramref name="action3"/> is null (Nothing in Visual Basic).</exception>
-        public static Task<Int32> Choose<T1, T2, T3>(
+        public static Task<int> Choose<T1, T2, T3>(
             ISourceBlock<T1> source1, Action<T1> action1,
             ISourceBlock<T2> source2, Action<T2> action2,
             ISourceBlock<T3> source3, Action<T3> action3)
@@ -1934,7 +1905,7 @@ namespace System.Threading.Tasks.Dataflow
         /// <exception cref="System.ArgumentNullException">The <paramref name="action3"/> is null (Nothing in Visual Basic).</exception>
         /// <exception cref="System.ArgumentNullException">The <paramref name="dataflowBlockOptions"/> is null (Nothing in Visual Basic).</exception>
         [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope")]
-        public static Task<Int32> Choose<T1, T2, T3>(
+        public static Task<int> Choose<T1, T2, T3>(
             ISourceBlock<T1> source1, Action<T1> action1,
             ISourceBlock<T2> source2, Action<T2> action2,
             ISourceBlock<T3> source3, Action<T3> action3,
@@ -1968,7 +1939,7 @@ namespace System.Threading.Tasks.Dataflow
         /// <param name="dataflowBlockOptions">The options with which to configure this choice.</param>
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
         [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope")]
-        private static Task<Int32> ChooseCore<T1, T2, T3>(
+        private static Task<int> ChooseCore<T1, T2, T3>(
             ISourceBlock<T1> source1, Action<T1> action1,
             ISourceBlock<T2> source2, Action<T2> action2,
             ISourceBlock<T3> source3, Action<T3> action3,
@@ -2055,7 +2026,7 @@ namespace System.Threading.Tasks.Dataflow
         /// <param name="dataflowBlockOptions">The options with which to configure this choice.</param>
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
         [SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope")]
-        private static Task<Int32> ChooseCoreByLinking<T1, T2, T3>(
+        private static Task<int> ChooseCoreByLinking<T1, T2, T3>(
             ISourceBlock<T1> source1, Action<T1> action1,
             ISourceBlock<T2> source2, Action<T2> action2,
             ISourceBlock<T3> source3, Action<T3> action3,
@@ -2251,7 +2222,7 @@ namespace System.Threading.Tasks.Dataflow
             }
 
             /// <summary>Called when this choice branch is being offered a message.</summary>
-            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, Boolean consumeToAccept)
+            public DataflowMessageStatus OfferMessage(DataflowMessageHeader messageHeader, T messageValue, ISourceBlock<T> source, bool consumeToAccept)
             {
                 // Validate arguments
                 if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
@@ -2779,7 +2750,7 @@ namespace System.Threading.Tasks.Dataflow
             private Task _completion;
 
             /// <include file='XmlDocs/CommonXmlDocComments.xml' path='CommonXmlDocComments/Targets/Member[@name="OfferMessage"]/*' />
-            DataflowMessageStatus ITargetBlock<TInput>.OfferMessage(DataflowMessageHeader messageHeader, TInput messageValue, ISourceBlock<TInput> source, Boolean consumeToAccept)
+            DataflowMessageStatus ITargetBlock<TInput>.OfferMessage(DataflowMessageHeader messageHeader, TInput messageValue, ISourceBlock<TInput> source, bool consumeToAccept)
             {
                 if (!messageHeader.IsValid) throw new ArgumentException(SR.Argument_InvalidMessageHeader, nameof(messageHeader));
                 Contract.EndContractBlock();

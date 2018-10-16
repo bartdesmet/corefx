@@ -16,7 +16,7 @@
     <Rule Id="CA1036" Action="None" /> <!-- Overload comparison operators when implementing System.IComparable -->
     <Rule Id="CA1715" Action="None" /> <!-- Type parameters names should be prefixed with T -->
     <Rule Id="CA2213" Action="None" /> <!-- Disposable Fields should be disposed -->
-    <Rule Id="CA2229" Action="None" /> <!-- Serializable type doesn't have a serialization constructor -->
+    <Rule Id="CA2229" Action="Error" /> <!-- Serializable type doesn't have a serialization constructor -->
     <Rule Id="CA2235" Action="None" /> <!-- Serializable type has non serializable field -->
     <Rule Id="CA2231" Action="None" /> <!-- Overload operator equals when overriding ValueType.Equals -->
     <Rule Id="CA2237" Action="None" /> <!-- Add [Serializable] to types that implement ISerializable -->
@@ -29,13 +29,14 @@
     <Rule Id="CA2214" Action="None" /> <!-- Do not call overridable methods in constructors -->
   </Rules>
   <Rules AnalyzerId="System.Runtime.Analyzers" RuleNamespace="System.Runtime.Analyzers">
-    <Rule Id="CA2002" Action="None" /> <!-- Do not lock on objects with weak identity -->
-  </Rules>
-  <Rules AnalyzerId="System.Runtime.CSharp.Analyzers" RuleNamespace="System.Runtime.CSharp.Analyzers">
-    <Rule Id="CA2002" Action="None" /> <!-- Do not lock on objects with weak identity -->
+    <Rule Id="CA2002" Action="Error" /> <!-- Do not lock on objects with weak identity -->
   </Rules>
   <Rules AnalyzerId="System.Security.Cryptography.Hashing.Algorithms.Analyzers" RuleNamespace="System.Security.Cryptography.Hashing.Algorithms.Analyzers">
     <Rule Id="CA5350" Action="Error" /> <!-- Do not use Weak/Broken cryptographic algorithms -->
     <Rule Id="CA5351" Action="Error" />
+  </Rules>
+  <Rules AnalyzerId="Microsoft.AnalyzerPowerPack.CSharp" RuleNamespace="Microsoft.AnalyzerPowerPack.CSharp">
+    <!-- Disable analyzer warning 1821 until https://github.com/dotnet/roslyn-analyzers/issues/1804 is resolved -->
+    <Rule Id="CA1821" Action="None" />
   </Rules>
 </RuleSet>

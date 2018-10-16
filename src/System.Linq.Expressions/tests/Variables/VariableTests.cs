@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -40,23 +38,23 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void VariableCannotBeTypeVoid()
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(typeof(void)));
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(typeof(void), "var"));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(typeof(void)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(typeof(void), "var"));
         }
 
         [Fact]
         public void NullType()
         {
-            Assert.Throws<ArgumentNullException>("type", () => Expression.Variable(null));
-            Assert.Throws<ArgumentNullException>("type", () => Expression.Variable(null, "var"));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.Variable(null));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.Variable(null, "var"));
         }
 
         [Theory]
         [MemberData(nameof(ByRefTypeData))]
         public void VariableCannotBeByRef(Type type)
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(type));
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(type, "var"));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(type));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(type, "var"));
         }
 
         [Theory]
@@ -98,22 +96,22 @@ namespace System.Linq.Expressions.Tests
             ParameterExpression variable = Expression.Variable(typeof(int));
             Assert.False(variable.CanReduce);
             Assert.Same(variable, variable.Reduce());
-            Assert.Throws<ArgumentException>(null, () => variable.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => variable.ReduceAndCheck());
         }
 
         [Theory]
         [ClassData(typeof(InvalidTypesData))]
         public void OpenGenericType_ThrowsArgumentException(Type type)
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(type));
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(type, "name"));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(type));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(type, "name"));
         }
 
         [Fact]
         public void CannotBePointerType()
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(typeof(int*)));
-            Assert.Throws<ArgumentException>("type", () => Expression.Variable(typeof(int*), "pointer"));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(typeof(int*)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Variable(typeof(int*), "pointer"));
         }
     }
 }

@@ -3,19 +3,22 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 
 namespace System.Collections
 {
     // A vector of bits.  Use this to store bits efficiently, without having to do bit 
     // shifting yourself.
-    [System.Runtime.InteropServices.ComVisible(true)]
     [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public sealed class BitArray : ICollection, ICloneable
     {
-        private BitArray()
-        {
-        }
+        private int[] m_array; // Do not rename (binary serialization)
+        private int m_length; // Do not rename (binary serialization)
+        private int _version; // Do not rename (binary serialization)
+        [NonSerialized]
+        private object _syncRoot;
+
+        private const int _ShrinkThreshold = 256;
 
         /*=========================================================================
         ** Allocates space to hold length bit values. All of the values in the bit
@@ -40,7 +43,6 @@ namespace System.Collections
             {
                 throw new ArgumentOutOfRangeException(nameof(length), length, SR.ArgumentOutOfRange_NeedNonNegNum);
             }
-            Contract.EndContractBlock();
 
             m_array = new int[GetArrayLength(length, BitsPerInt32)];
             m_length = length;
@@ -68,7 +70,7 @@ namespace System.Collections
             {
                 throw new ArgumentNullException(nameof(bytes));
             }
-            Contract.EndContractBlock();
+
             // this value is chosen to prevent overflow when computing m_length.
             // m_length is of type int32 and is exposed as a property, so 
             // type of m_length can't be changed to accommodate.
@@ -118,7 +120,6 @@ namespace System.Collections
             {
                 throw new ArgumentNullException(nameof(values));
             }
-            Contract.EndContractBlock();
 
             m_array = new int[GetArrayLength(values.Length, BitsPerInt32)];
             m_length = values.Length;
@@ -146,7 +147,7 @@ namespace System.Collections
             {
                 throw new ArgumentNullException(nameof(values));
             }
-            Contract.EndContractBlock();
+
             // this value is chosen to prevent overflow when computing m_length
             if (values.Length > int.MaxValue / BitsPerInt32)
             {
@@ -171,7 +172,6 @@ namespace System.Collections
             {
                 throw new ArgumentNullException(nameof(bits));
             }
-            Contract.EndContractBlock();
 
             int arrayLength = GetArrayLength(bits.m_length, BitsPerInt32);
 
@@ -206,7 +206,6 @@ namespace System.Collections
             {
                 throw new ArgumentOutOfRangeException(nameof(index), index, SR.ArgumentOutOfRange_Index);
             }
-            Contract.EndContractBlock();
 
             return (m_array[index / 32] & (1 << (index % 32))) != 0;
         }
@@ -223,7 +222,6 @@ namespace System.Collections
             {
                 throw new ArgumentOutOfRangeException(nameof(index), index, SR.ArgumentOutOfRange_Index);
             }
-            Contract.EndContractBlock();
 
             if (value)
             {
@@ -264,7 +262,6 @@ namespace System.Collections
                 throw new ArgumentNullException(nameof(value));
             if (Length != value.Length)
                 throw new ArgumentException(SR.Arg_ArrayLengthsDiffer);
-            Contract.EndContractBlock();
 
             int ints = GetArrayLength(m_length, BitsPerInt32);
             for (int i = 0; i < ints; i++)
@@ -288,7 +285,6 @@ namespace System.Collections
                 throw new ArgumentNullException(nameof(value));
             if (Length != value.Length)
                 throw new ArgumentException(SR.Arg_ArrayLengthsDiffer);
-            Contract.EndContractBlock();
 
             int ints = GetArrayLength(m_length, BitsPerInt32);
             for (int i = 0; i < ints; i++)
@@ -312,7 +308,6 @@ namespace System.Collections
                 throw new ArgumentNullException(nameof(value));
             if (Length != value.Length)
                 throw new ArgumentException(SR.Arg_ArrayLengthsDiffer);
-            Contract.EndContractBlock();
 
             int ints = GetArrayLength(m_length, BitsPerInt32);
             for (int i = 0; i < ints; i++)
@@ -341,11 +336,130 @@ namespace System.Collections
             return this;
         }
 
+        /*=========================================================================
+        ** Shift all the bit values to right on count bits. The current instance is
+        ** updated and returned.
+        * 
+        ** Exceptions: ArgumentOutOfRangeException if count < 0
+        =========================================================================*/
+        public BitArray RightShift(int count)
+        {
+            if (count <= 0)
+            {
+                if (count < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(count), count, SR.ArgumentOutOfRange_NeedNonNegNum);
+                }
+
+                _version++;
+                return this;
+            }
+
+            int toIndex = 0;
+            int ints = GetArrayLength(m_length, BitsPerInt32);
+            if (count < m_length)
+            {
+                int shiftCount;
+                // We can not use Math.DivRem without taking a dependency on System.Runtime.Extensions
+                int fromIndex = count / BitsPerInt32;
+                shiftCount = count - fromIndex * BitsPerInt32; // Optimized Rem
+
+                if (shiftCount == 0)
+                {
+                    unchecked
+                    {
+                        uint mask = uint.MaxValue >> (BitsPerInt32 - m_length % BitsPerInt32);
+                        m_array[ints - 1] &= (int)mask;
+                    }
+                    Array.Copy(m_array, fromIndex, m_array, 0, ints - fromIndex);
+                    toIndex = ints - fromIndex;
+                }
+                else
+                {
+                    int lastIndex = ints - 1;
+                    unchecked
+                    {
+                        while (fromIndex < lastIndex)
+                        {
+                            uint right = (uint)m_array[fromIndex] >> shiftCount;
+                            int left = m_array[++fromIndex] << (BitsPerInt32 - shiftCount);
+                            m_array[toIndex++] = left | (int)right;
+                        }
+                        uint mask = uint.MaxValue >> (BitsPerInt32 - m_length % BitsPerInt32);
+                        mask &= (uint)m_array[fromIndex];
+                        m_array[toIndex++] = (int)(mask >> shiftCount);
+                    }
+                }
+            }
+
+            Array.Clear(m_array, toIndex, ints - toIndex);
+            _version++;
+            return this;
+        }
+
+        /*=========================================================================
+        ** Shift all the bit values to left on count bits. The current instance is
+        ** updated and returned.
+        * 
+        ** Exceptions: ArgumentOutOfRangeException if count < 0
+        =========================================================================*/
+        public BitArray LeftShift(int count)
+        {
+            if (count <= 0)
+            {
+                if (count < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(count), count, SR.ArgumentOutOfRange_NeedNonNegNum);
+                }
+
+                _version++;
+                return this;
+            }
+
+            int lengthToClear;
+            if (count < m_length)
+            {
+                int lastIndex = (m_length - 1) / BitsPerInt32;
+
+                int shiftCount;
+                // We can not use Math.DivRem without taking a dependency on System.Runtime.Extensions
+                lengthToClear = count / BitsPerInt32;
+                shiftCount = count - lengthToClear * BitsPerInt32; // Optimized Rem
+
+                if (shiftCount == 0)
+                {
+                    Array.Copy(m_array, 0, m_array, lengthToClear, lastIndex + 1 - lengthToClear);
+                }
+                else
+                {
+                    int fromindex = lastIndex - lengthToClear;
+                    unchecked
+                    {
+                        while (fromindex > 0)
+                        {
+                            int left = m_array[fromindex] << shiftCount;
+                            uint right = (uint)m_array[--fromindex] >> (BitsPerInt32 - shiftCount);
+                            m_array[lastIndex] = left | (int)right;
+                            lastIndex--;
+                        }
+                        m_array[lastIndex] = m_array[fromindex] << shiftCount;
+                    }
+                }
+            }
+            else
+            {
+                lengthToClear = GetArrayLength(m_length, BitsPerInt32); // Clear all
+            }
+
+            Array.Clear(m_array, 0, lengthToClear);
+            _version++;
+            return this;
+        }
+
         public int Length
         {
             get
             {
-                Contract.Ensures(Contract.Result<int>() >= 0);
                 return m_length;
             }
             set
@@ -354,7 +468,6 @@ namespace System.Collections
                 {
                     throw new ArgumentOutOfRangeException(nameof(value), value, SR.ArgumentOutOfRange_NeedNonNegNum);
                 }
-                Contract.EndContractBlock();
 
                 int newints = GetArrayLength(value, BitsPerInt32);
                 if (newints > m_array.Length || newints + _ShrinkThreshold < m_array.Length)
@@ -393,8 +506,6 @@ namespace System.Collections
             if (array.Rank != 1)
                 throw new ArgumentException(SR.Arg_RankMultiDimNotSupported, nameof(array));
 
-            Contract.EndContractBlock();
-
             int[] intArray = array as int[];
             if (intArray != null)
             {
@@ -412,7 +523,7 @@ namespace System.Collections
                     Array.Copy(m_array, 0, intArray, index, GetArrayLength(m_length, BitsPerInt32) - 1);
 
                     // the last int needs to be masked
-                    intArray[index + last] = m_array[last] & ((1 << extraBits) - 1);
+                    intArray[index + last] = m_array[last] & unchecked((1 << extraBits) - 1);
                 }
             }
             else if (array is byte[])
@@ -459,13 +570,11 @@ namespace System.Collections
         {
             get
             {
-                Contract.Ensures(Contract.Result<int>() >= 0);
-
                 return m_length;
             }
         }
 
-        public Object SyncRoot
+        public object SyncRoot
         {
             get
             {
@@ -529,7 +638,6 @@ namespace System.Collections
             return n > 0 ? (((n - 1) / div) + 1) : 0;
         }
 
-        [Serializable]
         private class BitArrayEnumeratorSimple : IEnumerator, ICloneable
         {
             private BitArray bitarray;
@@ -583,13 +691,5 @@ namespace System.Collections
                 index = -1;
             }
         }
-
-        private int[] m_array;
-        private int m_length;
-        private int _version;
-        [NonSerialized]
-        private object _syncRoot;
-
-        private const int _ShrinkThreshold = 256;
     }
 }

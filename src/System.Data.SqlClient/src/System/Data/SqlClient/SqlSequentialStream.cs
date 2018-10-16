@@ -30,7 +30,7 @@ namespace System.Data.SqlClient
             // Safely convert the CommandTimeout from seconds to milliseconds
             if ((reader.Command != null) && (reader.Command.CommandTimeout != 0))
             {
-                _readTimeout = (int)Math.Min((long)reader.Command.CommandTimeout * 1000L, (long)Int32.MaxValue);
+                _readTimeout = (int)Math.Min((long)reader.Command.CommandTimeout * 1000L, (long)int.MaxValue);
             }
             else
             {
@@ -229,6 +229,12 @@ namespace System.Data.SqlClient
 
             return completion.Task;
         }
+
+        public override IAsyncResult BeginRead(byte[] array, int offset, int count, AsyncCallback asyncCallback, object asyncState) =>
+            TaskToApm.Begin(ReadAsync(array, offset, count, CancellationToken.None), asyncCallback, asyncState);
+
+        public override int EndRead(IAsyncResult asyncResult) =>
+            TaskToApm.End<int>(asyncResult);
 
         public override long Seek(long offset, IO.SeekOrigin origin)
         {

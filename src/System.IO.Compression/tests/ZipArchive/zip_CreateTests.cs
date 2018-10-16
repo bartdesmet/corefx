@@ -5,7 +5,7 @@
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.NetCore.Extensions;
+using Microsoft.DotNet.XUnitExtensions;
 
 namespace System.IO.Compression.Tests
 {
@@ -53,38 +53,66 @@ namespace System.IO.Compression.Tests
         }
 
         [Theory]
-        [InlineData("small", true)]
-        [InlineData("small", false)]
-        [InlineData("normal", true)]
-        [InlineData("normal", false)]
-        [InlineData("empty", true)]
-        [InlineData("empty", false)]
-        [InlineData("emptydir", true)]
-        [InlineData("emptydir", false)]
-        public static async Task CreateNormal(string folder, bool seekable)
+        [InlineData("small", false, false)]
+        [InlineData("normal", false, false)]
+        [InlineData("empty", false, false)]
+        [InlineData("emptydir", false, false)]
+        [InlineData("small", true, false)]
+        [InlineData("normal", true, false)]
+        [InlineData("small", false, true)]
+        [InlineData("normal", false, true)]
+        public static async Task CreateNormal_Seekable(string folder, bool useSpansForWriting, bool writeInChunks)
         {
             using (var s = new MemoryStream())
             {
-                var testStream = new WrappedStream(s, false, true, seekable, null);
+                var testStream = new WrappedStream(s, false, true, true, null);
+                await CreateFromDir(zfolder(folder), testStream, ZipArchiveMode.Create, useSpansForWriting, writeInChunks);
+
+                IsZipSameAsDir(s, zfolder(folder), ZipArchiveMode.Read, requireExplicit: true, checkTimes: true);
+            }
+        }
+
+        [Theory]
+        [InlineData("small")]
+        [InlineData("normal")]
+        [InlineData("empty")]
+        [InlineData("emptydir")]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full Framework does not allow unseekable streams.")]
+        public static async Task CreateNormal_Unseekable(string folder)
+        {
+            using (var s = new MemoryStream())
+            {
+                var testStream = new WrappedStream(s, false, true, false, null);
                 await CreateFromDir(zfolder(folder), testStream, ZipArchiveMode.Create);
 
                 IsZipSameAsDir(s, zfolder(folder), ZipArchiveMode.Read, requireExplicit: true, checkTimes: true);
             }
         }
 
-
-        [Theory]
-        [InlineData("unicode", true)]
-        [InlineData("unicode", false)]
+        [Fact]
         [Trait(XunitConstants.Category, XunitConstants.IgnoreForCI)] // Jenkins fails with unicode characters [JENKINS-12610]
-        public static async Task CreateNormal_Unicode(string folder, bool seekable)
+        public static async Task CreateNormal_Unicode_Seekable()
         {
             using (var s = new MemoryStream())
             {
-                var testStream = new WrappedStream(s, false, true, seekable, null);
-                await CreateFromDir(zfolder(folder), testStream, ZipArchiveMode.Create);
+                var testStream = new WrappedStream(s, false, true, true, null);
+                await CreateFromDir(zfolder("unicode"), testStream, ZipArchiveMode.Create);
 
-                IsZipSameAsDir(s, zfolder(folder), ZipArchiveMode.Read, requireExplicit: true, checkTimes: true);
+                IsZipSameAsDir(s, zfolder("unicode"), ZipArchiveMode.Read, requireExplicit: true, checkTimes: true);
+            }
+        }
+
+        [Fact]
+        [Trait(XunitConstants.Category, XunitConstants.IgnoreForCI)] // Jenkins fails with unicode characters [JENKINS-12610]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full Framework does not allow unseekable streams.")]
+        public static async Task CreateNormal_Unicode_Unseekable()
+        {
+            using (var s = new MemoryStream())
+            {
+                var testStream = new WrappedStream(s, false, true, false, null);
+                await CreateFromDir(zfolder("unicode"), testStream, ZipArchiveMode.Create);
+
+                IsZipSameAsDir(s, zfolder("unicode"), ZipArchiveMode.Read, requireExplicit: true, checkTimes: true);
             }
         }
     }

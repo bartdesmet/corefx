@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 using Microsoft.CSharp.RuntimeBinder;
 using Xunit;
 
-namespace System.Dynamic.Test
+namespace System.Dynamic.Tests
 {
     public class ConvertBinderTests
     {
@@ -51,8 +51,8 @@ namespace System.Dynamic.Test
         public void ConvertExplicit(long x)
         {
             dynamic d = x;
-            int xi = (int)d;
-            Assert.Equal((int)x, xi);
+            int xi = unchecked((int)d);
+            Assert.Equal(unchecked((int)x), xi);
         }
 
         [Theory, MemberData(nameof(Int64Arges))]
@@ -79,8 +79,8 @@ namespace System.Dynamic.Test
         [Fact]
         public void NullType()
         {
-            Assert.Throws<ArgumentNullException>("type", () => new MinimumOverrideConvertBinder(null, true));
-            Assert.Throws<ArgumentNullException>("type", () => new MinimumOverrideConvertBinder(null, false));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => new MinimumOverrideConvertBinder(null, true));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => new MinimumOverrideConvertBinder(null, false));
         }
 
         [Theory, MemberData(nameof(TypesAndBools))]
@@ -96,7 +96,7 @@ namespace System.Dynamic.Test
         public void NullTarget()
         {
             var binder = new MinimumOverrideConvertBinder(typeof(int), false);
-            Assert.Throws<ArgumentNullException>("target", () => binder.Bind(null, null));
+            AssertExtensions.Throws<ArgumentNullException>("target", () => binder.Bind(null, null));
         }
 
         [Fact]
@@ -105,7 +105,7 @@ namespace System.Dynamic.Test
             var target = new DynamicMetaObject(Expression.Parameter(typeof(object), null), BindingRestrictions.Empty);
             var arg = new DynamicMetaObject(Expression.Parameter(typeof(object), null), BindingRestrictions.Empty);
             var binder = new MinimumOverrideConvertBinder(typeof(int), false);
-            Assert.Throws<ArgumentException>("args", () => binder.Bind(target, new[] { arg }));
+            AssertExtensions.Throws<ArgumentException>("args", () => binder.Bind(target, new[] { arg }));
         }
     }
 }

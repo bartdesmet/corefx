@@ -4,7 +4,6 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Dynamic.Utils;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -39,10 +38,8 @@ namespace System.Linq.Expressions.Compiler
                 return _guard.RunOnEmptyStack((ConstantAllocator @this, Expression n) => @this.Visit(n), this, node);
             }
 
-            if (node != null && node.NodeType == ExpressionType.Dynamic)
-            {
-                return VisitDynamic(node);
-            }
+            // NB: DynamicExpression nodes will be reduced, resulting in a ConstantExpression for the call site,
+            //     which will be allocated through VisitConstant.
 
             return base.Visit(node);
         }
@@ -201,31 +198,6 @@ namespace System.Linq.Expressions.Compiler
             return base.VisitSwitch(node);
         }
 
-        private Expression VisitDynamic(Expression node)
-        {
-            var expr = (IDynamicExpression)node;
-
-            Expression[] newArgs = ExpressionVisitorUtils.VisitArguments(this, expr);
-            if (newArgs != null)
-            {
-                node = expr.Rewrite(newArgs);
-                expr = (IDynamicExpression)node;
-            }
-
-            // create the call site prior to lambda compilation in order to get its type,
-            // and return a replacement IDynamicExpression that stores the call site for
-            // extraction during EmitDynamicExpression
-
-            var result = new PartiallyEvaluatedDynamicExpression(expr);
-
-            object site = result.CreateCallSite();
-            Type siteType = site.GetType();
-
-            Allocate(siteType); // for site used in site.Target.Invoke(site, args)
-
-            return result;
-        }
-
         private void Reference(object value, Type type)
         {
             // Constants that can be emitted into IL don't need to be stored on
@@ -341,24 +313,5 @@ namespace System.Linq.Expressions.Compiler
                 return node;
             }
         }
-    }
-
-    internal sealed class PartiallyEvaluatedDynamicExpression : Expression, IDynamicExpression
-    {
-        private readonly IDynamicExpression _node;
-        private readonly object _site;
-
-        public PartiallyEvaluatedDynamicExpression(IDynamicExpression node)
-        {
-            _node = node;
-            _site = node.CreateCallSite();
-        }
-
-        public override ExpressionType NodeType => ExpressionType.Dynamic;
-        public int ArgumentCount => _node.ArgumentCount;
-        public Type DelegateType => _node.DelegateType;
-        public object CreateCallSite() => _site;
-        public Expression GetArgument(int index) => _node.GetArgument(index);
-        public Expression Rewrite(Expression[] args) => _node.Rewrite(args);
     }
 }

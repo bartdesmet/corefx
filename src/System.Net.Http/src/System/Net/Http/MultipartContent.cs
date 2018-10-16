@@ -275,10 +275,10 @@ namespace System.Net.Http
             return scratch.ToString();
         }
 
-        private static Task EncodeStringToStreamAsync(Stream stream, string input)
+        private static ValueTask EncodeStringToStreamAsync(Stream stream, string input)
         {
             byte[] buffer = HttpRuleParser.DefaultHttpEncoding.GetBytes(input);
-            return stream.WriteAsync(buffer, 0, buffer.Length);
+            return stream.WriteAsync(new ReadOnlyMemory<byte>(buffer));
         }
 
         private static Stream EncodeStringToNewStream(string input)
@@ -417,26 +417,63 @@ namespace System.Net.Http
                 }
             }
 
-            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            public override int Read(Span<byte> buffer)
             {
-                ValidateReadArgs(buffer, offset, count);
-                return ReadAsyncPrivate(buffer, offset, count, cancellationToken);
-            }
-
-            public async Task<int> ReadAsyncPrivate(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-            {
-                if (count == 0)
+                if (buffer.Length == 0)
                 {
                     return 0;
                 }
 
                 while (true)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-
                     if (_current != null)
                     {
-                        int bytesRead = await _current.ReadAsync(buffer, offset, count).ConfigureAwait(false);
+                        int bytesRead = _current.Read(buffer);
+                        if (bytesRead != 0)
+                        {
+                            _position += bytesRead;
+                            return bytesRead;
+                        }
+
+                        _current = null;
+                    }
+
+                    if (_next >= _streams.Length)
+                    {
+                        return 0;
+                    }
+
+                    _current = _streams[_next++];
+                }
+            }
+
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                ValidateReadArgs(buffer, offset, count);
+                return ReadAsyncPrivate(new Memory<byte>(buffer, offset, count), cancellationToken).AsTask();
+            }
+
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+                ReadAsyncPrivate(buffer, cancellationToken);
+
+            public override IAsyncResult BeginRead(byte[] array, int offset, int count, AsyncCallback asyncCallback, object asyncState) =>
+                TaskToApm.Begin(ReadAsync(array, offset, count, CancellationToken.None), asyncCallback, asyncState);
+
+            public override int EndRead(IAsyncResult asyncResult) =>
+                TaskToApm.End<int>(asyncResult);
+
+            public async ValueTask<int> ReadAsyncPrivate(Memory<byte> buffer, CancellationToken cancellationToken)
+            {
+                if (buffer.Length == 0)
+                {
+                    return 0;
+                }
+
+                while (true)
+                {
+                    if (_current != null)
+                    {
+                        int bytesRead = await _current.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
                         if (bytesRead != 0)
                         {
                             _position += bytesRead;
@@ -544,7 +581,9 @@ namespace System.Net.Http
             public override void Flush() { }
             public override void SetLength(long value) { throw new NotSupportedException(); }
             public override void Write(byte[] buffer, int offset, int count) { throw new NotSupportedException(); }
+            public override void Write(ReadOnlySpan<byte> buffer) { throw new NotSupportedException(); }
             public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) { throw new NotSupportedException(); }
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) { throw new NotSupportedException(); }
         }
         #endregion Serialization
     }

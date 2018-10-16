@@ -27,14 +27,15 @@
 using Xunit;
 using System.Text;
 using System.IO;
-
+using System.Diagnostics;
 using System.Xml;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization.Formatters.Tests;
 using System.Globalization;
 
 namespace System.Data.Tests
 {
-    public class DataSetTest2
+    public class DataSetTest2 : RemoteExecutorTestBase
     {
         private DataSet _ds = null;
         private bool _eventRaised = false;
@@ -685,7 +686,7 @@ namespace System.Data.Tests
         [Fact]
         public void InferXmlSchema_inferingTables1()
         {
-            //Acroding to the msdn documantaion :
+            //According to the msdn documantaion :
             //ms-help://MS.MSDNQTR.2003FEB.1033/cpguide/html/cpconinferringtables.htm
             //Elements that have attributes specified in them will result in inferred tables
 
@@ -709,7 +710,7 @@ namespace System.Data.Tests
         [Fact]
         public void InferXmlSchema_inferingTables2()
         {
-            //Acroding to the msdn documantaion :
+            //According to the msdn documantaion :
             //ms-help://MS.MSDNQTR.2003FEB.1033/cpguide/html/cpconinferringtables.htm
             //Elements that have child elements will result in inferred tables
 
@@ -733,7 +734,7 @@ namespace System.Data.Tests
         [Fact]
         public void InferXmlSchema_inferingTables3()
         {
-            //Acroding to the msdn documantaion :
+            //According to the msdn documantaion :
             //ms-help://MS.MSDNQTR.2003FEB.1033/cpguide/html/cpconinferringtables.htm
             //The document, or root, element will result in an inferred table if it has attributes
             //or child elements that will be inferred as columns.
@@ -759,7 +760,7 @@ namespace System.Data.Tests
         [Fact]
         public void InferXmlSchema_inferingTables4()
         {
-            //Acroding to the msdn documantaion :
+            //According to the msdn documantaion :
             //ms-help://MS.MSDNQTR.2003FEB.1033/cpguide/html/cpconinferringtables.htm
             //The document, or root, element will result in an inferred table if it has attributes
             //or child elements that will be inferred as columns.
@@ -784,7 +785,7 @@ namespace System.Data.Tests
         [Fact]
         public void InferXmlSchema_inferingTables5()
         {
-            //Acroding to the msdn documantaion :
+            //According to the msdn documantaion :
             //ms-help://MS.MSDNQTR.2003FEB.1033/cpguide/html/cpconinferringtables.htm
             //Elements that repeat will result in a single inferred table
 
@@ -1006,20 +1007,18 @@ namespace System.Data.Tests
         [Fact]
         public void DataSetSpecificCulture()
         {
-            CultureInfo orig = CultureInfo.CurrentCulture;
-            try
+            RemoteInvoke(() =>
             {
                 CultureInfo.CurrentCulture = new CultureInfo("cs-CZ");
+
                 var ds = new DataSet();
                 ds.Locale = CultureInfo.GetCultureInfo(1033);
                 var dt = ds.Tables.Add("machine");
                 dt.Locale = ds.Locale;
                 Assert.Same(dt, ds.Tables["MACHINE"]);
-            }
-            finally
-            {
-                CultureInfo.CurrentCulture = orig;
-            }
+
+                return SuccessExitCode;
+            }).Dispose();
         }
 
         [Fact]
@@ -2857,7 +2856,7 @@ namespace System.Data.Tests
             Assert.Equal(2, ds.Relations.Count);
 
             // Checking Relations - get by name case sensetive,ArgumentException
-            Assert.Throws<ArgumentException>(() => ds.Relations["PARENT-CHILD"]);
+            AssertExtensions.Throws<ArgumentException>(null, () => ds.Relations["PARENT-CHILD"]);
         }
 
         [Fact]
@@ -2961,7 +2960,7 @@ namespace System.Data.Tests
             Assert.Equal(dt4, ds.Tables[dt4.TableName]);
 
             // Checking get table by name with diferent case, ArgumentException
-            Assert.Throws<ArgumentException>(() => ds.Tables[dt4.TableName.ToLower()]);
+            AssertExtensions.Throws<ArgumentException>(null, () => ds.Tables[dt4.TableName.ToLower()]);
         }
 
         [Fact]
@@ -3607,11 +3606,7 @@ namespace System.Data.Tests
 
             AssertDataTableValues(dt);
 
-            MemoryStream mstm = new MemoryStream();
-            BinaryFormatter bfmt = new BinaryFormatter();
-            bfmt.Serialize(mstm, dt);
-            MemoryStream mstm2 = new MemoryStream(mstm.ToArray());
-            DataTable vdt = (DataTable)bfmt.Deserialize(mstm2);
+            DataTable vdt = BinaryFormatterHelpers.Clone(dt);
             AssertDataTableValues(vdt);
         }
     }

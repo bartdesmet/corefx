@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 
 namespace System.Net
 {
-    [Serializable]
     public class WebProxy : IWebProxy, ISerializable
     {
         private ArrayList _bypassList;
@@ -208,26 +207,20 @@ namespace System.Net
 
         protected WebProxy(SerializationInfo serializationInfo, StreamingContext streamingContext)
         {
-            BypassProxyOnLocal = serializationInfo.GetBoolean("_BypassOnLocal");
-            Address = (Uri)serializationInfo.GetValue("_ProxyAddress", typeof(Uri));
-            _bypassList = (ArrayList)serializationInfo.GetValue("_BypassList", typeof(ArrayList));
-            UseDefaultCredentials = serializationInfo.GetBoolean("_UseDefaultCredentials");
+            throw new PlatformNotSupportedException();
         }
 
         void ISerializable.GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
         {
-            GetObjectData(serializationInfo, streamingContext);
+            throw new PlatformNotSupportedException();
         }
 
         protected virtual void GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
         {
-            serializationInfo.AddValue("_BypassOnLocal", BypassProxyOnLocal);
-            serializationInfo.AddValue("_ProxyAddress", Address);
-            serializationInfo.AddValue("_BypassList", _bypassList);
-            serializationInfo.AddValue("_UseDefaultCredentials", UseDefaultCredentials);
+            throw new PlatformNotSupportedException();
         }
 
-        [Obsolete("This method has been deprecated. Please use the proxy selected for you by default. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This method has been deprecated. Please use the proxy selected for you by default. https://go.microsoft.com/fwlink/?linkid=14202")]
         public static WebProxy GetDefaultProxy()
         {
             // The .NET Framework here returns a proxy that fetches IE settings and

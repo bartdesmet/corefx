@@ -1,26 +1,15 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition="'$(Configuration)'==''">Windows_Debug</Configuration>
-  </PropertyGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>System.Diagnostics.TraceSource</RootNamespace>
     <AssemblyName>System.Diagnostics.TraceSource</AssemblyName>
     <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
     <ProjectGuid>{5380420C-EB1D-4C53-9CFC-916578C18334}</ProjectGuid>
-    <IsPartialFacadeAssembly Condition="'$(TargetGroup)' == 'net463'">true</IsPartialFacadeAssembly>
-    <NuGetTargetMoniker Condition="'$(TargetGroup)' == ''">.NETStandard,Version=v1.7</NuGetTargetMoniker>
-    <PackageTargetFramework Condition="'$(TargetGroup)'==''">netstandard1.7;uap10.1</PackageTargetFramework>
+    <Configurations>netcoreapp-Unix-Debug;netcoreapp-Unix-Release;netcoreapp-Windows_NT-Debug;netcoreapp-Windows_NT-Release;uap-Windows_NT-Debug;uap-Windows_NT-Release</Configurations>
   </PropertyGroup>
-  <!-- Help VS understand available configurations -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Unix_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Unix_Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Windows_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Windows_Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'net463_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'net463_Release|AnyCPU'" />
-  <ItemGroup Condition="'$(TargetGroup)' != 'net463'">
+  <ItemGroup>
+    <Compile Include="FxCopBaseline.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="System\Diagnostics\BooleanSwitch.cs" />
     <Compile Include="System\Diagnostics\CorrelationManager.cs" />
     <Compile Include="System\Diagnostics\DefaultTraceListener.cs" />
@@ -42,10 +31,15 @@
     <Compile Include="System\Diagnostics\TraceSource.cs" />
     <Compile Include="System\Diagnostics\TraceSwitch.cs" />
     <Compile Include="System\Diagnostics\SwitchAttribute.cs" />
-    <Compile Include="System\Diagnostics\SwitchLevelAttribute.cs" />   
+    <Compile Include="System\Diagnostics\SwitchLevelAttribute.cs" />
+    <Compile Include="$(CommonPath)\System\Diagnostics\TraceListenerHelpers.cs">
+      <Link>Common\System\Diagnostics\TraceListenerHelpers.cs</Link>
+    </Compile>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetsWindows)' == 'true' And '$(TargetGroup)' != 'net463'">
-    <Compile Include="System\Diagnostics\TraceEventCache.Windows.cs" />
+  <ItemGroup Condition=" '$(TargetsWindows)' == 'true'">
+    <Compile Include="$(CommonPath)\System\Diagnostics\TraceListenerHelpers.Windows.cs">
+      <Link>Common\System\Diagnostics\TraceListenerHelpers.Windows.cs</Link>
+    </Compile>
     <Compile Include="$(CommonPath)\Interop\Windows\Interop.Libraries.cs">
       <Link>Common\Interop\Windows\Interop.Libraries.cs</Link>
     </Compile>
@@ -53,21 +47,30 @@
       <Link>Common\Interop\Windows\Interop.GetCurrentProcessId.cs</Link>
     </Compile>
   </ItemGroup>
-  <ItemGroup Condition=" '$(TargetsUnix)' == 'true' And '$(TargetGroup)' != 'net463'">
+  <ItemGroup Condition=" '$(TargetsUnix)' == 'true'">
     <Compile Include="$(CommonPath)\Interop\Unix\Interop.Libraries.cs">
       <Link>Common\Interop\Unix\Interop.Libraries.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Unix\System.Native\Interop.GetPid.cs">
       <Link>Common\Interop\Unix\Interop.GetPid.cs</Link>
     </Compile>
-    <Compile Include="System\Diagnostics\TraceEventCache.Unix.cs" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetGroup)' == 'net463'">
-    <TargetingPackReference Include="mscorlib" />
-    <TargetingPackReference Include="System" />
+    <Compile Include="$(CommonPath)\System\Diagnostics\TraceListenerHelpers.Unix.cs">
+      <Link>Common\System\Diagnostics\TraceListenerHelpers.Unix.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="project.json" />
+    <Reference Include="System.Collections" />
+    <Reference Include="System.Collections.NonGeneric" />
+    <Reference Include="System.Collections.Specialized" />
+    <Reference Include="System.ComponentModel.Primitives" />
+    <Reference Include="System.Diagnostics.Debug" />
+    <Reference Include="System.Diagnostics.Process" />
+    <Reference Include="System.Diagnostics.Tools" />
+    <Reference Include="System.IO.FileSystem" />
+    <Reference Include="System.Resources.ResourceManager" />
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Runtime.Extensions" />
+    <Reference Include="System.Runtime.InteropServices" />
+    <Reference Include="System.Threading" />
   </ItemGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
 </Project>

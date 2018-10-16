@@ -5,7 +5,7 @@
 using Xunit;
 using Xunit.Abstractions;
 using System.IO;
-using System.Xml;
+using System.Text.RegularExpressions;
 using System.Xml.XPath;
 using System.Xml.Xsl;
 
@@ -25,16 +25,8 @@ namespace System.Xml.Tests
         private string _xmlFile = string.Empty;
         private string _xslFile = string.Empty;
 
-        private bool _debug = false;
-
         private void Init(string xmlFile, string xslFile)
         {
-            //if (Param.ToString() == "Debug")
-            //{
-            //    xsl = new XslCompiledTransform(true);
-            //    _debug = true;
-            //}
-            //else
             _xsl = new XslCompiledTransform();
 
             _xmlFile = FullFilePath(xmlFile);
@@ -56,7 +48,7 @@ namespace System.Xml.Tests
             Assert.Equal(actual, expected);
         }
 
-        [ActiveIssue(9873)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework does support Compiling JScript/CSharp scripts")]
         //[Variation(id = 1, Desc = "Test the script block with EnableScript, should work", Pri = 0, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", false, true })]
         [InlineData(1, "XsltSettings.xml", "XsltSettings1.xsl", false, true)]
         //[Variation(id = 4, Desc = "Test the script block with TrustedXslt, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", true, true })]
@@ -66,11 +58,28 @@ namespace System.Xml.Tests
         //[Variation(id = 11, Desc = "Test the combination of script and document function with EnableScript, only script should work", Pri = 2, Params = new object[] { "XsltSettings.xml", "XsltSettings3.xsl", false, true })]
         [InlineData(11, "XsltSettings.xml", "XsltSettings3.xsl", false, true)]
         [Theory]
-        public void XsltSettings1__1ActiveIssue9873(object param0, object param1, object param2, object param3, object param4)
+        public void XsltSettings1_1_ContainsScript(object param0, object param1, object param2, object param3, object param4)
+        {
+            var e = Assert.ThrowsAny<XsltException>(() => XsltSettings1_1(param0, param1, param2, param3, param4));
+            Assert.Equal("Compiling JScript/CSharp scripts is not supported", e.InnerException.Message);
+        }
+
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework, "Only full framework supports Compiling JScript/CSharp scripts")]
+        //[Variation(id = 1, Desc = "Test the script block with EnableScript, should work", Pri = 0, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", false, true })]
+        [InlineData(1, "XsltSettings.xml", "XsltSettings1.xsl", false, true)]
+        //[Variation(id = 4, Desc = "Test the script block with TrustedXslt, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", true, true })]
+        [InlineData(4, "XsltSettings.xml", "XsltSettings1.xsl", true, true)]
+        //[Variation(id = 9, Desc = "Test the combination of script and document function with TrustedXslt, should work", Pri = 0, Params = new object[] { "XsltSettings.xml", "XsltSettings3.xsl", true, true })]
+        [InlineData(9, "XsltSettings.xml", "XsltSettings3.xsl", true, true)]
+        //[Variation(id = 11, Desc = "Test the combination of script and document function with EnableScript, only script should work", Pri = 2, Params = new object[] { "XsltSettings.xml", "XsltSettings3.xsl", false, true })]
+        [InlineData(11, "XsltSettings.xml", "XsltSettings3.xsl", false, true)]
+        [Theory]
+        public void XsltSettings1_1_ContainsScript_FullFramework(object param0, object param1, object param2, object param3, object param4)
         {
             XsltSettings1_1(param0, param1, param2, param3, param4);
         }
 
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework does support Compiling JScript/CSharp scripts")]
         //[Variation(id = 15, Desc = "Test 1 with Default settings, should fail", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", false, true, false, false })]
         [InlineData(15, "XsltSettings.xml", "XsltSettings1.xsl", false, true, false, false)]
         //[Variation(id = 16, Desc = "Test 2 with EnableScript override, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", false, false, false, true })]
@@ -79,28 +88,47 @@ namespace System.Xml.Tests
         [InlineData(19, "XsltSettings.xml", "XsltSettings3.xsl", true, true, false, false)]
         //[Variation(id = 20, Desc = "Test 10 with TrustedXslt override, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings3.xsl", false, false, true, true })]
         [InlineData(20, "XsltSettings.xml", "XsltSettings3.xsl", false, false, true, true)]
-        public void XsltSettings1_2_ActiveIssue9873(object param0, object param1, object param2, object param3, object param4, object param5, object param6)
+        [Theory]
+        public void XsltSettings1_2_ContainsScript(object param0, object param1, object param2, object param3, object param4, object param5, object param6)
+        {
+            var e = Assert.ThrowsAny<XsltException>(() => XsltSettings1_2(param0, param1, param2, param3, param4, param5, param6));
+            Assert.Equal("Compiling JScript/CSharp scripts is not supported", e.InnerException.Message);
+        }
+
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework, "Only full framework supports Compiling JScript/CSharp scripts")]
+        //[Variation(id = 15, Desc = "Test 1 with Default settings, should fail", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", false, true, false, false })]
+        [InlineData(15, "XsltSettings.xml", "XsltSettings1.xsl", false, true, false, false)]
+        //[Variation(id = 16, Desc = "Test 2 with EnableScript override, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings1.xsl", false, false, false, true })]
+        [InlineData(16, "XsltSettings.xml", "XsltSettings1.xsl", false, false, false, true)]
+        //[Variation(id = 19, Desc = "Test 9 with Default settings override, should fail", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings3.xsl", true, true, false, false })]
+        [InlineData(19, "XsltSettings.xml", "XsltSettings3.xsl", true, true, false, false)]
+        //[Variation(id = 20, Desc = "Test 10 with TrustedXslt override, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings3.xsl", false, false, true, true })]
+        [InlineData(20, "XsltSettings.xml", "XsltSettings3.xsl", false, false, true, true)]
+        [Theory]
+        public void XsltSettings1_2_ContainsScript_FullFramework(object param0, object param1, object param2, object param3, object param4, object param5, object param6)
         {
             XsltSettings1_2(param0, param1, param2, param3, param4, param5, param6);
         }
 
-        [ActiveIssue(9876)]
         //[Variation(id = 5, Desc = "Test the document function with EnableDocumentFunction, should work", Pri = 0, Params = new object[] { "XsltSettings.xml", "XsltSettings2.xsl", true, false })]
         [InlineData(5, "XsltSettings.xml", "XsltSettings2.xsl", true, false)]
         //[Variation(id = 8, Desc = "Test the document function with TrustedXslt, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings2.xsl", true, true })]
         [InlineData(8, "XsltSettings.xml", "XsltSettings2.xsl", true, true)]
         [Theory]
-        public void XsltSettings1_1_ActiveIssue9876(object param0, object param1, object param2, object param3, object param4)
+        public void XsltSettings1_1_ExternalURI(object param0, object param1, object param2, object param3, object param4)
         {
+            AppContext.SetSwitch("Switch.System.Xml.AllowDefaultResolver", true);
+
             XsltSettings1_1(param0, param1, param2, param3, param4);
         }
 
-        [ActiveIssue(9876)]
         //[Variation(id = 18, Desc = "Test 6 with EnableDocumentFunction override, should work", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings2.xsl", false, false, true, false })]
         [InlineData(18, "XsltSettings.xml", "XsltSettings2.xsl", false, false, true, false)]
         [Theory]
-        public void XsltSettings1_2_ActiveIssue9876(object param0, object param1, object param2, object param3, object param4, object param5, object param6)
+        public void XsltSettings1_2_ExternalURI(object param0, object param1, object param2, object param3, object param4, object param5, object param6)
         {
+            AppContext.SetSwitch("Switch.System.Xml.AllowDefaultResolver", true);
+
             XsltSettings1_2(param0, param1, param2, param3, param4, param5, param6);
         }
 
@@ -135,24 +163,6 @@ namespace System.Xml.Tests
             // In Proc Skip
             // XsltSettings - Debug (1-20)
             // XsltSettings - Retail (1,4,9,11,15,16,19,20)
-            if (_isInProc)
-            {
-                if (_debug)
-                    return; //TEST_SKIPPED;
-                else
-                {
-                    switch ((int)param0)
-                    {
-                        case 1:
-                        case 4:
-                        case 9:
-                        case 11:
-                            return; //TEST_SKIPPED;
-                                    //                  default:
-                                    //just continue;
-                    }
-                }
-            }
 
             XsltSettings xs = new XsltSettings((bool)param3, (bool)param4);
             _xsl.Load(_xslFile, xs, new XmlUrlResolver());
@@ -223,28 +233,6 @@ namespace System.Xml.Tests
         {
             Init(param1.ToString(), param2.ToString());
 
-            // In Proc Skip
-            // XsltSettings - Debug (1-20)
-            // XsltSettings - Retail (1,4,9,11,15,16,19,20)
-            if (_isInProc)
-            {
-                if (_debug)
-                    return; //TEST_SKIPPED;
-                else
-                {
-                    switch ((int)param0)
-                    {
-                        case 15:
-                        case 16:
-                        case 19:
-                        case 20:
-                            return; //TEST_SKIPPED;
-                                    //                  default:
-                                    //just continue;
-                    }
-                }
-            }
-
             XsltSettings xs = new XsltSettings((bool)param3, (bool)param4);
             _xsl.Load(_xslFile, xs, new XmlUrlResolver());
 
@@ -306,10 +294,6 @@ namespace System.Xml.Tests
         {
             Init(param0.ToString(), param1.ToString());
 
-            if (_isInProc)
-                if (_debug)
-                    return; //TEST_SKIPPED;
-
             XsltSettings xs = new XsltSettings((bool)param2, (bool)param3);
             XPathDocument doc = new XPathDocument(_xslFile);
             _xsl.Load(doc, xs, new XmlUrlResolver());
@@ -328,43 +312,36 @@ namespace System.Xml.Tests
         }
 
         //[Variation(id = 25, Desc = "Disable DocumentFunction and Malicious stylesheet has document(url) opening a URL to an external system", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings9.xsl", false, false })]
-        //[InlineData("XsltSettings.xml", "XsltSettings9.xsl", false, false)]
+        [InlineData("XsltSettings.xml", "XsltSettings9.xsl", false, false)]
         //[Variation(id = 26, Desc = "Disable DocumentFunction and Malicious stylesheet has document(nodeset) opens union of all URLs referenced", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings10.xsl", false, false })]
         [InlineData("XsltSettings.xml", "XsltSettings10.xsl", false, false)]
         //[Variation(id = 27, Desc = "Disable DocumentFunction and Malicious stylesheet has document(url, nodeset) nodeset is a base URL to 1st arg", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings11.xsl", false, false })]
-        //[InlineData("XsltSettings.xml", "XsltSettings11.xsl", false, false)]
+        [InlineData("XsltSettings.xml", "XsltSettings11.xsl", false, false)]
         //[Variation(id = 28, Desc = "Disable DocumentFunction and Malicious stylesheet has document(nodeset, nodeset) 2nd arg is a base URL to 1st arg", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings12.xsl", false, false })]
         [InlineData("XsltSettings.xml", "XsltSettings12.xsl", false, false)]
         //[Variation(id = 29, Desc = "Disable DocumentFunction and Malicious stylesheet has document(''), no threat but just to verify if its considered", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings13.xsl", false, false })]
         [InlineData("XsltSettings.xml", "XsltSettings13.xsl", false, false)]
         //[Variation(id = 30, Desc = "Disable DocumentFunction and Stylesheet includes another stylesheet with document() function", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings14.xsl", false, false })]
-        //[InlineData("XsltSettings.xml", "XsltSettings14.xsl", false, false)]
+        [InlineData("XsltSettings.xml", "XsltSettings14.xsl", false, false)]
         //[Variation(id = 31, Desc = "Disable DocumentFunction and Stylesheet has an entity reference to doc(), ENTITY s document('foo.xml')", Pri = 1, Params = new object[] { "XsltSettings.xml", "XsltSettings15.xsl", false, false })]
-        //[InlineData("XsltSettings.xml", "XsltSettings15.xsl", false, false)]
+        [InlineData("XsltSettings.xml", "XsltSettings15.xsl", false, false)]
         [Theory]
         public void XsltSettings3(object param0, object param1, object param2, object param3)
         {
             Init(param0.ToString(), param1.ToString());
 
-            if (_isInProc)
-                if (_debug)
-                    return; //TEST_SKIPPED;
-
             XsltSettings xs = new XsltSettings((bool)param2, (bool)param3);
             XPathDocument doc = new XPathDocument(_xslFile);
             _xsl.Load(doc, xs, new XmlUrlResolver());
 
-            try
-            {
-                StringWriter sw = Transform();
-                _output.WriteLine("Execution of the document function was allowed even when XsltSettings.EnableDocumentFunction is false");
-                Assert.True(false);
-            }
-            catch (XsltException ex)
-            {
-                _output.WriteLine(ex.ToString());
-                return;
-            }
+            StringWriter sw;
+            var e = Assert.ThrowsAny<XsltException>(() => sw = Transform());
+
+            // \p{Pi} any kind of opening quote https://www.compart.com/en/unicode/category/Pi
+            // \p{Pf} any kind of closing quote https://www.compart.com/en/unicode/category/Pf
+            // \p{Po} any kind of punctuation character that is not a dash, bracket, quote or connector https://www.compart.com/en/unicode/category/Po
+            Assert.Matches(@"[\p{Pi}\p{Po}]" + Regex.Escape("document()") + @"[\p{Pf}\p{Po}]", e.Message);
+            Assert.Matches(@"\b" + Regex.Escape("XsltSettings.EnableDocumentFunction") + @"\b", e.Message);
         }
     }
 }

@@ -2,16 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
 using System.Dynamic.Utils;
-using System.Reflection;
 
 namespace System.Linq.Expressions.Interpreter
 {
     internal abstract class NotEqualInstruction : Instruction
     {
         // Perf: EqualityComparer<T> but is 3/2 to 2 times slower.
-        private static Instruction s_reference, s_boolean, s_SByte, s_int16, s_char, s_int32, s_int64, s_byte, s_UInt16, s_UInt32, s_UInt64, s_single, s_double;
-        private static Instruction s_referenceLiftedToNull, s_booleanLiftedToNull, s_SByteLiftedToNull, s_int16LiftedToNull, s_charLiftedToNull, s_int32LiftedToNull, s_int64LiftedToNull, s_byteLiftedToNull, s_UInt16LiftedToNull, s_UInt32LiftedToNull, s_UInt64LiftedToNull, s_singleLiftedToNull, s_doubleLiftedToNull;
+        private static Instruction s_reference, s_Boolean, s_SByte, s_Int16, s_Char, s_Int32, s_Int64, s_Byte, s_UInt16, s_UInt32, s_UInt64, s_Single, s_Double;
+        private static Instruction s_SByteLiftedToNull, s_Int16LiftedToNull, s_CharLiftedToNull, s_Int32LiftedToNull, s_Int64LiftedToNull, s_ByteLiftedToNull, s_UInt16LiftedToNull, s_UInt32LiftedToNull, s_UInt64LiftedToNull, s_SingleLiftedToNull, s_DoubleLiftedToNull;
 
         public override int ConsumedStack => 2;
         public override int ProducedStack => 1;
@@ -37,7 +37,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((bool)left != (bool)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -59,7 +59,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((sbyte)left != (sbyte)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -81,7 +81,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((short)left != (short)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -103,7 +103,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((char)left != (char)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -125,7 +125,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((int)left != (int)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -147,7 +147,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((long)left != (long)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -169,7 +169,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((byte)left != (byte)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -191,7 +191,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((ushort)left != (ushort)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -213,7 +213,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((uint)left != (uint)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -235,7 +235,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((ulong)left != (ulong)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -257,7 +257,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((float)left != (float)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -279,7 +279,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((double)left != (double)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -288,26 +288,7 @@ namespace System.Linq.Expressions.Interpreter
             public override int Run(InterpretedFrame frame)
             {
                 frame.Push(frame.Pop() != frame.Pop());
-                return +1;
-            }
-        }
-
-
-        private sealed class NotEqualBooleanLiftedToNull : NotEqualInstruction
-        {
-            public override int Run(InterpretedFrame frame)
-            {
-                object right = frame.Pop();
-                object left = frame.Pop();
-                if (left == null || right == null)
-                {
-                    frame.Push(null);
-                }
-                else
-                {
-                    frame.Push((bool)left != (bool)right);
-                }
-                return +1;
+                return 1;
             }
         }
 
@@ -325,7 +306,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((sbyte)left != (sbyte)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -343,7 +324,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((short)left != (short)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -361,7 +342,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((char)left != (char)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -379,7 +360,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((int)left != (int)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -397,7 +378,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((long)left != (long)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -415,7 +396,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((byte)left != (byte)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -433,7 +414,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((ushort)left != (ushort)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -451,7 +432,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((uint)left != (uint)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -469,7 +450,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((ulong)left != (ulong)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -487,7 +468,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((float)left != (float)right);
                 }
-                return +1;
+                return 1;
             }
         }
 
@@ -505,16 +486,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     frame.Push((double)left != (double)right);
                 }
-                return +1;
-            }
-        }
-
-        private sealed class NotEqualReferenceLiftedToNull : NotEqualInstruction
-        {
-            public override int Run(InterpretedFrame frame)
-            {
-                frame.Push(frame.Pop() != frame.Pop());
-                return +1;
+                return 1;
             }
         }
 
@@ -523,70 +495,44 @@ namespace System.Linq.Expressions.Interpreter
         {
             if (liftedToNull)
             {
-                // Boxed enums can be unboxed as their underlying types:
-                Type underlyingType = type.GetTypeInfo().IsEnum ? Enum.GetUnderlyingType(type) : type.GetNonNullableType();
-
-                switch (underlyingType.GetTypeCode())
+                switch (type.GetNonNullableType().GetTypeCode())
                 {
-                    case TypeCode.Boolean: return s_booleanLiftedToNull ?? (s_booleanLiftedToNull = new NotEqualBooleanLiftedToNull());
+                    case TypeCode.Boolean: return ExclusiveOrInstruction.Create(type);
                     case TypeCode.SByte: return s_SByteLiftedToNull ?? (s_SByteLiftedToNull = new NotEqualSByteLiftedToNull());
-                    case TypeCode.Byte: return s_byteLiftedToNull ?? (s_byteLiftedToNull = new NotEqualByteLiftedToNull());
-                    case TypeCode.Char: return s_charLiftedToNull ?? (s_charLiftedToNull = new NotEqualCharLiftedToNull());
-                    case TypeCode.Int16: return s_int16LiftedToNull ?? (s_int16LiftedToNull = new NotEqualInt16LiftedToNull());
-                    case TypeCode.Int32: return s_int32LiftedToNull ?? (s_int32LiftedToNull = new NotEqualInt32LiftedToNull());
-                    case TypeCode.Int64: return s_int64LiftedToNull ?? (s_int64LiftedToNull = new NotEqualInt64LiftedToNull());
-
+                    case TypeCode.Int16: return s_Int16LiftedToNull ?? (s_Int16LiftedToNull = new NotEqualInt16LiftedToNull());
+                    case TypeCode.Char: return s_CharLiftedToNull ?? (s_CharLiftedToNull = new NotEqualCharLiftedToNull());
+                    case TypeCode.Int32: return s_Int32LiftedToNull ?? (s_Int32LiftedToNull = new NotEqualInt32LiftedToNull());
+                    case TypeCode.Int64: return s_Int64LiftedToNull ?? (s_Int64LiftedToNull = new NotEqualInt64LiftedToNull());
+                    case TypeCode.Byte: return s_ByteLiftedToNull ?? (s_ByteLiftedToNull = new NotEqualByteLiftedToNull());
                     case TypeCode.UInt16: return s_UInt16LiftedToNull ?? (s_UInt16LiftedToNull = new NotEqualUInt16LiftedToNull());
                     case TypeCode.UInt32: return s_UInt32LiftedToNull ?? (s_UInt32LiftedToNull = new NotEqualUInt32LiftedToNull());
                     case TypeCode.UInt64: return s_UInt64LiftedToNull ?? (s_UInt64LiftedToNull = new NotEqualUInt64LiftedToNull());
-
-                    case TypeCode.Single: return s_singleLiftedToNull ?? (s_singleLiftedToNull = new NotEqualSingleLiftedToNull());
-                    case TypeCode.Double: return s_doubleLiftedToNull ?? (s_doubleLiftedToNull = new NotEqualDoubleLiftedToNull());
-
-                    case TypeCode.String:
-                    case TypeCode.Object:
-                        if (!type.GetTypeInfo().IsValueType)
-                        {
-                            return s_referenceLiftedToNull ?? (s_referenceLiftedToNull = new NotEqualReferenceLiftedToNull());
-                        }
-                        // TODO: Nullable<T>
-                        throw Error.ExpressionNotSupportedForNullableType("NotEqual", type);
+                    case TypeCode.Single: return s_SingleLiftedToNull ?? (s_SingleLiftedToNull = new NotEqualSingleLiftedToNull());
                     default:
-                        throw Error.ExpressionNotSupportedForType("NotEqual", type);
+                        Debug.Assert(type.GetNonNullableType().GetTypeCode() == TypeCode.Double);
+                        return s_DoubleLiftedToNull ?? (s_DoubleLiftedToNull = new NotEqualDoubleLiftedToNull());
                 }
             }
             else
             {
-                // Boxed enums can be unboxed as their underlying types:
-                Type underlyingType = type.GetTypeInfo().IsEnum ? Enum.GetUnderlyingType(type) : type.GetNonNullableType();
-
-                switch (underlyingType.GetTypeCode())
+                switch (type.GetNonNullableType().GetTypeCode())
                 {
-                    case TypeCode.Boolean: return s_boolean ?? (s_boolean = new NotEqualBoolean());
+                    case TypeCode.Boolean: return s_Boolean ?? (s_Boolean = new NotEqualBoolean());
                     case TypeCode.SByte: return s_SByte ?? (s_SByte = new NotEqualSByte());
-                    case TypeCode.Byte: return s_byte ?? (s_byte = new NotEqualByte());
-                    case TypeCode.Char: return s_char ?? (s_char = new NotEqualChar());
-                    case TypeCode.Int16: return s_int16 ?? (s_int16 = new NotEqualInt16());
-                    case TypeCode.Int32: return s_int32 ?? (s_int32 = new NotEqualInt32());
-                    case TypeCode.Int64: return s_int64 ?? (s_int64 = new NotEqualInt64());
-
+                    case TypeCode.Int16: return s_Int16 ?? (s_Int16 = new NotEqualInt16());
+                    case TypeCode.Char: return s_Char ?? (s_Char = new NotEqualChar());
+                    case TypeCode.Int32: return s_Int32 ?? (s_Int32 = new NotEqualInt32());
+                    case TypeCode.Int64: return s_Int64 ?? (s_Int64 = new NotEqualInt64());
+                    case TypeCode.Byte: return s_Byte ?? (s_Byte = new NotEqualByte());
                     case TypeCode.UInt16: return s_UInt16 ?? (s_UInt16 = new NotEqualUInt16());
                     case TypeCode.UInt32: return s_UInt32 ?? (s_UInt32 = new NotEqualUInt32());
                     case TypeCode.UInt64: return s_UInt64 ?? (s_UInt64 = new NotEqualUInt64());
-
-                    case TypeCode.Single: return s_single ?? (s_single = new NotEqualSingle());
-                    case TypeCode.Double: return s_double ?? (s_double = new NotEqualDouble());
-
-                    case TypeCode.String:
-                    case TypeCode.Object:
-                        if (!type.GetTypeInfo().IsValueType)
-                        {
-                            return s_reference ?? (s_reference = new NotEqualReference());
-                        }
-                        // TODO: Nullable<T>
-                        throw Error.ExpressionNotSupportedForNullableType("NotEqual", type);
+                    case TypeCode.Single: return s_Single ?? (s_Single = new NotEqualSingle());
+                    case TypeCode.Double: return s_Double ?? (s_Double = new NotEqualDouble());
                     default:
-                        throw Error.ExpressionNotSupportedForType("NotEqual", type);
+                        // Nullable only valid if one operand is constant null, so this assert is slightly too broad.
+                        Debug.Assert(type.IsNullableOrReferenceType());
+                        return s_reference ?? (s_reference = new NotEqualReference());
                 }
             }
         }

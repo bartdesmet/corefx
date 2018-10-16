@@ -2,207 +2,107 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Internal.Runtime.Augments;
-using Microsoft.Win32;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace System
 {
     public static partial class Environment
     {
-        public static int ExitCode { get { return EnvironmentAugments.ExitCode; } set { EnvironmentAugments.ExitCode = value; } }
-
-        private static string ExpandEnvironmentVariablesCore(string name)
+        public static string UserName
         {
-            int currentSize = 100;
-            StringBuilder result = StringBuilderCache.Acquire(currentSize); // A somewhat reasonable default size
-
-            result.Length = 0;
-            int size = Interop.Kernel32.ExpandEnvironmentStringsW(name, result, currentSize);
-            if (size == 0)
+            get
             {
-                StringBuilderCache.Release(result);
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
-            }
+                // 40 should be enough as we're asking for the SAM compatible name (DOMAIN\User).
+                // The max length should be 15 (domain) + 1 (separator) + 20 (name) + null. If for
+                // some reason it isn't, we'll grow the buffer.
 
-            while (size > currentSize)
-            {
-                currentSize = size;
-                result.Capacity = currentSize;
-                result.Length = 0;
+                // https://support.microsoft.com/en-us/help/909264/naming-conventions-in-active-directory-for-computers-domains-sites-and
+                // https://msdn.microsoft.com/en-us/library/ms679635.aspx
 
-                size = Interop.Kernel32.ExpandEnvironmentStringsW(name, result, currentSize);
-                if (size == 0)
+                Span<char> initialBuffer = stackalloc char[40];
+                var builder = new ValueStringBuilder(initialBuffer);
+                GetUserName(ref builder);
+
+                ReadOnlySpan<char> name = builder.AsSpan();
+                int index = name.IndexOf('\\');
+                if (index != -1)
                 {
-                    StringBuilderCache.Release(result);
-                    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                    // In the form of DOMAIN\User, cut off DOMAIN\
+                    name = name.Slice(index + 1);
                 }
-            }
 
-            return StringBuilderCache.GetStringAndRelease(result);
+                return name.ToString();
+            }
         }
 
-        private static string GetEnvironmentVariableCore(string variable)
+        private static void GetUserName(ref ValueStringBuilder builder)
         {
-            StringBuilder sb = StringBuilderCache.Acquire(128); // a somewhat reasonable default size
-            int requiredSize = Interop.Kernel32.GetEnvironmentVariableW(variable, sb, sb.Capacity);
-            if (requiredSize == 0 && Marshal.GetLastWin32Error() == Interop.Errors.ERROR_ENVVAR_NOT_FOUND)
+            uint size = 0;
+            while (Interop.Secur32.GetUserNameExW(Interop.Secur32.NameSamCompatible, ref builder.GetPinnableReference(), ref size) == Interop.BOOLEAN.FALSE)
             {
-                StringBuilderCache.Release(sb);
-                return null;
-            }
-
-            while (requiredSize > sb.Capacity)
-            {
-                sb.Capacity = requiredSize;
-                sb.Length = 0;
-                requiredSize = Interop.Kernel32.GetEnvironmentVariableW(variable, sb, sb.Capacity);
-            }
-
-            return StringBuilderCache.GetStringAndRelease(sb);
-        }
-
-        private static string GetEnvironmentVariableCore(string variable, EnvironmentVariableTarget target)
-        {
-            if (target == EnvironmentVariableTarget.Process)
-            {
-                return GetEnvironmentVariableCore(variable);
-            }
-            else
-            {
-                RegistryKey baseKey;
-                string keyName;
-
-                if (target == EnvironmentVariableTarget.Machine)
+                if (Marshal.GetLastWin32Error() == Interop.Errors.ERROR_MORE_DATA)
                 {
-                    baseKey = Registry.LocalMachine;
-                    keyName = @"System\CurrentControlSet\Control\Session Manager\Environment";
+                    builder.EnsureCapacity(checked((int)size));
                 }
                 else
                 {
-                    Debug.Assert(target == EnvironmentVariableTarget.User);
-                    baseKey = Registry.CurrentUser;
-                    keyName = "Environment";
-                }
-
-                using (RegistryKey environmentKey = baseKey.OpenSubKey(keyName, writable: false))
-                {
-                    return environmentKey?.GetValue(variable) as string;
+                    builder.Length = 0;
+                    return;
                 }
             }
+
+            builder.Length = (int)size;
         }
 
-        private static IDictionary GetEnvironmentVariablesCore()
+        public static string UserDomainName
         {
-            // Format for GetEnvironmentStrings is:
-            // (=HiddenVar=value\0 | Variable=value\0)* \0
-            // See the description of Environment Blocks in MSDN's
-            // CreateProcess page (null-terminated array of null-terminated strings).
-            // Note the =HiddenVar's aren't always at the beginning.
-
-            // Copy strings out, parsing into pairs and inserting into the table.
-            // The first few environment variable entries start with an '='.
-            // The current working directory of every drive (except for those drives
-            // you haven't cd'ed into in your DOS window) are stored in the 
-            // environment block (as =C:=pwd) and the program's exit code is 
-            // as well (=ExitCode=00000000).
-
-            var results = new LowLevelDictionary<string, string>();
-            char[] block = GetEnvironmentCharArray();
-            for (int i = 0; i < block.Length; i++)
+            get
             {
-                int startKey = i;
+                // See the comment in UserName
+                Span<char> initialBuffer = stackalloc char[40];
+                var builder = new ValueStringBuilder(initialBuffer);
+                GetUserName(ref builder);
 
-                // Skip to key. On some old OS, the environment block can be corrupted. 
-                // Some will not have '=', so we need to check for '\0'. 
-                while (block[i] != '=' && block[i] != '\0') i++;
-                if (block[i] == '\0') continue;
-
-                // Skip over environment variables starting with '='
-                if (i - startKey == 0)
+                ReadOnlySpan<char> name = builder.AsSpan();
+                int index = name.IndexOf('\\');
+                if (index != -1)
                 {
-                    while (block[i] != 0) i++;
-                    continue;
+                    // In the form of DOMAIN\User, cut off \User and return
+                    return name.Slice(0, index).ToString();
                 }
 
-                string key = new string(block, startKey, i - startKey);
-                i++;  // skip over '='
+                // In theory we should never get use out of LookupAccountNameW as the above API should
+                // always return what we need. Can't find any clues in the historical sources, however.
 
-                int startValue = i;
-                while (block[i] != 0) i++; // Read to end of this entry 
-                string value = new string(block, startValue, i - startValue); // skip over 0 handled by for loop's i++
+                // Domain names aren't typically long.
+                // https://support.microsoft.com/en-us/help/909264/naming-conventions-in-active-directory-for-computers-domains-sites-and
+                Span<char> initialDomainNameBuffer = stackalloc char[64];
+                var domainBuilder = new ValueStringBuilder(initialBuffer);
+                uint length = (uint)domainBuilder.Capacity;
 
-                results[key] = value;
-            }
-            return results;
-        }
+                // This API will fail to return the domain name without a buffer for the SID.
+                // SIDs are never over 68 bytes long.
+                Span<byte> sid = stackalloc byte[68];
+                uint sidLength = 68;
 
-        private static IDictionary GetEnvironmentVariablesCore(EnvironmentVariableTarget target)
-        {
-            if (target == EnvironmentVariableTarget.Process)
-            {
-                return GetEnvironmentVariablesCore();
-            }
-            else
-            {
-                RegistryKey baseKey;
-                string keyName;
-                if (target == EnvironmentVariableTarget.Machine)
+                while (!Interop.Advapi32.LookupAccountNameW(null, ref builder.GetPinnableReference(), ref MemoryMarshal.GetReference(sid),
+                    ref sidLength, ref domainBuilder.GetPinnableReference(), ref length, out _))
                 {
-                    baseKey = Registry.LocalMachine;
-                    keyName = @"System\CurrentControlSet\Control\Session Manager\Environment";
-                }
-                else
-                {
-                    Debug.Assert(target == EnvironmentVariableTarget.User);
-                    baseKey = Registry.CurrentUser;
-                    keyName = @"Environment";
-                }
+                    int error = Marshal.GetLastWin32Error();
 
-                using (RegistryKey environmentKey = baseKey.OpenSubKey(keyName, writable: false))
-                {
-                    var table = new LowLevelDictionary<string, string>();
-                    if (environmentKey != null)
+                    // The docs don't call this out clearly, but experimenting shows that the error returned is the following.
+                    if (error != Interop.Errors.ERROR_INSUFFICIENT_BUFFER)
                     {
-                        foreach (string name in environmentKey.GetValueNames())
-                        {
-                            table.Add(name, environmentKey.GetValue(name, "").ToString());
-                        }
+                        throw new InvalidOperationException(Win32Marshal.GetMessage(error));
                     }
-                    return table;
+
+                    domainBuilder.EnsureCapacity((int)length);
                 }
-            }
-        }
 
-        private unsafe static char[] GetEnvironmentCharArray()
-        {
-            // Format for GetEnvironmentStrings is:
-            // [=HiddenVar=value\0]* [Variable=value\0]* \0
-            // See the description of Environment Blocks in MSDN's
-            // CreateProcess page (null-terminated array of null-terminated strings).
-            char* pStrings = Interop.Kernel32.GetEnvironmentStringsW();
-            if (pStrings == null)
-            {
-                throw new OutOfMemoryException();
-            }
-            try
-            {
-                // Search for terminating \0\0 (two unicode \0's).
-                char* p = pStrings;
-                while (!(*p == '\0' && *(p + 1) == '\0')) p++;
-
-                var block = new char[(int)(p - pStrings + 1)];
-                Marshal.Copy((IntPtr)pStrings, block, 0, block.Length);
-                return block;
-            }
-            finally
-            {
-                Interop.Kernel32.FreeEnvironmentStringsW(pStrings); // ignore any cleanup error
+                domainBuilder.Length = (int)length;
+                return domainBuilder.ToString();
             }
         }
 
@@ -372,245 +272,13 @@ namespace System
         {
             Guid folderId = new Guid(folderGuid);
 
-            string path;
-            int hr = Interop.Shell32.SHGetKnownFolderPath(folderId, (uint)option, IntPtr.Zero, out path);
+            int hr = Interop.Shell32.SHGetKnownFolderPath(folderId, (uint)option, IntPtr.Zero, out string path);
             if (hr != 0) // Not S_OK
             {
-                if (hr == Interop.Shell32.COR_E_PLATFORMNOTSUPPORTED)
-                {
-                    throw new PlatformNotSupportedException();
-                }
-                else
-                {
-                    return string.Empty;
-                }
+                return string.Empty;
             }
 
             return path;
         }
-
-        private static bool Is64BitOperatingSystemWhen32BitProcess
-        {
-            get
-            {
-                bool isWow64;
-                return Interop.Kernel32.IsWow64Process(Interop.Kernel32.GetCurrentProcess(), out isWow64) && isWow64;
-            }
-        }
-
-        public static string MachineName
-        {
-            get
-            {
-                string name = Interop.Kernel32.GetComputerName();
-                if (name == null)
-                {
-                    throw new InvalidOperationException(SR.InvalidOperation_ComputerName);
-                }
-                return name;
-            }
-        }
-
-        private static unsafe Lazy<OperatingSystem> s_osVersion = new Lazy<OperatingSystem>(() =>
-        {
-            var version = new Interop.Kernel32.OSVERSIONINFOEX { dwOSVersionInfoSize = sizeof(Interop.Kernel32.OSVERSIONINFOEX) };
-            if (!Interop.Kernel32.GetVersionExW(ref version))
-            {
-                throw new InvalidOperationException(SR.InvalidOperation_GetVersion);
-            }
-
-            return new OperatingSystem(
-                PlatformID.Win32NT,
-                new Version(version.dwMajorVersion, version.dwMinorVersion, version.dwBuildNumber, (version.wServicePackMajor << 16) | version.wServicePackMinor),
-                Marshal.PtrToStringUni((IntPtr)version.szCSDVersion));
-        });
-
-        public static int ProcessorCount
-        {
-            get
-            {
-                // First try GetLogicalProcessorInformationEx, caching the result as desktop/coreclr does.
-                // If that fails for some reason, fall back to a non-cached result from GetSystemInfo.
-                // (See SystemNative::GetProcessorCount in coreclr for a comparison.)
-                int pc = s_processorCountFromGetLogicalProcessorInformationEx.Value;
-                return pc != 0 ? pc : ProcessorCountFromSystemInfo;
-            }
-        }
-
-        private static readonly unsafe Lazy<int> s_processorCountFromGetLogicalProcessorInformationEx = new Lazy<int>(() =>
-        {
-            // Determine how much size we need for a call to GetLogicalProcessorInformationEx
-            uint len = 0;
-            if (!Interop.Kernel32.GetLogicalProcessorInformationEx(Interop.Kernel32.LOGICAL_PROCESSOR_RELATIONSHIP.RelationGroup, IntPtr.Zero, ref len) &&
-                Marshal.GetLastWin32Error() == Interop.Errors.ERROR_INSUFFICIENT_BUFFER)
-            {
-                // Allocate that much space
-                Debug.Assert(len > 0);
-                var buffer = new byte[len];
-                fixed (byte* bufferPtr = buffer)
-                {
-                    // Call GetLogicalProcessorInformationEx with the allocated buffer
-                    if (Interop.Kernel32.GetLogicalProcessorInformationEx(Interop.Kernel32.LOGICAL_PROCESSOR_RELATIONSHIP.RelationGroup, (IntPtr)bufferPtr, ref len))
-                    {
-                        // Walk each SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX in the buffer, where the Size of each dictates how
-                        // much space it's consuming.  For each group relation, count the number of active processors in each of its group infos.
-                        int processorCount = 0;
-                        byte* ptr = bufferPtr, endPtr = bufferPtr + len;
-                        while (ptr < endPtr)
-                        {
-                            var current = (Interop.Kernel32.SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)ptr;
-                            if (current->Relationship == Interop.Kernel32.LOGICAL_PROCESSOR_RELATIONSHIP.RelationGroup)
-                            {
-                                Interop.Kernel32.PROCESSOR_GROUP_INFO* groupInfo = &current->Group.GroupInfo;
-                                int groupCount = current->Group.ActiveGroupCount;
-                                for (int i = 0; i < groupCount; i++)
-                                {
-                                    processorCount += (groupInfo + i)->ActiveProcessorCount;
-                                }
-                            }
-                            ptr += current->Size;
-                        }
-                        return processorCount;
-                    }
-                }
-            }
-
-            return 0;
-        });
-
-        private static void SetEnvironmentVariableCore(string variable, string value)
-        {
-            if (!Interop.Kernel32.SetEnvironmentVariableW(variable, value))
-            {
-                int errorCode = Marshal.GetLastWin32Error();
-                switch (errorCode)
-                {
-                    case Interop.Errors.ERROR_ENVVAR_NOT_FOUND: // Allow user to try to clear a environment variable
-                        return;
-                    case Interop.Errors.ERROR_FILENAME_EXCED_RANGE: // Fix inaccurate error code from Win32
-                        throw new ArgumentException(SR.Argument_LongEnvVarValue, nameof(value));
-                    default:
-                        throw new ArgumentException(Interop.Kernel32.GetMessage(errorCode));
-                }
-            }
-        }
-
-        private static void SetEnvironmentVariableCore(string variable, string value, EnvironmentVariableTarget target)
-        {
-            if (target == EnvironmentVariableTarget.Process)
-            {
-                SetEnvironmentVariableCore(variable, value);
-            }
-            else
-            {
-                RegistryKey baseKey;
-                string keyName;
-
-                if (target == EnvironmentVariableTarget.Machine)
-                {
-                    baseKey = Registry.LocalMachine;
-                    keyName = @"System\CurrentControlSet\Control\Session Manager\Environment";
-                }
-                else
-                {
-                    Debug.Assert(target == EnvironmentVariableTarget.User);
-
-                    // User-wide environment variables stored in the registry are limited to 255 chars for the environment variable name.
-                    const int MaxUserEnvVariableLength = 255;
-                    if (variable.Length >= MaxUserEnvVariableLength)
-                    {
-                        throw new ArgumentException(SR.Argument_LongEnvVarValue, nameof(variable));
-                    }
-
-                    baseKey = Registry.CurrentUser;
-                    keyName = "Environment";
-                }
-
-                using (RegistryKey environmentKey = baseKey.OpenSubKey(keyName, writable: true))
-                {
-                    if (environmentKey != null)
-                    {
-                        if (value == null)
-                        {
-                            environmentKey.DeleteValue(variable, throwOnMissingValue: false);
-                        }
-                        else
-                        {
-                            environmentKey.SetValue(variable, value);
-                        }
-                    }
-                }
-            }
-
-            //// Desktop sends a WM_SETTINGCHANGE message to all windows.  Not available on all platforms.
-            //Interop.Kernel32.SendMessageTimeout(
-            //    new IntPtr(Interop.Kernel32.HWND_BROADCAST), Interop.Kernel32.WM_SETTINGCHANGE,
-            //    IntPtr.Zero, "Environment", 0, 1000, IntPtr.Zero);
-        }
-
-        public static string SystemDirectory
-        {
-            get
-            {
-                StringBuilder sb = StringBuilderCache.Acquire(Path.MaxPath);
-                if (Interop.Kernel32.GetSystemDirectoryW(sb, Path.MaxPath) == 0)
-                {
-                    StringBuilderCache.Release(sb);
-                    throw Win32Marshal.GetExceptionForLastWin32Error();
-                }
-                return StringBuilderCache.GetStringAndRelease(sb);
-            }
-        }
-
-        public static string UserName
-        {
-            get
-            {
-                // Use GetUserNameExW, as GetUserNameW isn't available on all platforms, e.g. Win7
-                var domainName = new StringBuilder(1024);
-                uint domainNameLen = (uint)domainName.Capacity;
-                if (Interop.SspiCli.GetUserNameExW(Interop.SspiCli.NameSamCompatible, domainName, ref domainNameLen) == 1)
-                {
-                    string samName = domainName.ToString();
-                    int index = samName.IndexOf('\\');
-                    if (index != -1)
-                    {
-                        return samName.Substring(index + 1);
-                    }
-                }
-
-                return string.Empty;
-            }
-        }
-
-        public static string UserDomainName
-        {
-            get
-            {
-                var domainName = new StringBuilder(1024);
-                uint domainNameLen = (uint)domainName.Capacity;
-                if (Interop.SspiCli.GetUserNameExW(Interop.SspiCli.NameSamCompatible, domainName, ref domainNameLen) == 1)
-                {
-                    string samName = domainName.ToString();
-                    int index = samName.IndexOf('\\');
-                    if (index != -1)
-                    {
-                        return samName.Substring(0, index);
-                    }
-                }
-                domainNameLen = (uint)domainName.Capacity;
-
-                byte[] sid = new byte[1024];
-                int sidLen = sid.Length;
-                int peUse;
-                if (!Interop.Advapi32.LookupAccountNameW(null, UserName, sid, ref sidLen, domainName, ref domainNameLen, out peUse))
-                {
-                    throw new InvalidOperationException(Win32Marshal.GetExceptionForLastWin32Error().Message);
-                }
-
-                return domainName.ToString();
-            }
-        }
-
     }
 }

@@ -171,6 +171,11 @@ namespace System.Xml
             _textContentMarks[0] = 1;
 
             _charEntityFallback = new CharEntityEncoderFallback();
+
+            // grab bom before possibly changing encoding settings
+            ReadOnlySpan<byte> bom = encoding.Preamble;
+            
+            // the encoding instance this creates can differ from the one passed in
             this.encoding = Encoding.GetEncoding(
                 settings.Encoding.CodePage,
                 _charEntityFallback,
@@ -180,10 +185,9 @@ namespace System.Xml
 
             if (!stream.CanSeek || stream.Position == 0)
             {
-                byte[] bom = encoding.GetPreamble();
                 if (bom.Length != 0)
                 {
-                    this.stream.Write(bom, 0, bom.Length);
+                    this.stream.Write(bom);
                 }
             }
 
@@ -902,7 +906,7 @@ namespace System.Xml
                 char* pDst = pDstBegin + this.bufPos;
 
                 int ch = 0;
-                for (; ;)
+                for (;;)
                 {
                     char* pDstEnd = pDst + (pSrcEnd - pSrc);
                     if (pDstEnd > pDstBegin + bufLen)
@@ -1008,7 +1012,7 @@ namespace System.Xml
                 char* pDst = pDstBegin + this.bufPos;
 
                 int ch = 0;
-                for (; ;)
+                for (;;)
                 {
                     char* pDstEnd = pDst + (pSrcEnd - pSrc);
                     if (pDstEnd > pDstBegin + bufLen)
@@ -1121,7 +1125,7 @@ namespace System.Xml
                 char* pSrc = pSrcBegin;
 
                 int ch = 0;
-                for (; ;)
+                for (;;)
                 {
                     char* pDstEnd = pDst + (pSrcEnd - pSrc);
                     if (pDstEnd > pDstBegin + this.bufLen)
@@ -1167,7 +1171,7 @@ namespace System.Xml
                 char* pDst = pDstBegin + bufPos;
 
                 int ch = 0;
-                for (; ;)
+                for (;;)
                 {
                     char* pDstEnd = pDst + (pSrcEnd - pSrc);
                     if (pDstEnd > pDstBegin + bufLen)
@@ -1269,7 +1273,7 @@ namespace System.Xml
                 char* pDst = pDstBegin + bufPos;
 
                 int ch = 0;
-                for (; ;)
+                for (;;)
                 {
                     char* pDstEnd = pDst + (pSrcEnd - pSrc);
                     if (pDstEnd > pDstBegin + bufLen)
@@ -1402,7 +1406,7 @@ namespace System.Xml
                 char* pDst = pDstBegin + bufPos;
 
                 int ch = 0;
-                for (; ;)
+                for (;;)
                 {
                     char* pDstEnd = pDst + (pSrcEnd - pSrc);
                     if (pDstEnd > pDstBegin + bufLen)

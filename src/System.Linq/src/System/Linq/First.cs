@@ -10,94 +10,49 @@ namespace System.Linq
     {
         public static TSource First<TSource>(this IEnumerable<TSource> source)
         {
-            if (source == null)
+            TSource first = source.TryGetFirst(out bool found);
+            if (!found)
             {
-                throw Error.ArgumentNull(nameof(source));
+                throw Error.NoElements();
             }
 
-            IPartition<TSource> partition = source as IPartition<TSource>;
-            if (partition != null)
-            {
-                bool found;
-                TSource first = partition.TryGetFirst(out found);
-                if (found)
-                {
-                    return first;
-                }
-            }
-            else
-            {
-                IList<TSource> list = source as IList<TSource>;
-                if (list != null)
-                {
-                    if (list.Count > 0)
-                    {
-                        return list[0];
-                    }
-                }
-                else
-                {
-                    using (IEnumerator<TSource> e = source.GetEnumerator())
-                    {
-                        if (e.MoveNext())
-                        {
-                            return e.Current;
-                        }
-                    }
-                }
-            }
-
-            throw Error.NoElements();
+            return first;
         }
 
         public static TSource First<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
         {
-            if (source == null)
+            TSource first = source.TryGetFirst(predicate, out bool found);
+            if (!found)
             {
-                throw Error.ArgumentNull(nameof(source));
+                throw Error.NoMatch();
             }
 
-            if (predicate == null)
-            {
-                throw Error.ArgumentNull(nameof(predicate));
-            }
-
-            OrderedEnumerable<TSource> ordered = source as OrderedEnumerable<TSource>;
-            if (ordered != null)
-            {
-                return ordered.First(predicate);
-            }
-
-            foreach (TSource element in source)
-            {
-                if (predicate(element))
-                {
-                    return element;
-                }
-            }
-
-            throw Error.NoMatch();
+            return first;
         }
 
-        public static TSource FirstOrDefault<TSource>(this IEnumerable<TSource> source)
+        public static TSource FirstOrDefault<TSource>(this IEnumerable<TSource> source) =>
+            source.TryGetFirst(out bool _);
+
+        public static TSource FirstOrDefault<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate) =>
+            source.TryGetFirst(predicate, out bool _);
+
+        private static TSource TryGetFirst<TSource>(this IEnumerable<TSource> source, out bool found)
         {
             if (source == null)
             {
                 throw Error.ArgumentNull(nameof(source));
             }
 
-            IPartition<TSource> partition = source as IPartition<TSource>;
-            if (partition != null)
+            if (source is IPartition<TSource> partition)
             {
-                bool found;
                 return partition.TryGetFirst(out found);
             }
 
-            IList<TSource> list = source as IList<TSource>;
-            if (list != null)
+            if (source is IList<TSource> list)
             {
                 if (list.Count > 0)
                 {
+                    found = true;
                     return list[0];
                 }
             }
@@ -107,15 +62,17 @@ namespace System.Linq
                 {
                     if (e.MoveNext())
                     {
+                        found = true;
                         return e.Current;
                     }
                 }
             }
 
+            found = false;
             return default(TSource);
         }
 
-        public static TSource FirstOrDefault<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
+        private static TSource TryGetFirst<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate, out bool found)
         {
             if (source == null)
             {
@@ -127,20 +84,21 @@ namespace System.Linq
                 throw Error.ArgumentNull(nameof(predicate));
             }
 
-            OrderedEnumerable<TSource> ordered = source as OrderedEnumerable<TSource>;
-            if (ordered != null)
+            if (source is OrderedEnumerable<TSource> ordered)
             {
-                return ordered.FirstOrDefault(predicate);
+                return ordered.TryGetFirst(predicate, out found);
             }
 
             foreach (TSource element in source)
             {
                 if (predicate(element))
                 {
+                    found = true;
                     return element;
                 }
             }
 
+            found = false;
             return default(TSource);
         }
     }

@@ -23,7 +23,6 @@ namespace System.Collections.Concurrent
     /// non-blocking.  These behaviors can be overridden via this enumeration.
     /// </summary>
     [Flags]
-    [Serializable]
     public enum EnumerablePartitionerOptions
     {
         /// <summary>
@@ -218,7 +217,7 @@ namespace System.Collections.Concurrent
             long from, to;
             bool shouldQuit = false;
 
-            for (long i = fromInclusive; (i < toExclusive) && !shouldQuit; i += rangeSize)
+            for (long i = fromInclusive; (i < toExclusive) && !shouldQuit; i = unchecked(i + rangeSize))
             {
                 from = i;
                 try { checked { to = i + rangeSize; } }
@@ -275,7 +274,7 @@ namespace System.Collections.Concurrent
             int from, to;
             bool shouldQuit = false;
 
-            for (int i = fromInclusive; (i < toExclusive) && !shouldQuit; i += rangeSize)
+            for (int i = fromInclusive; (i < toExclusive) && !shouldQuit; i = unchecked(i + rangeSize))
             {
                 from = i;
                 try { checked { to = i + rangeSize; } }
@@ -371,7 +370,7 @@ namespace System.Collections.Concurrent
             /// Abstract property, returns whether or not the shared reader has already read the last 
             /// element of the source data 
             /// </summary>
-            protected abstract bool HasNoElementsLeft { get; set; }
+            protected abstract bool HasNoElementsLeft { get; }
 
             /// <summary>
             /// Get the current element in the current partition. Property required by IEnumerator interface
@@ -382,7 +381,7 @@ namespace System.Collections.Concurrent
 
             /// <summary>
             /// Dispose is abstract, and depends on the type of the source data:
-            /// - For source data type IList and Array, the type of the shared reader is just the dataitself.
+            /// - For source data type IList and Array, the type of the shared reader is just the data itself.
             ///   We don't do anything in Dispose method for IList and Array. 
             /// - For source data type IEnumerable, the type of the shared reader is an enumerator we created.
             ///   Thus we need to dispose this shared reader enumerator, when there is no more active partitions
@@ -402,7 +401,7 @@ namespace System.Collections.Concurrent
             /// <summary>
             /// Get the current element in the current partition. Property required by IEnumerator interface
             /// </summary>
-            Object IEnumerator.Current
+            object IEnumerator.Current
             {
                 get
                 {
@@ -956,14 +955,6 @@ namespace System.Collections.Concurrent
                 override protected bool HasNoElementsLeft
                 {
                     get { return _hasNoElementsLeft.Value; }
-                    set
-                    {
-                        //we only set it from false to true once
-                        //we should never set it back in any circumstances
-                        Debug.Assert(value);
-                        Debug.Assert(!_hasNoElementsLeft.Value);
-                        _hasNoElementsLeft.Value = true;
-                    }
                 }
 
                 override public KeyValuePair<long, TSource> Current
@@ -1162,10 +1153,6 @@ namespace System.Collections.Concurrent
                     Debug.Assert(_sharedIndex != null);
                     // use the new Volatile.Read method because it is cheaper than Interlocked.Read on AMD64 architecture
                     return Volatile.Read(ref _sharedIndex.Value) >= SourceCount - 1;
-                }
-                set
-                {
-                    Debug.Fail("HasNoElementsLeft_Set should not be called");
                 }
             }
 
@@ -1504,7 +1491,7 @@ namespace System.Collections.Concurrent
                 }
             }
 
-            Object IEnumerator.Current
+            object IEnumerator.Current
             {
                 get
                 {

@@ -5,8 +5,11 @@
 // Changes to this file must follow the http://aka.ms/api-review process.
 // ------------------------------------------------------------------------------
 
-// Types moved down into System.Runtime.Handles
+// Types moved down into System.Runtime
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.CriticalHandle))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.GCHandle))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.GCHandleType))]
+[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.InAttribute))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Runtime.InteropServices.SafeHandle))]
 [assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Reflection.Missing))]
 
@@ -103,12 +106,16 @@ namespace System.IO
         protected unsafe void Initialize(byte* pointer, long length, long capacity, System.IO.FileAccess access) { }
         protected void Initialize(System.Runtime.InteropServices.SafeBuffer buffer, long offset, long length, System.IO.FileAccess access) { }
         public override int Read(byte[] buffer, int offset, int count) { throw null; }
+        public override int Read(System.Span<byte> destination) { throw null; }
         public override System.Threading.Tasks.Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override System.Threading.Tasks.ValueTask<int> ReadAsync(Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override int ReadByte() { throw null; }
         public override long Seek(long offset, System.IO.SeekOrigin loc) { throw null; }
         public override void SetLength(long value) { }
         public override void Write(byte[] buffer, int offset, int count) { }
+        public override void Write(System.ReadOnlySpan<byte> source) { }
         public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { throw null; }
+        public override System.Threading.Tasks.ValueTask WriteAsync(System.ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { throw null; }
         public override void WriteByte(byte value) { }
     }
 }
@@ -134,9 +141,9 @@ namespace System.Runtime.InteropServices
         public AutomationProxyAttribute(bool val) { }
         public bool Value { get { throw null; } }
     }     
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
     public partial struct ArrayWithOffset
     {
+        private object _dummy;
         public ArrayWithOffset(object array, int offset) { throw null; }
         public override bool Equals(object obj) { throw null; }
         public bool Equals(System.Runtime.InteropServices.ArrayWithOffset obj) { throw null; }
@@ -314,14 +321,12 @@ namespace System.Runtime.InteropServices
         public decimal WrappedObject { get { throw null; } }
     }
     [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-    [System.ObsoleteAttribute("CustomQueryInterfaceMode and support for ICustomQueryInterface may be unavailable in future releases.")]
     public enum CustomQueryInterfaceMode
     {
         Allow = 1,
         Ignore = 0,
     }
     [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-    [System.ObsoleteAttribute("CustomQueryInterfaceResult and support for ICustomQueryInterface may be unavailable in future releases.")]
     public enum CustomQueryInterfaceResult
     {
         Failed = 2,
@@ -393,31 +398,6 @@ namespace System.Runtime.InteropServices
         public ErrorWrapper(object errorCode) { }
         public int ErrorCode { get { throw null; } }
     }
-    [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    public partial struct GCHandle
-    {
-        public bool IsAllocated { get { throw null; } }
-        public object Target {get { throw null; } set { } }
-        public System.IntPtr AddrOfPinnedObject() { throw null; }
-        public static System.Runtime.InteropServices.GCHandle Alloc(object value) { throw null; }
-        public static System.Runtime.InteropServices.GCHandle Alloc(object value, System.Runtime.InteropServices.GCHandleType type) { throw null; }
-        public override bool Equals(object o) { throw null; }
-        public void Free() { }
-        public static System.Runtime.InteropServices.GCHandle FromIntPtr(System.IntPtr value) { throw null; }
-        public override int GetHashCode() { throw null; }
-        public static bool operator ==(System.Runtime.InteropServices.GCHandle a, System.Runtime.InteropServices.GCHandle b) { throw null; }
-        public static explicit operator System.Runtime.InteropServices.GCHandle(System.IntPtr value) { throw null; }
-        public static explicit operator System.IntPtr(System.Runtime.InteropServices.GCHandle value) { throw null; }
-        public static bool operator !=(System.Runtime.InteropServices.GCHandle a, System.Runtime.InteropServices.GCHandle b) { throw null; }
-        public static System.IntPtr ToIntPtr(System.Runtime.InteropServices.GCHandle value) { throw null; }
-    }
-    public enum GCHandleType
-    {
-        Normal = 2,
-        Pinned = 3,
-        Weak = 0,
-        WeakTrackResurrection = 1,
-    }
     [System.AttributeUsageAttribute((System.AttributeTargets)(5149), Inherited = false)]
     public sealed partial class GuidAttribute : System.Attribute
     {
@@ -435,8 +415,9 @@ namespace System.Runtime.InteropServices
         public void Add() { }
         public void Remove() { }
     }
-    public struct HandleRef
+    public readonly struct HandleRef
     {
+        private readonly object _dummy;
         public HandleRef(object wrapper, System.IntPtr handle) : this() { }
         public System.IntPtr Handle { get; }
         public object Wrapper { get; }
@@ -462,15 +443,15 @@ namespace System.Runtime.InteropServices
         object MarshalNativeToManaged(System.IntPtr pNativeData);
     }
     [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
-    [System.ObsoleteAttribute("ICustomQueryInterface may be unavailable in future releases.")]
     public partial interface ICustomQueryInterface
     {
         System.Runtime.InteropServices.CustomQueryInterfaceResult GetInterface(ref System.Guid iid, out System.IntPtr ppv);
     }
-    [System.AttributeUsageAttribute((System.AttributeTargets)(2048), Inherited = false)]
-    public sealed partial class InAttribute : System.Attribute
+    [AttributeUsage(AttributeTargets.Assembly, Inherited = false)]
+    public sealed class ImportedFromTypeLibAttribute : Attribute
     {
-        public InAttribute() { }
+        public ImportedFromTypeLibAttribute(String tlbFile) { }
+        public String Value { get { throw null; } }
     }
     [System.AttributeUsageAttribute((System.AttributeTargets)(1024), Inherited = false)]
     public sealed partial class InterfaceTypeAttribute : System.Attribute
@@ -556,6 +537,7 @@ namespace System.Runtime.InteropServices
         public static int GetExceptionCode() { throw null; }
         public static System.Exception GetExceptionForHR(int errorCode) { throw null; }
         public static System.Exception GetExceptionForHR(int errorCode, System.IntPtr errorInfo) { throw null; }
+        public static IntPtr GetExceptionPointers() { throw null; }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
         public static System.IntPtr GetFunctionPointerForDelegate(System.Delegate d) { throw null; }
         public static System.IntPtr GetFunctionPointerForDelegate<TDelegate>(TDelegate d) { throw null; }
@@ -585,6 +567,7 @@ namespace System.Runtime.InteropServices
         [System.ObsoleteAttribute("GetObjectsForNativeVariants<T>(IntPtr, Int32) may be unavailable in future releases.")]
         public static T[] GetObjectsForNativeVariants<T>(System.IntPtr aSrcNativeVariant, int cVars) { throw null; }
         public static int GetStartComSlot(System.Type t) { throw null; }
+        public static int GetEndComSlot(System.Type t) { throw null; }
         public static object GetTypedObjectForIUnknown(System.IntPtr pUnk, System.Type t) { throw null; }         
         public static System.Type GetTypeFromCLSID(System.Guid clsid) { throw null; }
         public static string GetTypeInfoName(System.Runtime.InteropServices.ComTypes.ITypeInfo typeInfo) { throw null; }
@@ -602,16 +585,15 @@ namespace System.Runtime.InteropServices
         public static string PtrToStringBSTR(System.IntPtr ptr) { throw null; }
         public static string PtrToStringUni(System.IntPtr ptr) { throw null; }
         public static string PtrToStringUni(System.IntPtr ptr, int len) { throw null; }
-#if netcoreapp11
         public static string PtrToStringUTF8(System.IntPtr ptr) { throw null; }
         public static string PtrToStringUTF8(System.IntPtr ptr, int byteLen) { throw null; }
-#endif
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
         public static void PtrToStructure(System.IntPtr ptr, object structure) { }
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
         public static object PtrToStructure(System.IntPtr ptr, System.Type structureType) { throw null; }
         public static T PtrToStructure<T>(System.IntPtr ptr) { throw null; }
         public static void PtrToStructure<T>(System.IntPtr ptr, T structure) { }
+        public static bool IsTypeVisibleFromCom(Type t) { throw null;}
         public static int QueryInterface(System.IntPtr pUnk, ref System.Guid iid, out System.IntPtr ppv) { throw null; }
         public static byte ReadByte(System.IntPtr ptr) { throw null; }
         public static byte ReadByte(System.IntPtr ptr, int ofs) { throw null; }
@@ -663,9 +645,7 @@ namespace System.Runtime.InteropServices
         public static System.IntPtr StringToCoTaskMemAnsi(string s) { throw null; }
         public static System.IntPtr StringToCoTaskMemAuto(string s) { throw null; }
         public static System.IntPtr StringToCoTaskMemUni(string s) { throw null; }
-#if netcoreapp11
         public static System.IntPtr StringToCoTaskMemUTF8(string s) { throw null; }
-#endif
         public static System.IntPtr StringToHGlobalAnsi(string s) { throw null; }
         public static System.IntPtr StringToHGlobalAuto(string s) { throw null; }
         public static System.IntPtr StringToHGlobalUni(string s) { throw null; }
@@ -712,11 +692,9 @@ namespace System.Runtime.InteropServices
         public static void ZeroFreeCoTaskMemUnicode(System.IntPtr s) { }
         public static void ZeroFreeGlobalAllocAnsi(System.IntPtr s) { }
         public static void ZeroFreeGlobalAllocUnicode(System.IntPtr s) { }
-#if netcoreapp11
         public static void ZeroFreeCoTaskMemUTF8(System.IntPtr s) { }
-#endif
     }
-    [System.AttributeUsageAttribute((System.AttributeTargets)(64), Inherited=false)]
+    [System.AttributeUsageAttribute((System.AttributeTargets)(64), Inherited=false, AllowMultiple=false)]
     public sealed partial class ManagedToNativeComInteropStubAttribute : System.Attribute
     {
         public ManagedToNativeComInteropStubAttribute(System.Type classType, string methodName) { }
@@ -792,6 +770,10 @@ namespace System.Runtime.InteropServices
         public SafeArrayTypeMismatchException(string message) { }
         public SafeArrayTypeMismatchException(string message, System.Exception inner) { }
     }
+    public partial class StandardOleMarshalObject : MarshalByRefObject
+    {
+        protected StandardOleMarshalObject() { }
+    }
     public abstract partial class SafeBuffer : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
     {
         protected SafeBuffer(bool ownsHandle) : base(default(bool)) { }
@@ -831,6 +813,92 @@ namespace System.Runtime.InteropServices
         public string Identifier { get { throw null; } }
         public string Scope { get { throw null; } }
     }
+    [AttributeUsage(AttributeTargets.Interface, Inherited = false)]
+    public sealed class TypeLibImportClassAttribute : Attribute
+    {
+        public TypeLibImportClassAttribute(Type importClass) { }
+        public String Value { get { throw null; } }
+    }
+    [Flags()]
+    public enum TypeLibTypeFlags
+    {
+        FAppObject      = 0x0001,
+        FCanCreate      = 0x0002,
+        FLicensed       = 0x0004,
+        FPreDeclId      = 0x0008,
+        FHidden         = 0x0010,
+        FControl        = 0x0020,
+        FDual           = 0x0040,
+        FNonExtensible  = 0x0080,
+        FOleAutomation  = 0x0100,
+        FRestricted     = 0x0200,
+        FAggregatable   = 0x0400,
+        FReplaceable    = 0x0800,
+        FDispatchable   = 0x1000,
+        FReverseBind    = 0x2000,
+    }
+    [Flags()]
+    public enum TypeLibFuncFlags
+    {
+        FRestricted         = 0x0001,
+        FSource             = 0x0002,
+        FBindable           = 0x0004,
+        FRequestEdit        = 0x0008,
+        FDisplayBind        = 0x0010,
+        FDefaultBind        = 0x0020,
+        FHidden             = 0x0040,
+        FUsesGetLastError   = 0x0080,
+        FDefaultCollelem    = 0x0100,
+        FUiDefault          = 0x0200,
+        FNonBrowsable       = 0x0400,
+        FReplaceable        = 0x0800,
+        FImmediateBind      = 0x1000,
+    }
+    [Flags()]
+    public enum TypeLibVarFlags
+    {
+        FReadOnly           = 0x0001,
+        FSource             = 0x0002,
+        FBindable           = 0x0004,
+        FRequestEdit        = 0x0008,
+        FDisplayBind        = 0x0010,
+        FDefaultBind        = 0x0020,
+        FHidden             = 0x0040,
+        FRestricted         = 0x0080,
+        FDefaultCollelem    = 0x0100,
+        FUiDefault          = 0x0200,
+        FNonBrowsable       = 0x0400,
+        FReplaceable        = 0x0800,
+        FImmediateBind      = 0x1000,
+    }
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Enum | AttributeTargets.Struct, Inherited = false)]
+    public sealed class  TypeLibTypeAttribute : Attribute
+    {
+        public TypeLibTypeAttribute(TypeLibTypeFlags flags)  {}
+        public TypeLibTypeAttribute(short flags) { }
+        public TypeLibTypeFlags Value { get { throw null; } }
+    }
+    [AttributeUsage(AttributeTargets.Method, Inherited = false)]
+    public sealed class TypeLibFuncAttribute : Attribute
+    {
+        public TypeLibFuncAttribute(TypeLibFuncFlags flags) { }
+        public TypeLibFuncAttribute(short flags) { }
+        public TypeLibFuncFlags Value { get { throw null; } }
+    }
+    [AttributeUsage(AttributeTargets.Field, Inherited = false)]
+    public sealed class TypeLibVarAttribute : Attribute
+    {
+        public TypeLibVarAttribute(TypeLibVarFlags flags) { }
+        public TypeLibVarAttribute(short flags) { }
+        public TypeLibVarFlags Value { get { throw null; } }
+    }
+    [AttributeUsage(AttributeTargets.Assembly, Inherited = false)]
+    public sealed class TypeLibVersionAttribute : Attribute
+    {
+        public TypeLibVersionAttribute(int major, int minor) {}
+        public int MajorVersion { get { throw null; } }
+        public int MinorVersion { get { throw null; } }
+    }   
     [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
     [System.ObsoleteAttribute("UnknownWrapper and support for marshalling to the VARIANT type may be unavailable in future releases.")]
     public sealed partial class UnknownWrapper
@@ -882,9 +950,7 @@ namespace System.Runtime.InteropServices
         LPStruct = 43,
         LPTStr = 22,
         LPWStr = 21,
-#if netcoreapp11
         LPUTF8Str = 48,
-#endif
         R4 = 11,
         R8 = 12,
         [System.ComponentModel.EditorBrowsableAttribute((System.ComponentModel.EditorBrowsableState)(1))]
@@ -1670,9 +1736,9 @@ namespace System.Runtime.InteropServices.ComTypes
 
 namespace System.Security
 {
-    [System.CLSCompliant(false)]
     public sealed class SecureString : IDisposable {
         public SecureString() { }
+        [System.CLSCompliant(false)]
         public unsafe SecureString(char* value, int length) { }
         public int Length { get { throw null; } }
         public void AppendChar(char c) { }

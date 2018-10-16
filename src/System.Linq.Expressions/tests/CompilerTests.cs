@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -20,12 +18,35 @@ namespace System.Linq.Expressions.Tests
         {
             var e = (Expression)Expression.Constant(0);
 
-            var n = 10000;
+            int n = 10000;
 
             for (var i = 0; i < n; i++)
                 e = Expression.Add(e, Expression.Constant(1));
 
-            var f = Expression.Lambda<Func<int>>(e).Compile(useInterpreter);
+            Func<int> f = Expression.Lambda<Func<int>>(e).Compile(useInterpreter);
+
+            Assert.Equal(n, f());
+        }
+
+        [Theory, ClassData(typeof(CompilationTypes))]
+        [OuterLoop("May fail with SO on Debug JIT")]
+        public static void CompileDeepTree_NoStackOverflowFast(bool useInterpreter)
+        {
+            Expression e = Expression.Constant(0);
+
+            int n = 100;
+
+            for (int i = 0; i < n; i++)
+                e = Expression.Add(e, Expression.Constant(1));
+
+            Func<int> f = null;
+            // Request a stack size of 128KiB to get very small stack.
+            // This reduces the size of tree needed to risk a stack overflow.
+            // This though will only risk overflow once, so the outerloop test
+            // above is still needed.
+            Thread t = new Thread(() => f = Expression.Lambda<Func<int>>(e).Compile(useInterpreter), 128 * 1024);
+            t.Start();
+            t.Join();
 
             Assert.Equal(n, f());
         }
@@ -303,7 +324,8 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void VerifyIL_Closure3()
         {
-            Expression<Func<int, Func<int, int>>> f = x => y => x + y;
+            // Using an unchecked addition to ensure that an add instruction is emitted (and not add.ovf)
+            Expression<Func<int, Func<int, int>>> f = x => y => unchecked(x + y);
 
             f.VerifyIL(
                 @".method class [System.Private.CoreLib]System.Func`2<int32,int32> ::lambda_method(object,int32)
@@ -351,17 +373,17 @@ namespace System.Linq.Expressions.Tests
 
         public static void VerifyIL(this LambdaExpression expression, string expected, bool appendInnerLambdas = false)
         {
-            var actual = expression.GetIL(appendInnerLambdas);
+            string actual = expression.GetIL(appendInnerLambdas);
 
-            var nExpected = Normalize(expected);
-            var nActual = Normalize(actual);
+            string nExpected = Normalize(expected);
+            string nActual = Normalize(actual);
 
             Assert.Equal(nExpected, nActual);
         }
 
         private static string Normalize(string s)
         {
-            var lines =
+            Collections.Generic.IEnumerable<string> lines =
                 s
                 .Replace("\r\n", "\n")
                 .Split(new[] { '\n' })
@@ -383,9 +405,9 @@ namespace System.Linq.Expressions.Tests
 
         private static void VerifyEmitConstantsToIL(Expression e, int expectedCount, object expectedValue)
         {
-            var d = Expression.Lambda(e).Compile();
+            Delegate f = Expression.Lambda(e).Compile();
 
-            var t = d.Target;
+            var t = f.Target;
 
             if (expectedCount == 0)
             {
@@ -397,10 +419,10 @@ namespace System.Linq.Expressions.Tests
 
                 if (c == null)
                 {
-                    var f = t.GetType().GetField("Constants");
-                    Assert.NotNull(f);
+                    var fld = t.GetType().GetField("Constants");
+                    Assert.NotNull(fld);
 
-                    var v = f.GetValue(t);
+                    var v = fld.GetValue(t);
 
                     c = v as IRuntimeVariables;
                 }
@@ -410,13 +432,13 @@ namespace System.Linq.Expressions.Tests
                 Assert.Equal(expectedCount, c.Count);
             }
 
-            var o = d.DynamicInvoke();
+            object o = f.DynamicInvoke();
             Assert.Equal(expectedValue, o);
         }
 
         private static void Verify_VariableBinder_CatchBlock_Filter(CatchBlock @catch)
         {
-            var e =
+            Expression<Action> e =
                 Expression.Lambda<Action>(
                     Expression.TryCatch(
                         Expression.Empty(),

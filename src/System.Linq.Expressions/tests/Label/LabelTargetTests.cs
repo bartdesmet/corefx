@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -63,15 +62,15 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void NullType()
         {
-            Assert.Throws<ArgumentNullException>("type", () => Expression.Label(default(Type)));
-            Assert.Throws<ArgumentNullException>("type", () => Expression.Label(null, "name"));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.Label(default(Type)));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.Label(null, "name"));
         }
 
         [Fact]
         public void GenericType()
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Label(typeof(List<>)));
-            Assert.Throws<ArgumentException>("type", () => Expression.Label(typeof(List<>), null));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(typeof(List<>)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(typeof(List<>), null));
         }
 
         [Fact]
@@ -79,8 +78,24 @@ namespace System.Linq.Expressions.Tests
         {
             Type listType = typeof(List<>);
             Type listListListType = listType.MakeGenericType(listType.MakeGenericType(listType));
-            Assert.Throws<ArgumentException>("type", () => Expression.Label(listListListType));
-            Assert.Throws<ArgumentException>("type", () => Expression.Label(listListListType, null));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(listListListType));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(listListListType, null));
+        }
+
+        [Fact]
+        public void PointerType()
+        {
+            Type pointerType = typeof(int).MakePointerType();
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(pointerType));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(pointerType, null));
+        }
+
+        [Fact]
+        public void ByRefType()
+        {
+            Type byRefType = typeof(int).MakeByRefType();
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(byRefType));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Label(byRefType, null));
         }
 
         [Fact]
@@ -120,7 +135,7 @@ namespace System.Linq.Expressions.Tests
         public void LableNameNeedNotBeValidCSharpLabelWithValue(bool useInterpreter)
         {
             LabelTarget target = Expression.Label(typeof(int), "1, 2, 3, 4. This is not a valid C♯ label!\"'<>.\uffff");
-            var func = Expression.Lambda<Func<int>>(
+            Func<int> func = Expression.Lambda<Func<int>>(
                 Expression.Block(
                     Expression.Return(target, Expression.Constant(42)),
                     Expression.Throw(Expression.Constant(new CustomException())),

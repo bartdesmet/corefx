@@ -123,13 +123,13 @@ namespace System.Numerics
             if (Vector.IsHardwareAccelerated)
             {
                 float ls = Vector4.Dot(this, this);
-                return (float)System.Math.Sqrt(ls);
+                return MathF.Sqrt(ls);
             }
             else
             {
                 float ls = X * X + Y * Y + Z * Z + W * W;
 
-                return (float)Math.Sqrt((double)ls);
+                return MathF.Sqrt(ls);
             }
         }
 
@@ -165,7 +165,7 @@ namespace System.Numerics
             {
                 Vector4 difference = value1 - value2;
                 float ls = Vector4.Dot(difference, difference);
-                return (float)System.Math.Sqrt(ls);
+                return MathF.Sqrt(ls);
             }
             else
             {
@@ -176,7 +176,7 @@ namespace System.Numerics
 
                 float ls = dx * dx + dy * dy + dz * dz + dw * dw;
 
-                return (float)Math.Sqrt((double)ls);
+                return MathF.Sqrt(ls);
             }
         }
 
@@ -221,7 +221,7 @@ namespace System.Numerics
             else
             {
                 float ls = vector.X * vector.X + vector.Y * vector.Y + vector.Z * vector.Z + vector.W * vector.W;
-                float invNorm = 1.0f / (float)Math.Sqrt((double)ls);
+                float invNorm = 1.0f / MathF.Sqrt(ls);
 
                 return new Vector4(
                     vector.X * invNorm,
@@ -243,22 +243,21 @@ namespace System.Numerics
         {
             // This compare order is very important!!!
             // We must follow HLSL behavior in the case user specified min value is bigger than max value.
-
             float x = value1.X;
-            x = (x > max.X) ? max.X : x;
-            x = (x < min.X) ? min.X : x;
+            x = (min.X > x) ? min.X : x;  // max(x, minx)
+            x = (max.X < x) ? max.X : x;  // min(x, maxx)
 
             float y = value1.Y;
-            y = (y > max.Y) ? max.Y : y;
-            y = (y < min.Y) ? min.Y : y;
+            y = (min.Y > y) ? min.Y : y;  // max(y, miny)
+            y = (max.Y < y) ? max.Y : y;  // min(y, maxy)
 
             float z = value1.Z;
-            z = (z > max.Z) ? max.Z : z;
-            z = (z < min.Z) ? min.Z : z;
+            z = (min.Z > z) ? min.Z : z;  // max(z, minz)
+            z = (max.Z < z) ? max.Z : z;  // min(z, maxz)
 
             float w = value1.W;
-            w = (w > max.W) ? max.W : w;
-            w = (w < min.W) ? min.W : w;
+            w = (min.W > w) ? min.W : w;  // max(w, minw)
+            w = (max.W < w) ? max.W : w;  // min(w, minw)
 
             return new Vector4(x, y, z, w);
         }
@@ -466,7 +465,7 @@ namespace System.Numerics
         /// <param name="right">The scalar value.</param>
         /// <returns>The scaled vector.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Multiply(Vector4 left, Single right)
+        public static Vector4 Multiply(Vector4 left, float right)
         {
             return left * new Vector4(right, right, right, right);
         }
@@ -478,7 +477,7 @@ namespace System.Numerics
         /// <param name="right">The source vector.</param>
         /// <returns>The scaled vector.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Multiply(Single left, Vector4 right)
+        public static Vector4 Multiply(float left, Vector4 right)
         {
             return new Vector4(left, left, left, left) * right;
         }
@@ -502,7 +501,7 @@ namespace System.Numerics
         /// <param name="divisor">The scalar value.</param>
         /// <returns>The result of the division.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector4 Divide(Vector4 left, Single divisor)
+        public static Vector4 Divide(Vector4 left, float divisor)
         {
             return left / divisor;
         }

@@ -5,6 +5,7 @@
 namespace System.Xml.Serialization
 {
     using System;
+    using System.Xml;
 
     /// <include file='doc\SoapSchemaMember.uex' path='docs/doc[@for="SoapSchemaMember"]/*' />
     /// <internalonly/>

@@ -27,7 +27,7 @@ namespace System.Linq.Expressions.Interpreter
                 array.SetValue(frame.Pop(), i);
             }
             frame.Push(array);
-            return +1;
+            return 1;
         }
     }
 
@@ -47,13 +47,11 @@ namespace System.Linq.Expressions.Interpreter
         public override int Run(InterpretedFrame frame)
         {
             int length = ConvertHelper.ToInt32NoNull(frame.Pop());
-            if (length < 0)
-            {
-                // to make behavior aligned with array creation emitted by C# compiler
-                throw new OverflowException();
-            }
-            frame.Push(Array.CreateInstance(_elementType, length));
-            return +1;
+            // To make behavior aligned with array creation emitted by C# compiler if length is less than
+            // zero we try to use it to create an array, which will throw an OverflowException with the
+            // correct localized error message.
+            frame.Push(length < 0 ? new int[length] : Array.CreateInstance(_elementType, length));
+            return 1;
         }
     }
 
@@ -89,7 +87,7 @@ namespace System.Linq.Expressions.Interpreter
             }
             Array array = Array.CreateInstance(_elementType, lengths);
             frame.Push(array);
-            return +1;
+            return 1;
         }
     }
 
@@ -108,7 +106,7 @@ namespace System.Linq.Expressions.Interpreter
             int index = ConvertHelper.ToInt32NoNull(frame.Pop());
             Array array = (Array)frame.Pop();
             frame.Push(array.GetValue(index));
-            return +1;
+            return 1;
         }
     }
 
@@ -119,7 +117,6 @@ namespace System.Linq.Expressions.Interpreter
         private SetArrayItemInstruction() { }
 
         public override int ConsumedStack => 3;
-        public override int ProducedStack => 0;
         public override string InstructionName => "SetArrayItem";
 
         public override int Run(InterpretedFrame frame)
@@ -128,7 +125,7 @@ namespace System.Linq.Expressions.Interpreter
             int index = ConvertHelper.ToInt32NoNull(frame.Pop());
             Array array = (Array)frame.Pop();
             array.SetValue(value, index);
-            return +1;
+            return 1;
         }
     }
 
@@ -146,11 +143,11 @@ namespace System.Linq.Expressions.Interpreter
         {
             object obj = frame.Pop();
             frame.Push(((Array)obj).Length);
-            return +1;
+            return 1;
         }
     }
 
-    internal sealed class ConvertHelper
+    internal static class ConvertHelper
     {
         public static int ToInt32NoNull(object val)
         {

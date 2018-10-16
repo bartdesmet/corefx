@@ -41,8 +41,8 @@ namespace System.Xml.Xsl.Xslt
             {
                 result = ptrnBuilder.EndBuild(result);
 #if DEBUG
-                this.ptrnBuilder = null;
-                this.scanner = null;
+                _ptrnBuilder = null;
+                _scanner = null;
 #endif
             }
             return result;

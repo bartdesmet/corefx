@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Reflection;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -13,14 +11,14 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void NullExpression()
         {
-            Assert.Throws<ArgumentNullException>("expression", () => Expression.TypeIs(null, typeof(int)));
+            AssertExtensions.Throws<ArgumentNullException>("expression", () => Expression.TypeIs(null, typeof(int)));
         }
 
         [Fact]
         public void NullType()
         {
             Expression exp = Expression.Constant(0);
-            Assert.Throws<ArgumentNullException>("type", () => Expression.TypeIs(exp, null));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.TypeIs(exp, null));
         }
 
         [Fact]
@@ -28,14 +26,25 @@ namespace System.Linq.Expressions.Tests
         {
             Expression exp = Expression.Constant(0);
             Type byRef = typeof(int).MakeByRefType();
-            Assert.Throws<ArgumentException>("type", () => Expression.TypeIs(exp, byRef));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.TypeIs(exp, byRef));
+        }
+
+        [Theory, ClassData(typeof(CompilationTypes))]
+        public void TypePointer(bool useInterpreter)
+        {
+            Expression exp = Expression.Constant(0);
+            Type pointer = typeof(int*);
+            var test = Expression.TypeIs(exp, pointer);
+            var lambda = Expression.Lambda<Func<bool>>(test);
+            var func = lambda.Compile(useInterpreter);
+            Assert.False(func());
         }
 
         [Fact]
         public void UnreadableExpression()
         {
             Expression exp = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("expression", () => Expression.TypeIs(exp, typeof(int)));
+            AssertExtensions.Throws<ArgumentException>("expression", () => Expression.TypeIs(exp, typeof(int)));
         }
 
         [Fact]
@@ -44,7 +53,7 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.TypeIs(Expression.Constant(0), typeof(int));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Theory]
@@ -97,7 +106,7 @@ namespace System.Linq.Expressions.Tests
                 ? type == typeof(void)
                 : type.IsInstanceOfType(Expression.Lambda<Func<object>>(Expression.Convert(expression, typeof(object))).Compile()());
 
-            var param = Expression.Parameter(expression.Type);
+            ParameterExpression param = Expression.Parameter(expression.Type);
 
             Func<bool> func = Expression.Lambda<Func<bool>>(
                 Expression.Block(
@@ -139,7 +148,7 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void ToStringTest()
         {
-            var e = Expression.TypeIs(Expression.Parameter(typeof(object), "o"), typeof(string));
+            TypeBinaryExpression e = Expression.TypeIs(Expression.Parameter(typeof(object), "o"), typeof(string));
             Assert.Equal("(o Is String)", e.ToString());
         }
     }

@@ -193,6 +193,14 @@ namespace System.IO.IsolatedStorage
             }
         }
 
+        public override bool IsAsync
+        {
+            get
+            {
+                return _fs.IsAsync;
+            }
+        }
+
         protected override void Dispose(bool disposing)
         {
             try
@@ -214,6 +222,11 @@ namespace System.IO.IsolatedStorage
             _fs.Flush();
         }
 
+        public override void Flush(bool flushToDisk)
+        {
+            _fs.Flush(flushToDisk);
+        }
+
         public override Task FlushAsync(CancellationToken cancellationToken)
         {
             return _fs.FlushAsync();
@@ -229,9 +242,19 @@ namespace System.IO.IsolatedStorage
             return _fs.Read(buffer, offset, count);
         }
 
+        public override int Read(System.Span<byte> buffer)
+        {
+            return _fs.Read(buffer);
+        }
+
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, Threading.CancellationToken cancellationToken)
         {
             return _fs.ReadAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+        {
+            return _fs.ReadAsync(buffer, cancellationToken);
         }
 
         public override int ReadByte()
@@ -251,9 +274,19 @@ namespace System.IO.IsolatedStorage
             _fs.Write(buffer, offset, count);
         }
 
+        public override void Write(System.ReadOnlySpan<byte> buffer)
+        {
+            _fs.Write(buffer);
+        }
+
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             return _fs.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+        {
+            return _fs.WriteAsync(buffer, cancellationToken);
         }
 
         public override void WriteByte(byte value)
@@ -281,7 +314,7 @@ namespace System.IO.IsolatedStorage
             _fs.EndWrite(asyncResult);
         }
 
-        [Obsolete("This property has been deprecated.  Please use IsolatedStorageFileStream's SafeFileHandle property instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This property has been deprecated.  Please use IsolatedStorageFileStream's SafeFileHandle property instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public override IntPtr Handle
         {
             get { return _fs.Handle; }
@@ -295,6 +328,14 @@ namespace System.IO.IsolatedStorage
         public override void Lock(long position, long length)
         {
             _fs.Lock(position, length);
+        }
+
+        public override SafeFileHandle SafeFileHandle
+        {
+            get
+            {
+                throw new IsolatedStorageException(SR.IsolatedStorage_Operation_ISFS);
+            }
         }
     }
 }

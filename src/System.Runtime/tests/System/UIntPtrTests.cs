@@ -138,6 +138,7 @@ namespace System.Tests
             Assert.Throws<OverflowException>(() => (uint)ptr);
         }
 
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "This was a bug fix in .NET Core where the hash code should be different")]
         [ConditionalFact(nameof(Is64Bit))]
         public static void GetHashCodeRespectAllBits()
         {
@@ -150,7 +151,7 @@ namespace System.Tests
         {
             Assert.Equal(expected, ptr.ToUInt64());
 
-            uint expected32 = (uint)expected;
+            uint expected32 = unchecked((uint)expected);
             if (expected32 != expected)
             {
                 Assert.Throws<OverflowException>(() => ptr.ToUInt32());

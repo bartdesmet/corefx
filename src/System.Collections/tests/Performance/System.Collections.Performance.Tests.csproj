@@ -1,19 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>System.Collections.Performance.Tests</AssemblyName>
-    <RootNamespace>System.Collections.Performance.Tests</RootNamespace>
-    <IncludePerformanceTests>true</IncludePerformanceTests>
-    <NugetTargetMoniker>.NETStandard,Version=v1.7</NugetTargetMoniker>
+    <ProjectGuid>{F2B47C9D-477E-4EB2-B7F9-D7563FCED117}</ProjectGuid>
+    <DisableTests Condition="'$(TargetGroup)' == 'uap' AND ('$(ArchGroup)' == 'arm' OR '$(ArchGroup)' == 'arm64')">true</DisableTests>
+    <Configurations>netstandard-Debug;netstandard-Release</Configurations>
   </PropertyGroup>
-  <!-- Default configurations to help VS understand the configurations -->
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' "/>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' "/>
-  <ItemGroup>
-    <ProjectReference Include="..\..\pkg\System.Collections.pkgproj" />
-  </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(DisableTests)' != 'true'">
+    <Compile Include="$(CommonTestPath)\System\Collections\DictionaryExtensions.cs">
+      <Link>Common\System\Collections\DictionaryExtensions.cs</Link>
+    </Compile>
     <Compile Include="Perf.Dictionary.cs" />
     <Compile Include="Perf.HashSet.cs" />
     <Compile Include="Perf.List.cs" />
@@ -21,5 +15,10 @@
       <Link>Common\System\PerfUtils.cs</Link>
     </Compile>
   </ItemGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
+  <ItemGroup Condition="'$(DisableTests)' != 'true'">
+    <ProjectReference Include="$(CommonPath)\..\perf\PerfRunner\PerfRunner.csproj">
+      <Project>{69e46a6f-9966-45a5-8945-2559fe337827}</Project>
+      <Name>PerfRunner</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>

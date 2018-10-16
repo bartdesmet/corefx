@@ -10,7 +10,6 @@ using System.Diagnostics;
 
 namespace System.Linq.Expressions.Compiler
 {
-
     // Suppose we have something like:
     //
     //    (string s) => () => s
@@ -69,7 +68,7 @@ namespace System.Linq.Expressions.Compiler
             if (parent != null)
             {
                 // Add the parent locals array as the 0th element in the array
-                vars = new TrueReadOnlyCollection<ParameterExpression>(vars.AddFirst(parent.SelfVariable));
+                vars = vars.AddFirst(parent.SelfVariable);
             }
 
             Variables = vars;

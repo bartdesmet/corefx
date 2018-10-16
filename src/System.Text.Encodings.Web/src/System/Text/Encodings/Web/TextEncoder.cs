@@ -109,7 +109,7 @@ namespace System.Text.Encodings.Web
                     else
                     {
                         char[] wholebuffer = new char[bufferSize];
-                        fixed(char* buffer = wholebuffer)
+                        fixed(char* buffer = &wholebuffer[0])
                         {
                             int totalWritten = EncodeIntoBuffer(buffer, bufferSize, valuePointer, value.Length, firstCharacterToEncode);
                             result = new string(wholebuffer, 0, totalWritten);                            
@@ -146,7 +146,8 @@ namespace System.Text.Encodings.Web
 
             // this loop processes character pairs (in case they are surrogates).
             // there is an if block below to process single last character.
-            for (int secondCharIndex = valueIndex + 1; secondCharIndex < valueLength; secondCharIndex++)
+            int secondCharIndex;
+            for (secondCharIndex = valueIndex + 1; secondCharIndex < valueLength; secondCharIndex++)
             {
                 if (!wasSurrogatePair)
                 {
@@ -184,7 +185,7 @@ namespace System.Text.Encodings.Web
                 }
             }
 
-            if (!wasSurrogatePair)
+            if (secondCharIndex == valueLength)
             {
                 firstChar = value[valueLength - 1];
                 int nextScalar = UnicodeHelpers.GetScalarValueFromUtf16(firstChar, null, out wasSurrogatePair);
@@ -377,7 +378,7 @@ namespace System.Text.Encodings.Web
             }
         }
 
-        internal unsafe static bool TryCopyCharacters(char[] source, char* destination, int destinationLength, out int numberOfCharactersWritten)
+        internal static unsafe bool TryCopyCharacters(char[] source, char* destination, int destinationLength, out int numberOfCharactersWritten)
         {
             Debug.Assert(source != null && destination != null && destinationLength >= 0);
 
@@ -397,7 +398,7 @@ namespace System.Text.Encodings.Web
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal unsafe static bool TryWriteScalarAsChar(int unicodeScalar, char* destination, int destinationLength, out int numberOfCharactersWritten)
+        internal static unsafe bool TryWriteScalarAsChar(int unicodeScalar, char* destination, int destinationLength, out int numberOfCharactersWritten)
         {
             Debug.Assert(destination != null && destinationLength >= 0);
 

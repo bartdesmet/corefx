@@ -19,19 +19,15 @@ internal partial class Interop
             string replacedFileName, string replacementFileName, string backupFileName,
             int dwReplaceFlags, IntPtr lpExclude, IntPtr lpReserved)
         {
-            replacedFileName = PathInternal.EnsureExtendedPrefixOverMaxPath(replacedFileName);
-            replacementFileName = PathInternal.EnsureExtendedPrefixOverMaxPath(replacementFileName);
-            if (backupFileName != null)
-            {
-                backupFileName = PathInternal.EnsureExtendedPrefixOverMaxPath(backupFileName);
-            }
+            replacedFileName = PathInternal.EnsureExtendedPrefixIfNeeded(replacedFileName);
+            replacementFileName = PathInternal.EnsureExtendedPrefixIfNeeded(replacementFileName);
+            backupFileName = PathInternal.EnsureExtendedPrefixIfNeeded(backupFileName);
 
             return ReplaceFilePrivate(
                 replacedFileName, replacementFileName, backupFileName,
                 dwReplaceFlags, lpExclude, lpReserved);
         }
 
-        internal const int REPLACEFILE_WRITE_THROUGH = 0x1;
         internal const int REPLACEFILE_IGNORE_MERGE_ERRORS = 0x2;
     }
 }

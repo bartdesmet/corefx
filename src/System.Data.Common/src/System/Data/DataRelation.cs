@@ -53,12 +53,12 @@ namespace System.Data
         internal string _childTableNamespace = null;
 
         /// <summary>
-        /// this stores whether the  child element appears beneath the parent in the XML persised files.
+        /// This stores whether the  child element appears beneath the parent in the XML persisted files.
         /// </summary>
         internal bool _nested = false;
 
         /// <summary>
-        /// this stores whether the the relationship should make sure that KeyConstraints and ForeignKeyConstraints
+        /// This stores whether the relationship should make sure that KeyConstraints and ForeignKeyConstraints
         /// exist when added to the ConstraintsCollections of the table.
         /// </summary>
         internal bool _createConstraints;
@@ -560,7 +560,7 @@ namespace System.Data
                                         }
                                         else
                                         {
-                                            if (string.Compare(parentNs, rel.ParentTable.Namespace, StringComparison.Ordinal) != 0)
+                                            if (!string.Equals(parentNs, rel.ParentTable.Namespace, StringComparison.Ordinal))
                                             {
                                                 _nested = false;
                                                 throw ExceptionBuilder.InvalidParentNamespaceinNestedRelation(ChildTable.TableName);

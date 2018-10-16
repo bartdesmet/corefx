@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Text;
 using Xunit;
 
@@ -107,7 +106,7 @@ namespace System.Collections.Tests
 
         #region IEnumerable Helper Methods
 
-        protected override IEnumerable<ModifyEnumerable> ModifyEnumerables => new List<ModifyEnumerable>();
+        protected override IEnumerable<ModifyEnumerable> GetModifyEnumerables(ModifyOperation operations) => new List<ModifyEnumerable>();
 
         protected override IEnumerable NonGenericIEnumerableFactory(int count) => NonGenericICollectionFactory(count);
 
@@ -208,10 +207,13 @@ namespace System.Collections.Tests
             }
         }
 
-        [Theory]
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNonZeroLowerBoundArraySupported))]
         [MemberData(nameof(ValidCollectionSizes))]
         public virtual void ICollection_NonGeneric_CopyTo_NonZeroLowerBound(int count)
         {
+            if (!PlatformDetection.IsNonZeroLowerBoundArraySupported)
+                return;
+
             ICollection collection = NonGenericICollectionFactory(count);
             Array arr = Array.CreateInstance(typeof(object), new int[1] { count }, new int[1] { 2 });
             Assert.Equal(1, arr.Rank);

@@ -26,7 +26,7 @@ namespace System.Linq.Expressions.Tests
         {
             for (int i = 1; i <= (includesReturnType ? 17 : 16); ++i)
             {
-                yield return new object[] { Enumerable.Repeat(typeof(List<>), i).ToArray() };
+                yield return new object[] { Enumerable.Repeat(typeof(List<>).MakeGenericType(typeof(List<>).GetGenericArguments()), i).ToArray() };
             }
         }
 
@@ -50,6 +50,11 @@ namespace System.Linq.Expressions.Tests
             yield return new object[] { new[] { typeof(int), typeof(int).MakeByRefType(), typeof(string) } };
             yield return new object[] { new[] { typeof(int).MakeByRefType() } };
             yield return new object[] { Enumerable.Repeat(typeof(double).MakeByRefType(), 20).ToArray() };
+        }
+
+        protected static IEnumerable<object> ByRefLikeTypeArgs()
+        {
+            yield return new object[] { new[] { typeof(Span<char>) } };
         }
 
         protected static IEnumerable<object> PointerTypeArgs()

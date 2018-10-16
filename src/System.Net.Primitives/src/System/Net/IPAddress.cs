@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace System.Net
 {
@@ -12,7 +15,6 @@ namespace System.Net
     ///     Provides an Internet Protocol (IP) address.
     ///   </para>
     /// </devdoc>
-    [Serializable]
     public class IPAddress
     {
         public static readonly IPAddress Any = new IPAddress(0x0000000000000000);
@@ -41,11 +43,10 @@ namespace System.Net
         /// <summary>
         /// A lazily initialized cache of the result of calling <see cref="ToString"/>.
         /// </summary>
-        [NonSerialized]
         private string _toString;
 
         /// <summary>
-        /// This field is only used for IPv6 addresses. A lazily initialized cache of the <see cref="GetHashCode"/> value.
+        /// A lazily initialized cache of the <see cref="GetHashCode"/> value.
         /// </summary>
         private int _hashCode;
 
@@ -84,6 +85,8 @@ namespace System.Net
             set
             {
                 Debug.Assert(IsIPv4);
+                _toString = null;
+                _hashCode = 0;
                 _addressOrScopeId = value;
             }
         }
@@ -98,6 +101,8 @@ namespace System.Net
             set
             {
                 Debug.Assert(IsIPv6);
+                _toString = null;
+                _hashCode = 0;
                 _addressOrScopeId = value;
             }
         }
@@ -123,23 +128,16 @@ namespace System.Net
         ///     Constructor for an IPv6 Address with a specified Scope.
         ///   </para>
         /// </devdoc>
-        public IPAddress(byte[] address, long scopeid)
+        public IPAddress(byte[] address, long scopeid) :
+            this(new ReadOnlySpan<byte>(address ?? ThrowAddressNullException()), scopeid)
         {
-            if (address == null)
-            {
-                throw new ArgumentNullException(nameof(address));
-            }
+        }
 
+        public IPAddress(ReadOnlySpan<byte> address, long scopeid)
+        {
             if (address.Length != IPAddressParserStatics.IPv6AddressBytes)
             {
                 throw new ArgumentException(SR.dns_bad_ip_address, nameof(address));
-            }
-
-            _numbers = new ushort[NumberOfLabels];
-
-            for (int i = 0; i < NumberOfLabels; i++)
-            {
-                _numbers[i] = (ushort)(address[i * 2] * 256 + address[i * 2 + 1]);
             }
 
             // Consider: Since scope is only valid for link-local and site-local
@@ -149,12 +147,35 @@ namespace System.Net
                 throw new ArgumentOutOfRangeException(nameof(scopeid));
             }
 
+            _numbers = new ushort[NumberOfLabels];
+
+            for (int i = 0; i < NumberOfLabels; i++)
+            {
+                _numbers[i] = (ushort)(address[i * 2] * 256 + address[i * 2 + 1]);
+            }
+
             PrivateScopeId = (uint)scopeid;
+        }
+
+        internal unsafe IPAddress(ushort* numbers, int numbersLength, uint scopeid)
+        {
+            Debug.Assert(numbers != null);
+            Debug.Assert(numbersLength == NumberOfLabels);
+
+            var arr = new ushort[NumberOfLabels];
+            for (int i = 0; i < arr.Length; i++)
+            {
+                arr[i] = numbers[i];
+            }
+
+            _numbers = arr;
+            PrivateScopeId = scopeid;
         }
 
         private IPAddress(ushort[] numbers, uint scopeid)
         {
             Debug.Assert(numbers != null);
+            Debug.Assert(numbers.Length == NumberOfLabels);
 
             _numbers = numbers;
             PrivateScopeId = scopeid;
@@ -165,22 +186,18 @@ namespace System.Net
         ///     Constructor for IPv4 and IPv6 Address.
         ///   </para>
         /// </devdoc>
-        public IPAddress(byte[] address)
+        public IPAddress(byte[] address) :
+            this(new ReadOnlySpan<byte>(address ?? ThrowAddressNullException()))
         {
-            if (address == null)
-            {
-                throw new ArgumentNullException(nameof(address));
-            }
-            if (address.Length != IPAddressParserStatics.IPv4AddressBytes && address.Length != IPAddressParserStatics.IPv6AddressBytes)
-            {
-                throw new ArgumentException(SR.dns_bad_ip_address, nameof(address));
-            }
+        }
 
+        public IPAddress(ReadOnlySpan<byte> address)
+        {
             if (address.Length == IPAddressParserStatics.IPv4AddressBytes)
             {
                 PrivateAddress = (uint)((address[3] << 24 | address[2] << 16 | address[1] << 8 | address[0]) & 0x0FFFFFFFF);
             }
-            else
+            else if (address.Length == IPAddressParserStatics.IPv6AddressBytes)
             {
                 _numbers = new ushort[NumberOfLabels];
 
@@ -188,6 +205,10 @@ namespace System.Net
                 {
                     _numbers[i] = (ushort)(address[i * 2] * 256 + address[i * 2 + 1]);
                 }
+            }
+            else
+            {
+                throw new ArgumentException(SR.dns_bad_ip_address, nameof(address));
             }
         }
 
@@ -205,13 +226,85 @@ namespace System.Net
         /// </devdoc>
         public static bool TryParse(string ipString, out IPAddress address)
         {
-            address = IPAddressParser.Parse(ipString, true);
+            if (ipString == null)
+            {
+                address = null;
+                return false;
+            }
+
+            address = IPAddressParser.Parse(ipString.AsSpan(), tryParse: true);
+            return (address != null);
+        }
+
+        public static bool TryParse(ReadOnlySpan<char> ipSpan, out IPAddress address)
+        {
+            address = IPAddressParser.Parse(ipSpan, tryParse: true);
             return (address != null);
         }
 
         public static IPAddress Parse(string ipString)
         {
-            return IPAddressParser.Parse(ipString, false);
+            if (ipString == null)
+            {
+                throw new ArgumentNullException(nameof(ipString));
+            }
+
+            return IPAddressParser.Parse(ipString.AsSpan(), tryParse: false);
+        }
+
+        public static IPAddress Parse(ReadOnlySpan<char> ipSpan)
+        {
+            return IPAddressParser.Parse(ipSpan, tryParse: false);
+        }
+
+        public bool TryWriteBytes(Span<byte> destination, out int bytesWritten)
+        {
+            if (IsIPv6)
+            {
+                if (destination.Length < IPAddressParserStatics.IPv6AddressBytes)
+                {
+                    bytesWritten = 0;
+                    return false;
+                }
+
+                WriteIPv6Bytes(destination);
+                bytesWritten = IPAddressParserStatics.IPv6AddressBytes;
+            }
+            else
+            {
+                if (destination.Length < IPAddressParserStatics.IPv4AddressBytes)
+                {
+                    bytesWritten = 0;
+                    return false;
+                }
+
+                WriteIPv4Bytes(destination);
+                bytesWritten = IPAddressParserStatics.IPv4AddressBytes;
+            }
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteIPv6Bytes(Span<byte> destination)
+        {
+            Debug.Assert(_numbers != null && _numbers.Length == NumberOfLabels);
+            int j = 0;
+            for (int i = 0; i < NumberOfLabels; i++)
+            {
+                destination[j++] = (byte)((_numbers[i] >> 8) & 0xFF);
+                destination[j++] = (byte)((_numbers[i]) & 0xFF);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteIPv4Bytes(Span<byte> destination)
+        {
+            uint address = PrivateAddress;
+            destination[0] = (byte)(address);
+            destination[1] = (byte)(address >> 8);
+            destination[2] = (byte)(address >> 16);
+            destination[3] = (byte)(address >> 24);
         }
 
         /// <devdoc>
@@ -221,28 +314,19 @@ namespace System.Net
         /// </devdoc>
         public byte[] GetAddressBytes()
         {
-            byte[] bytes;
             if (IsIPv6)
             {
-                bytes = new byte[NumberOfLabels * 2];
-
-                int j = 0;
-                for (int i = 0; i < NumberOfLabels; i++)
-                {
-                    bytes[j++] = (byte)((_numbers[i] >> 8) & 0xFF);
-                    bytes[j++] = (byte)((_numbers[i]) & 0xFF);
-                }
+                Debug.Assert(_numbers != null && _numbers.Length == NumberOfLabels);
+                byte[] bytes = new byte[IPAddressParserStatics.IPv6AddressBytes];
+                WriteIPv6Bytes(bytes);
+                return bytes;
             }
             else
             {
-                uint address = PrivateAddress;
-                bytes = new byte[IPAddressParserStatics.IPv4AddressBytes];
-                bytes[0] = (byte)(address);
-                bytes[1] = (byte)(address >> 8);
-                bytes[2] = (byte)(address >> 16);
-                bytes[3] = (byte)(address >> 24);
+                byte[] bytes = new byte[IPAddressParserStatics.IPv4AddressBytes];
+                WriteIPv4Bytes(bytes);
+                return bytes;
             }
-            return bytes;
         }
 
         public AddressFamily AddressFamily
@@ -300,40 +384,33 @@ namespace System.Net
             if (_toString == null)
             {
                 _toString = IsIPv4 ?
-                    IPAddressParser.IPv4AddressToString(GetAddressBytes()) :
-                    IPAddressParser.IPv6AddressToString(GetAddressBytes(), PrivateScopeId);
+                    IPAddressParser.IPv4AddressToString(PrivateAddress) :
+                    IPAddressParser.IPv6AddressToString(_numbers, PrivateScopeId);
             }
 
             return _toString;
         }
 
+        public bool TryFormat(Span<char> destination, out int charsWritten)
+        {
+            return IsIPv4 ?
+                IPAddressParser.IPv4AddressToString(PrivateAddress, destination, out charsWritten) :
+                IPAddressParser.IPv6AddressToString(_numbers, PrivateScopeId, destination, out charsWritten);
+        }
+
         public static long HostToNetworkOrder(long host)
         {
-#if BIGENDIAN
-            return host;
-#else
-            return (((long)HostToNetworkOrder((int)host) & 0xFFFFFFFF) << 32)
-                    | ((long)HostToNetworkOrder((int)(host >> 32)) & 0xFFFFFFFF);
-#endif
+            return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(host) : host;
         }
 
         public static int HostToNetworkOrder(int host)
         {
-#if BIGENDIAN
-            return host;
-#else
-            return (((int)HostToNetworkOrder((short)host) & 0xFFFF) << 16)
-                    | ((int)HostToNetworkOrder((short)(host >> 16)) & 0xFFFF);
-#endif
+            return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(host) : host;
         }
 
         public static short HostToNetworkOrder(short host)
         {
-#if BIGENDIAN
-            return host;
-#else
-            return (short)((((int)host & 0xFF) << 8) | (int)((host >> 8) & 0xFF));
-#endif
+            return BitConverter.IsLittleEndian ? BinaryPrimitives.ReverseEndianness(host) : host;
         }
 
         public static long NetworkToHostOrder(long network)
@@ -355,7 +432,7 @@ namespace System.Net
         {
             if (address == null)
             {
-                throw new ArgumentNullException(nameof(address));
+                ThrowAddressNullException();
             }
 
             if (address.IsIPv6)
@@ -438,7 +515,7 @@ namespace System.Net
             }
         }
 
-        [Obsolete("This property has been deprecated. It is address family dependent. Please use IPAddress.Equals method to perform comparisons. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This property has been deprecated. It is address family dependent. Please use IPAddress.Equals method to perform comparisons. https://go.microsoft.com/fwlink/?linkid=14202")]
         public long Address
         {
             get
@@ -468,8 +545,7 @@ namespace System.Net
                 {
                     if (PrivateAddress != value)
                     {
-                        _toString = null;
-                        PrivateAddress = (uint)value;
+                        PrivateAddress = unchecked((uint)value);
                     }
                 }
             }
@@ -522,31 +598,41 @@ namespace System.Net
 
         public override int GetHashCode()
         {
-            // For IPv6 addresses, we cannot simply return the integer
-            // representation as the hashcode. Instead, we calculate
-            // the hashcode from the string representation of the address.
+            if (_hashCode != 0)
+            {
+                return _hashCode;
+            }
+
+            // For IPv6 addresses, we calculate the hashcode by using Marvin
+            // on a stack-allocated array containing the Address bytes and ScopeId.
+            int hashCode;
             if (IsIPv6)
             {
-                if (_hashCode == 0)
-                {
-                    _hashCode = StringComparer.OrdinalIgnoreCase.GetHashCode(ToString());
-                }
+                const int AddressAndScopeIdLength = IPAddressParserStatics.IPv6AddressBytes + sizeof(uint);
+                Span<byte> addressAndScopeIdSpan = stackalloc byte[AddressAndScopeIdLength];
 
-                return _hashCode;
+                MemoryMarshal.AsBytes(new ReadOnlySpan<ushort>(_numbers)).CopyTo(addressAndScopeIdSpan);
+                Span<byte> scopeIdSpan = addressAndScopeIdSpan.Slice(IPAddressParserStatics.IPv6AddressBytes);
+                bool scopeWritten = BitConverter.TryWriteBytes(scopeIdSpan, _addressOrScopeId);
+                Debug.Assert(scopeWritten);
+
+                hashCode = Marvin.ComputeHash32(
+                    addressAndScopeIdSpan,
+                    Marvin.DefaultSeed);
             }
             else
             {
-                // For IPv4 addresses, we can simply use the integer representation.
-                return unchecked((int)PrivateAddress);
+                Span<uint> addressOrScopeIdSpan = stackalloc uint[1];
+                addressOrScopeIdSpan[0] = _addressOrScopeId;
+ 
+                // For IPv4 addresses, we use Marvin on the integer representation of the Address.
+                hashCode = Marvin.ComputeHash32(
+                    MemoryMarshal.AsBytes(addressOrScopeIdSpan),
+                    Marvin.DefaultSeed);
             }
-        }
 
-        // For security, we need to be able to take an IPAddress and make a copy that's immutable and not derived.
-        internal IPAddress Snapshot()
-        {
-            return IsIPv4 ?
-                new IPAddress(PrivateAddress) :
-                new IPAddress(_numbers, PrivateScopeId);
+            _hashCode = hashCode;
+            return _hashCode;
         }
 
         // IPv4 192.168.1.1 maps as ::FFFF:192.168.1.1
@@ -583,5 +669,7 @@ namespace System.Net
 
             return new IPAddress(address);
         }
+
+        private static byte[] ThrowAddressNullException() => throw new ArgumentNullException("address");
     }
 }

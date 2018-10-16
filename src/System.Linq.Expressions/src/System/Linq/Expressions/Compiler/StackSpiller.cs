@@ -57,7 +57,7 @@ namespace System.Linq.Expressions.Compiler
         /// <summary>
         /// Result of a rewrite operation. Always contains an action and a node.
         /// </summary>
-        private struct Result
+        private readonly struct Result
         {
             internal readonly RewriteAction Action;
             internal readonly Expression Node;
@@ -115,7 +115,7 @@ namespace System.Linq.Expressions.Compiler
                 Expression newBody = body.Node;
                 if (_tm.Temps.Count > 0)
                 {
-                    newBody = Expression.Block(_tm.Temps, newBody);
+                    newBody = Expression.Block(_tm.Temps, new TrueReadOnlyCollection<Expression>(newBody));
                 }
 
                 // Clone the lambda, replacing the body & variables.
@@ -172,7 +172,7 @@ namespace System.Linq.Expressions.Compiler
 
             if (cr.Action == RewriteAction.SpillStack)
             {
-                RequireNoRefArgs(node.DelegateType.GetMethod("Invoke"));
+                RequireNoRefArgs(node.DelegateType.GetInvokeMethod());
             }
 
             return cr.Finish(cr.Rewrite ? node.Rewrite(cr[0, -1]) : expr);
@@ -314,7 +314,7 @@ namespace System.Linq.Expressions.Compiler
             node = new AssignBinaryExpression(node.Left.ReduceExtensions(), node.Right);
 
             Result result = RewriteAssignBinaryExpression(node, stack);
-            
+
             // it's at least Copy because we reduced the node
             return new Result(result.Action | RewriteAction.Copy, result.Node);
         }
@@ -674,7 +674,6 @@ namespace System.Linq.Expressions.Compiler
                     bool isRefNew = IsRefInstance(node.NewExpression);
 
                     var comma = new ArrayBuilder<Expression>(count + 2 + (isRefNew ? 1 : 0));
-                    
                     ParameterExpression tempNew = MakeTemp(rewrittenNew.Type);
                     comma.UncheckedAdd(new AssignBinaryExpression(tempNew, rewrittenNew));
 
@@ -1105,10 +1104,10 @@ namespace System.Linq.Expressions.Compiler
 
         private static bool IsRefInstance(Expression instance)
         {
-            // Primitive value types are okay because they are all readonly,
+            // Primitive value types are okay because they are all read-only,
             // but we can't rely on this for non-primitive types. So we have
             // to either throw NotSupported or use ref locals.
-            return instance != null && instance.Type.GetTypeInfo().IsValueType && instance.Type.GetTypeCode() == TypeCode.Object;
+            return instance != null && instance.Type.IsValueType && instance.Type.GetTypeCode() == TypeCode.Object;
         }
     }
 }

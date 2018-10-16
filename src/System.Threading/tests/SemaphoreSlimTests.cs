@@ -67,7 +67,7 @@ namespace System.Threading.Tests
             // Invalid timeout
             RunSemaphoreSlimTest1_Wait(10, 10, -10, true, typeof(ArgumentOutOfRangeException));
             RunSemaphoreSlimTest1_Wait
-               (10, 10, new TimeSpan(0, 0, Int32.MaxValue), true, typeof(ArgumentOutOfRangeException));
+               (10, 10, new TimeSpan(0, 0, int.MaxValue), true, typeof(ArgumentOutOfRangeException));
         }
 
         [Fact]
@@ -94,7 +94,7 @@ namespace System.Threading.Tests
             // Invalid timeout
             RunSemaphoreSlimTest1_WaitAsync(10, 10, -10, true, typeof(ArgumentOutOfRangeException));
             RunSemaphoreSlimTest1_WaitAsync
-               (10, 10, new TimeSpan(0, 0, Int32.MaxValue), true, typeof(ArgumentOutOfRangeException));
+               (10, 10, new TimeSpan(0, 0, int.MaxValue), true, typeof(ArgumentOutOfRangeException));
             RunSemaphoreSlimTest1_WaitAsync2();
         }
 
@@ -587,7 +587,7 @@ namespace System.Threading.Tests
             Task[] tasks = new Task[totalWaiters];
 
             const int ITERS = 10;
-            int randSeed = (int)DateTime.Now.Ticks;
+            int randSeed = unchecked((int)DateTime.Now.Ticks);
             for (int i = 0; i < syncWaiters; i++)
             {
                 tasks[i] = Task.Run(delegate

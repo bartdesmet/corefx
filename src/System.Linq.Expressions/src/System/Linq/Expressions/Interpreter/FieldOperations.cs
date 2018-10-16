@@ -7,14 +7,25 @@ using System.Reflection;
 
 namespace System.Linq.Expressions.Interpreter
 {
-    internal sealed class LoadStaticFieldInstruction : Instruction
+    internal abstract class FieldInstruction : Instruction
     {
-        private readonly FieldInfo _field;
+        protected readonly FieldInfo _field;
 
+        public FieldInstruction(FieldInfo field)
+        {
+            Assert.NotNull(field);
+            _field = field;
+        }
+
+        public override string ToString() => InstructionName + "(" + _field + ")";
+    }
+
+    internal sealed class LoadStaticFieldInstruction : FieldInstruction
+    {
         public LoadStaticFieldInstruction(FieldInfo field)
+            : base(field)
         {
             Debug.Assert(field.IsStatic);
-            _field = field;
         }
 
         public override string InstructionName => "LoadStaticField";
@@ -23,18 +34,15 @@ namespace System.Linq.Expressions.Interpreter
         public override int Run(InterpretedFrame frame)
         {
             frame.Push(_field.GetValue(obj: null));
-            return +1;
+            return 1;
         }
     }
 
-    internal sealed class LoadFieldInstruction : Instruction
+    internal sealed class LoadFieldInstruction : FieldInstruction
     {
-        private readonly FieldInfo _field;
-
         public LoadFieldInstruction(FieldInfo field)
+            : base(field)
         {
-            Assert.NotNull(field);
-            _field = field;
         }
 
         public override string InstructionName => "LoadField";
@@ -47,23 +55,20 @@ namespace System.Linq.Expressions.Interpreter
 
             NullCheck(self);
             frame.Push(_field.GetValue(self));
-            return +1;
+            return 1;
         }
     }
 
-    internal sealed class StoreFieldInstruction : Instruction
+    internal sealed class StoreFieldInstruction : FieldInstruction
     {
-        private readonly FieldInfo _field;
-
         public StoreFieldInstruction(FieldInfo field)
+            : base(field)
         {
             Assert.NotNull(field);
-            _field = field;
         }
 
         public override string InstructionName => "StoreField";
         public override int ConsumedStack => 2;
-        public override int ProducedStack => 0;
 
         public override int Run(InterpretedFrame frame)
         {
@@ -72,29 +77,27 @@ namespace System.Linq.Expressions.Interpreter
 
             NullCheck(self);
             _field.SetValue(self, value);
-            return +1;
+            return 1;
         }
     }
 
-    internal sealed class StoreStaticFieldInstruction : Instruction
+    internal sealed class StoreStaticFieldInstruction : FieldInstruction
     {
-        private readonly FieldInfo _field;
-
         public StoreStaticFieldInstruction(FieldInfo field)
+            : base(field)
         {
-            Assert.NotNull(field);
-            _field = field;
+            Debug.Assert(field.IsStatic);
         }
 
         public override string InstructionName => "StoreStaticField";
+
         public override int ConsumedStack => 1;
-        public override int ProducedStack => 0;
 
         public override int Run(InterpretedFrame frame)
         {
             object value = frame.Pop();
             _field.SetValue(null, value);
-            return +1;
+            return 1;
         }
     }
 }

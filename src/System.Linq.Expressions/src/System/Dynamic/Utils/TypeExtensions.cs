@@ -2,28 +2,25 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace System.Dynamic.Utils
 {
     // Extensions on System.Type and friends
-    internal static partial class TypeExtensions
+    internal static class TypeExtensions
     {
+        private static readonly CacheDict<MethodBase, ParameterInfo[]> s_paramInfoCache = new CacheDict<MethodBase, ParameterInfo[]>(75);
+
         /// <summary>
         /// Returns the matching method if the parameter types are reference
         /// assignable from the provided type arguments, otherwise null.
         /// </summary>
         public static MethodInfo GetAnyStaticMethodValidated(this Type type, string name, Type[] types)
         {
-            foreach (MethodInfo method in type.GetTypeInfo().DeclaredMethods)
-            {
-                if (method.IsStatic && method.Name == name && method.MatchesArgumentTypes(types))
-                {
-                    return method;
-                }
-            }
-            return null;
+            Debug.Assert(types != null);
+            MethodInfo method = type.GetMethod(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly, null, types, null);
+            return method.MatchesArgumentTypes(types) ? method : null;
         }
 
         /// <summary>
@@ -37,11 +34,14 @@ namespace System.Dynamic.Utils
         /// </summary>
         private static bool MatchesArgumentTypes(this MethodInfo mi, Type[] argTypes)
         {
-            if (mi == null || argTypes == null)
+            Debug.Assert(argTypes != null);
+
+            if (mi == null)
             {
                 return false;
             }
-            ParameterInfo[] ps = mi.GetParameters();
+
+            ParameterInfo[] ps = mi.GetParametersCached();
 
             if (ps.Length != argTypes.Length)
             {
@@ -55,63 +55,39 @@ namespace System.Dynamic.Utils
                     return false;
                 }
             }
+
             return true;
         }
 
-        public static Type GetReturnType(this MethodBase mi)
-        {
-            return (mi.IsConstructor) ? mi.DeclaringType : ((MethodInfo)mi).ReturnType;
-        }
+        public static Type GetReturnType(this MethodBase mi) => mi.IsConstructor ? mi.DeclaringType : ((MethodInfo)mi).ReturnType;
 
-        public static TypeCode GetTypeCode(this Type type)
+        public static TypeCode GetTypeCode(this Type type) => Type.GetTypeCode(type);
+        internal static ParameterInfo[] GetParametersCached(this MethodBase method)
         {
-            if (type == null)
-                return TypeCode.Empty;
-            else if (type == typeof(bool))
-                return TypeCode.Boolean;
-            else if (type == typeof(char))
-                return TypeCode.Char;
-            else if (type == typeof(sbyte))
-                return TypeCode.SByte;
-            else if (type == typeof(byte))
-                return TypeCode.Byte;
-            else if (type == typeof(short))
-                return TypeCode.Int16;
-            else if (type == typeof(ushort))
-                return TypeCode.UInt16;
-            else if (type == typeof(int))
-                return TypeCode.Int32;
-            else if (type == typeof(uint))
-                return TypeCode.UInt32;
-            else if (type == typeof(long))
-                return TypeCode.Int64;
-            else if (type == typeof(ulong))
-                return TypeCode.UInt64;
-            else if (type == typeof(float))
-                return TypeCode.Single;
-            else if (type == typeof(double))
-                return TypeCode.Double;
-            else if (type == typeof(decimal))
-                return TypeCode.Decimal;
-            else if (type == typeof(DateTime))
-                return TypeCode.DateTime;
-            else if (type == typeof(string))
-                return TypeCode.String;
-            else if (type.GetTypeInfo().IsEnum)
-                return Enum.GetUnderlyingType(type).GetTypeCode();
-            else
-                return TypeCode.Object;
-        }
-
-        public static IEnumerable<MethodInfo> GetStaticMethods(this Type type)
-        {
-            foreach (MethodInfo method in type.GetRuntimeMethods())
+            CacheDict<MethodBase, ParameterInfo[]> pic = s_paramInfoCache;
+            if (!pic.TryGetValue(method, out ParameterInfo[] pis))
             {
-                if (method.IsStatic)
+                pis = method.GetParameters();
+                if (method.DeclaringType?.IsCollectible == false)
                 {
-                    yield return method;
+                    pic[method] = pis;
                 }
             }
+
+            return pis;
         }
+
+#if FEATURE_COMPILE
+        // Expression trees/compiler just use IsByRef, why do we need this?
+        // (see LambdaCompiler.EmitArguments for usage in the compiler)
+        internal static bool IsByRefParameter(this ParameterInfo pi)
+        {
+            // not using IsIn/IsOut properties as they are not available in Silverlight:
+            if (pi.ParameterType.IsByRef)
+                return true;
+
+            return (pi.Attributes & ParameterAttributes.Out) == ParameterAttributes.Out;
+        }
+#endif
     }
 }

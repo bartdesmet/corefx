@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Xunit;
@@ -41,23 +40,23 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void ParameterCannotBeTypeVoid()
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(void)));
-            Assert.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(void), "var"));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(void)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(void), "var"));
         }
 
         [Theory]
         [ClassData(typeof(InvalidTypesData))]
         public void OpenGenericType_ThrowsArgumentException(Type type)
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Parameter(type));
-            Assert.Throws<ArgumentException>("type", () => Expression.Parameter(type, "name"));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Parameter(type));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Parameter(type, "name"));
         }
 
         [Fact]
         public void NullType()
         {
-            Assert.Throws<ArgumentNullException>("type", () => Expression.Parameter(null));
-            Assert.Throws<ArgumentNullException>("type", () => Expression.Parameter(null, "var"));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.Parameter(null));
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.Parameter(null, "var"));
         }
 
         [Theory]
@@ -133,8 +132,8 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public void CanUseAsLambdaByRefParameter_String(bool useInterpreter)
         {
-            var param = Expression.Parameter(typeof(string).MakeByRefType());
-            var f = Expression.Lambda<ByRefFunc<string>>(
+            ParameterExpression param = Expression.Parameter(typeof(string).MakeByRefType());
+            ByRefFunc<string> f = Expression.Lambda<ByRefFunc<string>>(
                 Expression.Assign(param, Expression.Call(param, typeof(string).GetMethod(nameof(string.ToUpper), Type.EmptyTypes))),
                 param
                 ).Compile(useInterpreter);
@@ -147,8 +146,8 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public void CanUseAsLambdaByRefParameter_Char(bool useInterpreter)
         {
-            var param = Expression.Parameter(typeof(char).MakeByRefType());
-            var f = Expression.Lambda<ByRefFunc<char>>(
+            ParameterExpression param = Expression.Parameter(typeof(char).MakeByRefType());
+            ByRefFunc<char> f = Expression.Lambda<ByRefFunc<char>>(
                 Expression.Assign(param, Expression.Call(typeof(char).GetMethod(nameof(char.ToUpper), new[] { typeof(char) }), param)),
                 param
                 ).Compile(useInterpreter);
@@ -161,8 +160,8 @@ namespace System.Linq.Expressions.Tests
         [ClassData(typeof(CompilationTypes))]
         public void CanUseAsLambdaByRefParameter_Bool(bool useInterpreter)
         {
-            var param = Expression.Parameter(typeof(bool).MakeByRefType());
-            var f = Expression.Lambda<ByRefFunc<bool>>(
+            ParameterExpression param = Expression.Parameter(typeof(bool).MakeByRefType());
+            ByRefFunc<bool> f = Expression.Lambda<ByRefFunc<bool>>(
                 Expression.ExclusiveOrAssign(param, Expression.Constant(true)),
                 param
                 ).Compile(useInterpreter);
@@ -300,31 +299,31 @@ namespace System.Linq.Expressions.Tests
             ParameterExpression param = Expression.Parameter(typeof(int));
             Assert.False(param.CanReduce);
             Assert.Same(param, param.Reduce());
-            Assert.Throws<ArgumentException>(null, () => param.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => param.ReduceAndCheck());
         }
 
         [Fact]
         public void CannotBePointerType()
         {
-            Assert.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(int*)));
-            Assert.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(int*), "pointer"));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(int*)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.Parameter(typeof(int*), "pointer"));
         }
 
         [Theory]
         [MemberData(nameof(ReadAndWriteRefCases))]
         public void ReadAndWriteRefParameters(bool useInterpreter, object value, object increment, object result)
         {
-            var type = value.GetType();
+            Type type = value.GetType();
 
-            var method = typeof(ParameterTests).GetMethod(nameof(AssertReadAndWriteRefParameters), BindingFlags.NonPublic | BindingFlags.Static);
+            MethodInfo method = typeof(ParameterTests).GetMethod(nameof(AssertReadAndWriteRefParameters), BindingFlags.NonPublic | BindingFlags.Static);
 
             method.MakeGenericMethod(type).Invoke(null, new object[] { useInterpreter, value, increment, result });
         }
 
         private static void AssertReadAndWriteRefParameters<T>(bool useInterpreter, T value, T increment, T result)
         {
-            var param = Expression.Parameter(typeof(T).MakeByRefType());
-            var addOneInPlace = Expression.Lambda<ByRefFunc<T>>(
+            ParameterExpression param = Expression.Parameter(typeof(T).MakeByRefType());
+            ByRefFunc<T> addOneInPlace = Expression.Lambda<ByRefFunc<T>>(
                 Expression.AddAssign(param, Expression.Constant(increment, typeof(T))),
                 param
                 ).Compile(useInterpreter);

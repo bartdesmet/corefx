@@ -10,11 +10,11 @@ internal partial class Interop
     internal partial class Kernel32
     {
         [DllImport(Libraries.Kernel32, CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "ReadConsoleW")]
-        internal static unsafe extern bool ReadConsole(
+        internal static extern unsafe bool ReadConsole(
             IntPtr hConsoleInput,
-            Byte* lpBuffer,
-            Int32 nNumberOfCharsToRead,
-            out Int32 lpNumberOfCharsRead,
+            byte* lpBuffer,
+            int nNumberOfCharsToRead,
+            out int lpNumberOfCharsRead,
             IntPtr pInputControl);
     }
 }

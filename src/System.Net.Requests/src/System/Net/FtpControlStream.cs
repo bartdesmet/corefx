@@ -11,13 +11,6 @@ using System.Text;
 
 namespace System.Net
 {
-    internal enum FtpPrimitive
-    {
-        Upload = 0,
-        Download = 1,
-        CommandOnly = 2
-    };
-
     internal enum FtpLoginState : byte
     {
         NotLoggedIn,
@@ -331,7 +324,7 @@ namespace System.Net
                 PipelineInstruction result = QueueOrCreateDataConection(entry, response, timeout, ref stream, out isSocketReady);
                 if (!isSocketReady)
                     return result;
-                // otheriwse we have a stream to create
+                // otherwise we have a stream to create
             }
             //
             // This is part of the above case and it's all about giving data stream back
@@ -381,7 +374,7 @@ namespace System.Net
             // OR set us up for SSL/TLS, after this we'll be writing securely
             else if (status == FtpStatusCode.ServerWantsSecureSession)
             {
-                // If NetworkStream is a TlsStream, then this must be in the async callback 
+                // If NetworkStream is a TlsStream, then this must be in the async callback
                 // from completing the SSL handshake.
                 // So just let the pipeline continue.
                 if (!(NetworkStream is TlsStream))
@@ -743,14 +736,6 @@ namespace System.Net
             return result;
         }
 
-        //
-        // A door into protected CloseSocket() method
-        //
-        internal void Quit()
-        {
-            CloseSocket();
-        }
-
         private enum GetPathOption
         {
             Normal,
@@ -799,7 +784,7 @@ namespace System.Net
         /// <summary>
         ///    <para>Formats an IP address (contained in a UInt32) to a FTP style command string</para>
         /// </summary>
-        private String FormatAddress(IPAddress address, int Port)
+        private string FormatAddress(IPAddress address, int Port)
         {
             byte[] localAddressInBytes = address.GetAddressBytes();
 
@@ -825,7 +810,7 @@ namespace System.Net
         private string FormatAddressV6(IPAddress address, int port)
         {
             StringBuilder sb = new StringBuilder(43); // based on max size of IPv6 address + port + seperators
-            String addressString = address.ToString();
+            string addressString = address.ToString();
             sb.Append("|2|");
             sb.Append(addressString);
             sb.Append('|');
@@ -1013,7 +998,7 @@ namespace System.Net
                 {
                     pos1++;
                     long result;
-                    if (Int64.TryParse(str.Substring(pos1, pos2 - pos1),
+                    if (long.TryParse(str.Substring(pos1, pos2 - pos1),
                                         NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite,
                                         NumberFormatInfo.InvariantInfo, out result))
                     {
@@ -1036,7 +1021,7 @@ namespace System.Net
             }
             else
             {
-                return String.Empty;
+                return string.Empty;
             }
         }
 
@@ -1055,7 +1040,7 @@ namespace System.Net
 
             int index = parsedList.Length - 1;
             // skip the last non-number token (e.g. terminating '.')
-            if (!Char.IsNumber(parsedList[index], 0))
+            if (!char.IsNumber(parsedList[index], 0))
                 index--;
 
             int port = Convert.ToByte(parsedList[index--], NumberFormatInfo.InvariantInfo);
@@ -1177,7 +1162,7 @@ namespace System.Net
             if (response.Status == ResponseDescription.NoStatus)
             {
                 // If the response does not start with three digits, then it is not a valid response from an FTP server.
-                if (!(Char.IsDigit(responseString[0]) && Char.IsDigit(responseString[1]) && Char.IsDigit(responseString[2]) && (responseString[3] == ' ' || responseString[3] == '-')))
+                if (!(char.IsDigit(responseString[0]) && char.IsDigit(responseString[1]) && char.IsDigit(responseString[2]) && (responseString[3] == ' ' || responseString[3] == '-')))
                 {
                     return false;
                 }
@@ -1217,7 +1202,7 @@ namespace System.Net
 
                 if (responseString.Length > lineStart + 4)
                 {
-                    // If the first three characters of the the response line currently being examined
+                    // If the first three characters of the response line currently being examined
                     // match the status code, then if they are followed by a space, then we
                     // have reached the end of the reply.
                     if (responseString.Substring(lineStart, 3) == response.StatusCodeString)
@@ -1234,7 +1219,7 @@ namespace System.Net
         }
 
         /// <summary>
-        ///    <para>Determnines whether the stream we return is Writeable or Readable</para>
+        ///    <para>Determines whether the stream we return is Writeable or Readable</para>
         /// </summary>
         private TriState IsFtpDataStreamWriteable()
         {

@@ -58,8 +58,8 @@ namespace System
     //
     public abstract partial class UriParser
     {
-        private static readonly LowLevelDictionary<string, UriParser> s_table;
-        private static LowLevelDictionary<string, UriParser> s_tempTable;
+        private static readonly Dictionary<string, UriParser> s_table;
+        private static Dictionary<string, UriParser> s_tempTable;
 
         private UriSyntaxFlags _flags;
 
@@ -87,6 +87,7 @@ namespace System
         internal static UriParser WssUri;
         internal static UriParser FtpUri;
         internal static UriParser FileUri;
+        internal static UriParser UnixFileUri;
         internal static UriParser GopherUri;
         internal static UriParser NntpUri;
         internal static UriParser NewsUri;
@@ -99,11 +100,30 @@ namespace System
 
         internal static UriParser VsMacrosUri;
 
+        internal static bool DontEnableStrictRFC3986ReservedCharacterSets
+        {
+            // In .NET Framework this would test against an AppContextSwitch. Since this is a potentially
+            // breaking change, we'll leave in the system used to disable it.
+            get
+            {
+                return false;
+            }
+        }
+
+        internal static bool DontKeepUnicodeBidiFormattingCharacters
+        {
+            // In .NET Framework this would test against an AppContextSwitch. Since this is a potentially
+            // breaking change, we'll leave in the system used to disable it.
+            get
+            {
+                return false;
+            }
+        }
 
         static UriParser()
         {
-            s_table = new LowLevelDictionary<string, UriParser>(c_InitialTableSize);
-            s_tempTable = new LowLevelDictionary<string, UriParser>(c_InitialTableSize);
+            s_table = new Dictionary<string, UriParser>(c_InitialTableSize);
+            s_tempTable = new Dictionary<string, UriParser>(c_InitialTableSize);
 
             //Now we will call for the instance constructors that will interrupt this static one.
 
@@ -125,6 +145,7 @@ namespace System
             s_table[FtpUri.SchemeName] = FtpUri;                    //FTP
 
             FileUri = new BuiltInUriParser("file", NoDefaultPort, s_fileSyntaxFlags);
+            UnixFileUri = new BuiltInUriParser("file", NoDefaultPort, s_unixFileSyntaxFlags);
             s_table[FileUri.SchemeName] = FileUri;                   //FILE
 
             GopherUri = new BuiltInUriParser("gopher", 70, GopherSyntaxFlags);
@@ -280,7 +301,7 @@ namespace System
             {
                 if (s_tempTable.Count >= c_MaxCapacity)
                 {
-                    s_tempTable = new LowLevelDictionary<string, UriParser>(c_InitialTableSize);
+                    s_tempTable = new Dictionary<string, UriParser>(c_InitialTableSize);
                 }
                 syntax = new BuiltInUriParser(lwrCaseScheme, NoDefaultPort, UnknownV1SyntaxFlags);
                 s_tempTable[lwrCaseScheme] = syntax;
@@ -470,6 +491,8 @@ namespace System
                                         UriSyntaxFlags.AllowIdn |
                                         UriSyntaxFlags.AllowIriParsing;
 
+        private static readonly UriSyntaxFlags s_unixFileSyntaxFlags =
+                                        s_fileSyntaxFlags & ~UriSyntaxFlags.ConvertPathSlashes;
 
         private const UriSyntaxFlags VsmacrosSyntaxFlags =
                                         UriSyntaxFlags.MustHaveAuthority |

@@ -6,7 +6,6 @@ using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
@@ -53,7 +52,6 @@ namespace System.Security.Principal
             {
                 throw new ArgumentException(SR.IdentityReference_DomainNameTooLong, nameof(domainName));
             }
-            Contract.EndContractBlock();
 
             if (domainName == null || domainName.Length == 0)
             {
@@ -81,7 +79,6 @@ namespace System.Security.Principal
             {
                 throw new ArgumentException(SR.IdentityReference_AccountNameTooLong, nameof(name));
             }
-            Contract.EndContractBlock();
 
             _name = name;
         }
@@ -119,7 +116,6 @@ namespace System.Security.Principal
             {
                 throw new ArgumentNullException(nameof(targetType));
             }
-            Contract.EndContractBlock();
 
             if (targetType == typeof(NTAccount))
             {
@@ -187,7 +183,6 @@ namespace System.Security.Principal
             {
                 throw new ArgumentNullException(nameof(sourceAccounts));
             }
-            Contract.EndContractBlock();
 
             if (targetType == typeof(SecurityIdentifier))
             {
@@ -241,7 +236,6 @@ namespace System.Security.Principal
             {
                 throw new ArgumentException(SR.Arg_EmptyCollection, nameof(sourceAccounts));
             }
-            Contract.EndContractBlock();
 
             SafeLsaPolicyHandle LsaHandle = SafeLsaPolicyHandle.InvalidHandle;
             SafeLsaMemoryHandle ReferencedDomainsPtr = SafeLsaMemoryHandle.InvalidHandle;
@@ -316,14 +310,14 @@ namespace System.Security.Principal
                 }
                 else if (ReturnCode != 0)
                 {
-                    int win32ErrorCode = Interop.NtDll.RtlNtStatusToDosError(unchecked((int)ReturnCode));
+                    uint win32ErrorCode = Interop.Advapi32.LsaNtStatusToWinError(ReturnCode);
 
-                    if (win32ErrorCode != Interop.Errors.ERROR_TRUSTED_RELATIONSHIP_FAILURE)
+                    if (unchecked((int)win32ErrorCode) != Interop.Errors.ERROR_TRUSTED_RELATIONSHIP_FAILURE)
                     {
                         Debug.Assert(false, string.Format(CultureInfo.InvariantCulture, "Interop.LsaLookupNames(2) returned unrecognized error {0}", win32ErrorCode));
                     }
 
-                    throw new Win32Exception(win32ErrorCode);
+                    throw new Win32Exception(unchecked((int)win32ErrorCode));
                 }
 
                 //

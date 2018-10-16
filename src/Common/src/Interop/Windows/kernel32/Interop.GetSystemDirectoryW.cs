@@ -3,13 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Runtime.InteropServices;
-using System.Text;
 
 internal static partial class Interop
 {
     internal static partial class Kernel32
     {
         [DllImport(Libraries.Kernel32, CharSet = CharSet.Unicode, SetLastError = true)]
-        internal static extern int GetSystemDirectoryW([Out] StringBuilder lpBuffer, int jSize);
+        internal static extern uint GetSystemDirectoryW(ref char lpBuffer, uint uSize);
     }
 }

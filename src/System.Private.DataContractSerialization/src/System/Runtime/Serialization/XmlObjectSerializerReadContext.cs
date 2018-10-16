@@ -14,7 +14,7 @@ namespace System.Runtime.Serialization
     using System.Security;
     using DataContractDictionary = System.Collections.Generic.Dictionary<System.Xml.XmlQualifiedName, DataContract>;
 
-#if USE_REFEMIT || NET_NATIVE
+#if USE_REFEMIT || uapaot
     public class XmlObjectSerializerReadContext : XmlObjectSerializerContext
 #else
     internal class XmlObjectSerializerReadContext : XmlObjectSerializerContext
@@ -67,6 +67,12 @@ namespace System.Runtime.Serialization
             _isGetOnlyCollection = true;
         }
 
+        internal void ResetCollectionMemberInfo()
+        {
+            _getOnlyCollectionValue = null;
+            _isGetOnlyCollection = false;
+        }
+
 #if USE_REFEMIT
         public static void ThrowNullValueReturnedForGetOnlyCollectionException(Type type)
 #else
@@ -75,6 +81,14 @@ namespace System.Runtime.Serialization
         {
             throw System.Runtime.Serialization.DiagnosticUtility.ExceptionUtility.ThrowHelperError(XmlObjectSerializer.CreateSerializationException(SR.Format(SR.NullValueReturnedForGetOnlyCollection, DataContract.GetClrTypeFullName(type))));
         }
+
+#if uapaot
+        // Referenced from generated code in .NET Native's SerializationAssemblyGenerator
+        internal static void ThrowNoDefaultConstructorForCollectionException(Type type)
+        {
+            throw System.Runtime.Serialization.DiagnosticUtility.ExceptionUtility.ThrowHelperError(XmlObjectSerializer.CreateSerializationException(SR.Format(SR.NoDefaultConstructorForCollection, DataContract.GetClrTypeFullName(type))));
+        }
+#endif
 
 #if USE_REFEMIT
         public static void ThrowArrayExceededSizeException(int arraySize, Type type)
@@ -179,6 +193,23 @@ namespace System.Runtime.Serialization
                 knownTypesAddedInCurrentScope = ReplaceScopedKnownTypesTop(dataContract.KnownDataContracts, knownTypesAddedInCurrentScope);
             }
 
+            if (dataContract.IsISerializable && attributes.FactoryTypeName != null)
+            {
+                DataContract factoryDataContract = ResolveDataContractFromKnownTypes(attributes.FactoryTypeName, attributes.FactoryTypeNamespace, dataContract);
+                if (factoryDataContract != null)
+                {
+                    if (factoryDataContract.IsISerializable)
+                    {
+                        dataContract = factoryDataContract;
+                        knownTypesAddedInCurrentScope = ReplaceScopedKnownTypesTop(dataContract.KnownDataContracts, knownTypesAddedInCurrentScope);
+                    }
+                    else
+                    {
+                        throw DiagnosticUtility.ExceptionUtility.ThrowHelperError(XmlObjectSerializer.CreateSerializationException(SR.Format(SR.FactoryTypeNotISerializable, DataContract.GetClrTypeFullName(factoryDataContract.UnderlyingType), DataContract.GetClrTypeFullName(dataContract.UnderlyingType))));
+                    }
+                }
+            }
+
             if (knownTypesAddedInCurrentScope)
             {
                 object obj = ReadDataContractValue(dataContract, reader);
@@ -267,7 +298,7 @@ namespace System.Runtime.Serialization
             throw System.Runtime.Serialization.DiagnosticUtility.ExceptionUtility.ThrowHelperError(XmlObjectSerializer.CreateSerializationException(XmlObjectSerializer.TryAddLineInfo(xmlReader, SR.Format(SR.UnexpectedElementExpectingElements, xmlReader.NodeType, xmlReader.LocalName, xmlReader.NamespaceURI, stringBuilder.ToString()))));
         }
 
-#if NET_NATIVE
+#if uapaot
         public static void ThrowMissingRequiredMembers(object obj, XmlDictionaryString[] memberNames, byte[] expectedElements, byte[] requiredElements)
         {
             StringBuilder stringBuilder = new StringBuilder();
@@ -457,6 +488,20 @@ namespace System.Runtime.Serialization
             return retObj;
         }
 
+        public object GetRealObject(IObjectReference obj, string id)
+        {
+            object realObj = SurrogateDataContract.GetRealObject(obj, this.GetStreamingContext());
+            // If GetRealObject returns null, it indicates that the object could not resolve itself because 
+            // it is missing information. This may occur in a case where multiple IObjectReference instances
+            // depend on each other. BinaryFormatter supports this by fixing up the references later. These
+            // XmlObjectSerializer implementations do not support fix-ups since the format does not contain
+            // forward references. However, we throw for this case since it allows us to add fix-up support 
+            // in the future if we need to.
+            if (realObj == null)
+                throw DiagnosticUtility.ExceptionUtility.ThrowHelperError(XmlObjectSerializer.CreateSerializationException("error"));
+            ReplaceDeserializedObject(id, obj, realObj);
+            return realObj;
+        }
 
 #if USE_REFEMIT
         public static void Read(XmlReaderDelegator xmlReader)
@@ -486,14 +531,14 @@ namespace System.Runtime.Serialization
         {
             if (array.Length <= index)
             {
-                if (index == Int32.MaxValue)
+                if (index == int.MaxValue)
                 {
                     throw DiagnosticUtility.ExceptionUtility.ThrowHelperError(
                         XmlObjectSerializer.CreateSerializationException(
-                        SR.Format(SR.MaxArrayLengthExceeded, Int32.MaxValue,
+                        SR.Format(SR.MaxArrayLengthExceeded, int.MaxValue,
                         DataContract.GetClrTypeFullName(typeof(T)))));
                 }
-                int newSize = (index < Int32.MaxValue / 2) ? index * 2 : Int32.MaxValue;
+                int newSize = (index < int.MaxValue / 2) ? index * 2 : int.MaxValue;
                 T[] newArray = new T[newSize];
                 Array.Copy(array, 0, newArray, 0, array.Length);
                 array = newArray;
@@ -601,7 +646,7 @@ namespace System.Runtime.Serialization
                 if (attributes.Ref != Globals.NewObjectId)
                 {
                     xmlReader.Skip();
-                    value = GetExistingObject(attributes.Ref, null, name, String.Empty);
+                    value = GetExistingObject(attributes.Ref, null, name, string.Empty);
                 }
                 else if (attributes.XsiNil)
                 {
@@ -610,7 +655,7 @@ namespace System.Runtime.Serialization
                 }
                 else
                 {
-                    value = InternalDeserialize(xmlReader, Globals.TypeOfObject, name, String.Empty);
+                    value = InternalDeserialize(xmlReader, Globals.TypeOfObject, name, string.Empty);
                 }
 
                 serInfo.AddValue(name, value);
@@ -991,8 +1036,8 @@ namespace System.Runtime.Serialization
                             elementNs = ns;
                         }
                         else
-                            couldBeCollectionData = (String.CompareOrdinal(elementName, name) == 0) &&
-                                (String.CompareOrdinal(elementNs, ns) == 0);
+                            couldBeCollectionData = (string.CompareOrdinal(elementName, name) == 0) &&
+                                (string.CompareOrdinal(elementNs, ns) == 0);
                     }
                 }
                 else if (xmlReader.EOF)

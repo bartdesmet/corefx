@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -843,8 +842,53 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public static void ToStringTest()
         {
-            var e = Expression.TypeAs(Expression.Parameter(typeof(object), "o"), typeof(string));
+            UnaryExpression e = Expression.TypeAs(Expression.Parameter(typeof(object), "o"), typeof(string));
             Assert.Equal("(o As String)", e.ToString());
+        }
+
+        [Fact]
+        public static void NonNullableValueType()
+        {
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.TypeAs(Expression.Constant(0), typeof(int)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.TypeAs(Expression.Constant(null), typeof(DateTime)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.TypeAs(Expression.Constant(DateTime.MinValue), typeof(DateTime)));
+        }
+
+        [Fact]
+        public static void NullType() =>
+            AssertExtensions.Throws<ArgumentNullException>("type", () => Expression.TypeAs(Expression.Constant(""), null));
+
+        [Fact]
+        public static void NullExpression() =>
+            AssertExtensions.Throws<ArgumentNullException>("expression", () => Expression.TypeAs(null, typeof(string)));
+
+        [Fact]
+        public static void AsOpenGeneric()
+        {
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.TypeAs(Expression.Constant(""), typeof(List<>)));
+            AssertExtensions.Throws<ArgumentException>("type", () => Expression.TypeAs(Expression.Constant(""), typeof(List<>).MakeGenericType(typeof(List<>))));
+        }
+
+        [Fact]
+        public static void PointerType()
+        {
+            AssertExtensions.Throws<ArgumentException>(
+                "type", () => Expression.TypeAs(Expression.Constant(""), typeof(int).MakePointerType()));
+        }
+
+        [Fact]
+        public static void ByRefType()
+        {
+            AssertExtensions.Throws<ArgumentException>(
+                "type", () => Expression.TypeAs(Expression.Constant(""), typeof(string).MakeByRefType()));
+        }
+
+        [Fact]
+        public static void UnreadableTypeAs()
+        {
+            MemberExpression unreadable = Expression.Property(
+                null, typeof(Unreadable<string>), nameof(Unreadable<string>.WriteOnly));
+            AssertExtensions.Throws<ArgumentException>("expression", () => Expression.TypeAs(unreadable, typeof(string)));
         }
 
         #endregion
@@ -1763,5 +1807,34 @@ namespace System.Linq.Expressions.Tests
         }
 
         #endregion
+
+        public static IEnumerable<object[]> ObjectsAndTypes()
+        {
+            yield return new object[] { 3, typeof(int), typeof(int?) };
+            yield return new object[] { 3, typeof(int), typeof(long?) };
+            yield return new object[] { "3", typeof(IEnumerable<char>), typeof(string) };
+            yield return new object[] { Expression.Constant(3), typeof(Expression), typeof(ConstantExpression) };
+            yield return new object[] { Expression.Constant(3), typeof(Expression), typeof(BlockExpression) };
+        }
+
+        [Theory, PerCompilationType(nameof(ObjectsAndTypes))]
+        public static void MakeUnaryTypeAs(object value, Type sourceType, Type resultType, bool useInterpreter)
+        {
+            var instance = Expression.Constant(value, sourceType);
+            var lambda = Expression.Lambda<Func<object>>(
+                Expression.Convert(
+                    Expression.MakeUnary(ExpressionType.TypeAs, instance, resultType),
+                    typeof(object))
+                );
+            var func = lambda.Compile(useInterpreter);
+            if (resultType.IsInstanceOfType(value))
+            {
+                Assert.Equal(value, func());
+            }
+            else
+            {
+                Assert.Null(func());
+            }
+        }
     }
 }

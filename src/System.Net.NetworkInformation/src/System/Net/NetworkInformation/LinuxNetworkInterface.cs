@@ -26,7 +26,7 @@ namespace System.Net.NetworkInformation
             _ipProperties = new LinuxIPInterfaceProperties(this);
         }
 
-        public unsafe static NetworkInterface[] GetLinuxNetworkInterfaces()
+        public static unsafe NetworkInterface[] GetLinuxNetworkInterfaces()
         {
             Dictionary<string, LinuxNetworkInterface> interfacesByName = new Dictionary<string, LinuxNetworkInterface>();
             List<Exception> exceptions = null;
@@ -195,7 +195,10 @@ namespace System.Net.NetworkInformation
             try
             {
                 string path = Path.Combine(NetworkFiles.SysClassNetFolder, name, NetworkFiles.SpeedFileName);
-                return StringParsingHelpers.ParseRawLongFile(path);
+                long megabitsPerSecond = StringParsingHelpers.ParseRawLongFile(path);
+                return megabitsPerSecond == -1
+                    ? megabitsPerSecond
+                    : megabitsPerSecond * 1_000_000; // Value must be returned in bits per second, not megabits.
             }
             catch (Exception) // Ignore any problems accessing or parsing the file.
             {
@@ -222,7 +225,7 @@ namespace System.Net.NetworkInformation
             return OperationalStatus.Unknown;
         }
 
-        // Maps values from /sys/class/net/<interface>/operstate to OperationStatus values.
+        // Maps values from /sys/class/net/<interface>/operstate to OperationalStatus values.
         private static OperationalStatus MapState(string state)
         {
             //

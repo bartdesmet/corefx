@@ -37,13 +37,29 @@ namespace System.IO.Tests
             Assert.Equal(path, info.ToString());
         }
 
-        [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)]
-        public void DriveOnlyReturnsPeriod_Windows()
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotInAppContainer))] // Can't read root in appcontainer
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp)]
+        [PlatformSpecific(TestPlatforms.Windows)]  // Drive letter only
+        public void DriveOnlyReturnsPeriod_Windows_Desktop()
         {
             string path = @"C:";
             var info = new DirectoryInfo(path);
             Assert.Equal(".", info.ToString());
         }
+
+        [Fact]
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.Netcoreapp)]
+        [PlatformSpecific(TestPlatforms.Windows)]  // Drive letter only
+        public void DriveOnlyReturnsPeriod_Windows_Core()
+        {
+            // This was likely a limited trust hack that was strangely implemented.
+            // Getting the current directory for a specified drive relative path
+            // doesn't make a lot of sense. There is no reason to hide original paths
+            // when in full trust.
+            string path = @"C:";
+            var info = new DirectoryInfo(path);
+            Assert.Equal("C:", info.ToString());
+        }
+
     }
 }

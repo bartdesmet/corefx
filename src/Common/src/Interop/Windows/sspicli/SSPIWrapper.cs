@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Net.Security;
 using System.Runtime.InteropServices;
@@ -59,11 +58,6 @@ namespace System.Net
             return secModule.SecurityPackages;
         }
 
-        internal static SecurityPackageInfoClass GetVerifyPackageInfo(SSPIInterface secModule, string packageName)
-        {
-            return GetVerifyPackageInfo(secModule, packageName, false);
-        }
-
         internal static SecurityPackageInfoClass GetVerifyPackageInfo(SSPIInterface secModule, string packageName, bool throwIfMissing)
         {
             SecurityPackageInfoClass[] supportedSecurityPackages = EnumerateSecurityPackages(secModule);
@@ -71,7 +65,7 @@ namespace System.Net
             {
                 for (int i = 0; i < supportedSecurityPackages.Length; i++)
                 {
-                    if (string.Compare(supportedSecurityPackages[i].Name, packageName, StringComparison.OrdinalIgnoreCase) == 0)
+                    if (string.Equals(supportedSecurityPackages[i].Name, packageName, StringComparison.OrdinalIgnoreCase))
                     {
                         return supportedSecurityPackages[i];
                     }
@@ -105,29 +99,6 @@ namespace System.Net
                 throw new Win32Exception(errorCode);
             }
             return outCredential;
-        }
-
-        public static SafeFreeCredentials AcquireCredentialsHandle(SSPIInterface secModule, string package, Interop.SspiCli.CredentialUse intent, ref Interop.SspiCli.SEC_WINNT_AUTH_IDENTITY_W authdata)
-        {
-            if (NetEventSource.IsEnabled)
-            {
-                NetEventSource.Enter(null, package);
-                NetEventSource.Log.AcquireCredentialsHandle(package, intent, authdata);
-            }
-
-            SafeFreeCredentials credentialsHandle = null;
-            int errorCode = secModule.AcquireCredentialsHandle(package,
-                                                               intent,
-                                                               ref authdata,
-                                                               out credentialsHandle);
-
-            if (errorCode != 0)
-            {
-                if (NetEventSource.IsEnabled) NetEventSource.Error(null, SR.Format(SR.net_log_operation_failed_with_error, nameof(AcquireCredentialsHandle), $"0x{errorCode:X}"));
-
-                throw new Win32Exception(errorCode);
-            }
-            return credentialsHandle;
         }
 
         public static SafeFreeCredentials AcquireCredentialsHandle(SSPIInterface secModule, string package, Interop.SspiCli.CredentialUse intent, ref SafeSspiAuthDataHandle authdata)
@@ -178,7 +149,7 @@ namespace System.Net
             int errorCode = secModule.InitializeSecurityContext(ref credential, ref context, targetName, inFlags, datarep, inputBuffer, outputBuffer, ref outFlags);
 
             if (NetEventSource.IsEnabled) NetEventSource.Log.SecurityContextInputBuffer(nameof(InitializeSecurityContext), inputBuffer?.size ?? 0, outputBuffer.size, (Interop.SECURITY_STATUS)errorCode);
-            
+
             return errorCode;
         }
 
@@ -189,17 +160,6 @@ namespace System.Net
             int errorCode = secModule.InitializeSecurityContext(credential, ref context, targetName, inFlags, datarep, inputBuffers, outputBuffer, ref outFlags);
 
             if (NetEventSource.IsEnabled) NetEventSource.Log.SecurityContextInputBuffers(nameof(InitializeSecurityContext), inputBuffers?.Length ?? 0, outputBuffer.size, (Interop.SECURITY_STATUS)errorCode);
-
-            return errorCode;
-        }
-
-        internal static int AcceptSecurityContext(SSPIInterface secModule, ref SafeFreeCredentials credential, ref SafeDeleteContext context, Interop.SspiCli.ContextFlags inFlags, Interop.SspiCli.Endianness datarep, SecurityBuffer inputBuffer, SecurityBuffer outputBuffer, ref Interop.SspiCli.ContextFlags outFlags)
-        {
-            if (NetEventSource.IsEnabled) NetEventSource.Log.AcceptSecurityContext(credential, context, inFlags);
-
-            int errorCode = secModule.AcceptSecurityContext(ref credential, ref context, inputBuffer, inFlags, datarep, outputBuffer, ref outFlags);
-
-            if (NetEventSource.IsEnabled) NetEventSource.Log.SecurityContextInputBuffer(nameof(AcceptSecurityContext), inputBuffer?.size ?? 0, outputBuffer.size, (Interop.SECURITY_STATUS)errorCode);
 
             return errorCode;
         }
@@ -266,7 +226,7 @@ namespace System.Net
             VerifySignature
         }
 
-        private unsafe static int EncryptDecryptHelper(OP op, SSPIInterface secModule, SafeDeleteContext context, SecurityBuffer[] input, uint sequenceNumber)
+        private static unsafe int EncryptDecryptHelper(OP op, SSPIInterface secModule, SafeDeleteContext context, SecurityBuffer[] input, uint sequenceNumber)
         {
             Interop.SspiCli.SecBufferDesc sdcInOut = new Interop.SspiCli.SecBufferDesc(input.Length);
             var unmanagedBuffer = new Interop.SspiCli.SecBuffer[input.Length];
@@ -378,7 +338,7 @@ namespace System.Net
                     }
 
                     if (NetEventSource.IsEnabled && errorCode != 0)
-                    {                         
+                    {
                         if (errorCode == Interop.SspiCli.SEC_I_RENEGOTIATE)
                         {
                             NetEventSource.Error(null, SR.Format(SR.event_OperationReturnedSomething, op, "SEC_I_RENEGOTIATE"));
@@ -452,7 +412,10 @@ namespace System.Net
 
                 case Interop.SspiCli.ContextAttribute.SECPKG_ATTR_NEGOTIATION_INFO:
                     handleType = typeof(SafeFreeContextBuffer);
-                    nativeBlockSize = Marshal.SizeOf<SecPkgContext_NegotiationInfoW>();
+                    unsafe
+                    {
+                        nativeBlockSize = sizeof(SecPkgContext_NegotiationInfoW);
+                    }
                     break;
 
                 case Interop.SspiCli.ContextAttribute.SECPKG_ATTR_CLIENT_SPECIFIED_TARGET:
@@ -474,6 +437,10 @@ namespace System.Net
 
                 case Interop.SspiCli.ContextAttribute.SECPKG_ATTR_CONNECTION_INFO:
                     nativeBlockSize = Marshal.SizeOf<SecPkgContext_ConnectionInfo>();
+                    break;
+
+                case Interop.SspiCli.ContextAttribute.SECPKG_ATTR_APPLICATION_PROTOCOL:
+                    nativeBlockSize = Marshal.SizeOf<Interop.SecPkgContext_ApplicationProtocol>();
                     break;
 
                 default:
@@ -514,9 +481,9 @@ namespace System.Net
                     case Interop.SspiCli.ContextAttribute.SECPKG_ATTR_NEGOTIATION_INFO:
                         unsafe
                         {
-                            fixed (void* ptr = nativeBuffer)
+                            fixed (void* ptr = &nativeBuffer[0])
                             {
-                                attribute = new NegotiationInfoClass(sspiHandle, Marshal.ReadInt32(new IntPtr(ptr), SecPkgContext_NegotiationInfoW.NegotiationStateOffest));
+                                attribute = new NegotiationInfoClass(sspiHandle, (int)((SecPkgContext_NegotiationInfoW*)ptr)->NegotiationState);
                             }
                         }
                         break;
@@ -540,6 +507,17 @@ namespace System.Net
                     case Interop.SspiCli.ContextAttribute.SECPKG_ATTR_CONNECTION_INFO:
                         attribute = new SecPkgContext_ConnectionInfo(nativeBuffer);
                         break;
+
+                    case Interop.SspiCli.ContextAttribute.SECPKG_ATTR_APPLICATION_PROTOCOL:
+                        unsafe
+                        {
+                            fixed (void *ptr = nativeBuffer)
+                            {
+                                attribute = Marshal.PtrToStructure<Interop.SecPkgContext_ApplicationProtocol>(new IntPtr(ptr));
+                            }
+                        }
+                        break;
+
                     default:
                         // Will return null.
                         break;

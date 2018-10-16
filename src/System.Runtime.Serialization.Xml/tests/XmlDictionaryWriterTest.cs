@@ -41,6 +41,29 @@ public static class XmlDictionaryWriterTest
     }
 
     [Fact]
+    public static void XmlBaseWriter_WriteBinHex()
+    {
+        var str = "The quick brown fox jumps over the lazy dog.";
+        var bytes = Encoding.Unicode.GetBytes(str);
+        string expect = @"<data>540068006500200071007500690063006B002000620072006F0077006E00200066006F00780020006A0075006D007000730020006F00760065007200200074006800650020006C0061007A007900200064006F0067002E00</data>";
+        string actual;
+        using (var ms = new MemoryStream())
+        {
+            var writer = XmlDictionaryWriter.CreateTextWriter(ms);
+            writer.WriteStartElement("data");
+            writer.WriteBinHex(bytes, 0, bytes.Length);
+            writer.WriteEndElement();
+            writer.Flush();
+            ms.Position = 0;
+            var sr = new StreamReader(ms);
+            actual = sr.ReadToEnd();
+        }
+        
+        Assert.StrictEqual(expect, actual);
+    }
+
+    [Fact]
+    [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Async APIs are available on NetCore only")]
     public static void XmlBaseWriter_FlushAsync()
     {
         string actual = null;
@@ -82,7 +105,7 @@ public static class XmlDictionaryWriterTest
         catch(Exception e)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"An error occured: {e.Message}");
+            sb.AppendLine($"An error occurred: {e.Message}");
             sb.AppendLine(e.StackTrace);
             sb.AppendLine();
             sb.AppendLine($"The last completed operation before the exception was: {lastCompletedOperation}");
@@ -94,6 +117,7 @@ public static class XmlDictionaryWriterTest
     }
 
     [Fact]
+    [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Async APIs are available on NetCore only")]
     public static void XmlBaseWriter_WriteStartEndElementAsync()
     {
         string actual;
@@ -121,6 +145,7 @@ public static class XmlDictionaryWriterTest
     }
 
     [Fact]
+    [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Async APIs are available on NetCore only")]
     public static void XmlBaseWriter_CheckAsync_ThrowInvalidOperationException()
     {
         int byteSize = 1024;
@@ -166,6 +191,7 @@ public static class XmlDictionaryWriterTest
     }
 
     [Fact]
+    [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "is implemented on full framework")]
     public static void CreateMtomReaderWriter_Throw_PNSE()
     {
         using (var stream = new MemoryStream())
@@ -287,34 +313,19 @@ public static class XmlDictionaryWriterTest
         writer.SetOutput(ms, encoding, true);
     }
 
-    [ActiveIssue(13375)]
     [Fact]
+    [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "is implemented on full framework")]
     public static void FragmentTest()
     {
         string rwTypeStr = "Text";
         ReaderWriterFactory.ReaderWriterType rwType = (ReaderWriterFactory.ReaderWriterType)
             Enum.Parse(typeof(ReaderWriterFactory.ReaderWriterType), rwTypeStr, true);
         Encoding encoding = Encoding.GetEncoding("utf-8");
-        int numberOfNestedFragments = 1;
-        MemoryStream ms1 = new MemoryStream();
-        MemoryStream ms2 = new MemoryStream();
-        XmlDictionaryWriter writer1 = (XmlDictionaryWriter)ReaderWriterFactory.CreateXmlWriter(rwType, ms1, encoding);
-        XmlDictionaryWriter writer2 = (XmlDictionaryWriter)ReaderWriterFactory.CreateXmlWriter(rwType, ms2, encoding);
-        Assert.True(FragmentHelper.CanFragment(writer1));
-        Assert.True(FragmentHelper.CanFragment(writer2));
-        writer1.WriteStartDocument(); writer2.WriteStartDocument();
-        writer1.WriteStartElement(ReaderWriterConstants.RootElementName); writer2.WriteStartElement(ReaderWriterConstants.RootElementName);
-        SimulateWriteFragment(writer1, true, numberOfNestedFragments);
-        SimulateWriteFragment(writer2, false, numberOfNestedFragments);
-        writer1.WriteEndElement(); writer2.WriteEndElement();
-        writer1.WriteEndDocument(); writer2.WriteEndDocument();
-        writer1.Flush();
-        writer2.Flush();
-
-        byte[] doc1 = ms1.ToArray();
-        byte[] doc2 = ms2.ToArray();
-        CompareArrays(doc1, 0, doc2, 0, doc1.Length);
+        MemoryStream ms = new MemoryStream();
+        XmlDictionaryWriter writer = (XmlDictionaryWriter)ReaderWriterFactory.CreateXmlWriter(rwType, ms, encoding);
+        Assert.False(FragmentHelper.CanFragment(writer));
     }
+
     private static bool ReadTest(MemoryStream ms, Encoding encoding, ReaderWriterFactory.ReaderWriterType rwType, byte[] byteArray)
     {
         ms.Position = 0;
@@ -414,15 +425,6 @@ public static class XmlDictionaryWriterTest
         }
 
     }
-
-    private static void CompareArrays(byte[] array1, int offset1, byte[] array2, int offset2, int count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            Assert.Equal(array1[i + offset1], array2[i + offset2]);
-        }
-    }
-
     private static void SimulateWriteFragment(XmlDictionaryWriter writer, bool useFragmentAPI, int nestedLevelsLeft)
     {
         if (nestedLevelsLeft <= 0)
@@ -452,7 +454,7 @@ public static class XmlDictionaryWriterTest
         writer.WriteStartElement("Fragment" + nestedLevelsLeft);
         for (int i = 0; i < 5; i++)
         {
-            writer.WriteStartElement(String.Format("Element{0}_{1}", nestedLevelsLeft, i));
+            writer.WriteStartElement(string.Format("Element{0}_{1}", nestedLevelsLeft, i));
             writer.WriteAttributeString("attr1", "value1");
             writer.WriteAttributeString("attr2", "value2");
         }

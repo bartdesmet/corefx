@@ -1,36 +1,13 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition="'$(Configuration)'==''">Windows_Debug</Configuration>
-  </PropertyGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.props))\dir.props" />
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>System.Net.NetworkInformation</AssemblyName>
     <OutputType>Library</OutputType>
     <ProjectGuid>{3CA89D6C-F8D1-4813-9775-F8D249686E31}</ProjectGuid>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <EnableWinRT Condition="'$(TargetGroup)' == 'uap101'">true</EnableWinRT>
-    <IsPartialFacadeAssembly Condition="'$(TargetGroup)' == 'net463'">true</IsPartialFacadeAssembly>
-    <NuGetTargetMoniker Condition="'$(TargetGroup)' == ''">.NETStandard,Version=v1.7</NuGetTargetMoniker>
+    <ILLinkClearInitLocals>true</ILLinkClearInitLocals>
+    <Configurations>netcoreapp-Linux-Debug;netcoreapp-Linux-Release;netcoreapp-OSX-Debug;netcoreapp-OSX-Release;netcoreapp-Unix-Debug;netcoreapp-Unix-Release;netcoreapp-Windows_NT-Debug;netcoreapp-Windows_NT-Release;uap-Windows_NT-Debug;uap-Windows_NT-Release</Configurations>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(EnableWinRT)' != 'true'">
-    <DefineConstants>$(DefineConstants);FEATURE_CORECLR</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(EnableWinRT)' == 'true'">
-    <DefineConstants>$(DefineConstants);NETNATIVE</DefineConstants>
-  </PropertyGroup>
-  <!-- Help VS understand available configurations -->
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Linux_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Linux_Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'OSX_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'OSX_Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Windows_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Windows_Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Windows_uap101_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Windows_uap101_Release|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'net463_Debug|AnyCPU'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'net463_Release|AnyCPU'" />
-  <ItemGroup Condition="'$(IsPartialFacadeAssembly)' != 'true'">
+  <ItemGroup>
     <Compile Include="System\Net\NetworkInformation\DuplicateAddressDetectionState.cs" />
     <Compile Include="System\Net\NetworkInformation\GatewayIPAddressInformation.cs" />
     <Compile Include="System\Net\NetworkInformation\GatewayIPAddressInformationCollection.cs" />
@@ -49,6 +26,7 @@
     <Compile Include="System\Net\NetworkInformation\MulticastIPAddressInformationCollection.cs" />
     <Compile Include="System\Net\NetworkInformation\NetBiosNodeType.cs" />
     <Compile Include="System\Net\NetworkInformation\NetEventSource.NetworkInformation.cs" />
+    <Compile Include="System\Net\NetworkInformation\NetworkAddressChange.cs" />
     <Compile Include="System\Net\NetworkInformation\NetworkAvailabilityEventArgs.cs" />
     <Compile Include="System\Net\NetworkInformation\NetworkChangeDelegates.cs" />
     <Compile Include="System\Net\NetworkInformation\NetworkInterface.cs" />
@@ -76,11 +54,8 @@
       <Link>Common\System\Net\NetworkInformation\NetworkInformationException.cs</Link>
     </Compile>
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetsWindows)' == 'true' And '$(IsPartialFacadeAssembly)' != 'true'">
+  <ItemGroup Condition="'$(TargetsWindows)' == 'true'">
     <!-- Logging -->
-    <Compile Include="$(CommonPath)\System\Net\Shims\TraceSource.cs">
-      <Link>Common\System\Net\Shims\TraceSource.cs</Link>
-    </Compile>
     <Compile Include="$(CommonPath)\System\Net\Logging\DebugThreadTracking.cs">
       <Link>Common\System\Net\Logging\DebugThreadTracking.cs</Link>
     </Compile>
@@ -97,9 +72,6 @@
     <Compile Include="$(CommonPath)\Interop\Windows\IpHlpApi\Interop.IP_ADDR_STRING.cs">
       <Link>Interop\Windows\IpHlpApi\Interop.IP_ADDR_STRING.cs</Link>
     </Compile>
-  </ItemGroup>
-  <!-- Windows : Win32 only -->
-  <ItemGroup Condition="'$(TargetsWindows)' == 'true' AND '$(EnableWinRT)' != 'true' And '$(IsPartialFacadeAssembly)' != 'true'">
     <Compile Include="System\Net\NetworkInformation\IPGlobalPropertiesPal.Windows.cs" />
     <Compile Include="System\Net\NetworkInformation\NetworkAddressChange.Windows.cs" />
     <Compile Include="System\Net\NetworkInformation\NetworkInterfacePal.Windows.cs" />
@@ -141,6 +113,9 @@
     </Compile>
     <Compile Include="$(CommonPath)\System\Net\ContextAwareResult.Windows.cs">
       <Link>Common\System\Net\ContextAwareResult.Windows.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\System\Net\CompletionPortHelper.Windows.cs">
+      <Link>Common\System\Net\CompletionPortHelper.Windows.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\System\Net\LazyAsyncResult.cs">
       <Link>Common\System\Net\LazyAsyncResult.cs</Link>
@@ -192,14 +167,14 @@
     <Compile Include="$(CommonPath)\Interop\Windows\kernel32\Interop.LocalAlloc.cs">
       <Link>Interop\Windows\kernel32\Interop.LocalAlloc.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Windows\kernel32\Interop.LocalAlloc_SafeOverlappedFree.cs">
-      <Link>Interop\Windows\kernel32\Interop.LocalAlloc_SafeOverlappedFree.cs</Link>
-    </Compile>
     <Compile Include="$(CommonPath)\Interop\Windows\kernel32\Interop.LocalAlloc.Constants.cs">
       <Link>Interop\Windows\kernel32\Interop.LocalAlloc.Constants.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Windows\kernel32\Interop.LocalFree.cs">
       <Link>Interop\Windows\kernel32\Interop.LocalFree.cs</Link>
+    </Compile>
+    <Compile Include="$(CommonPath)\Interop\Windows\kernel32\Interop.SetFileCompletionNotificationModes.cs">
+      <Link>Interop\Windows\kernel32\Interop.SetFileCompletionNotificationModes.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\Interop\Windows\Winsock\Interop.accept.cs">
       <Link>Interop\Windows\Winsock\Interop.accept.cs</Link>
@@ -231,25 +206,8 @@
     <Compile Include="$(CommonPath)\Interop\Windows\Winsock\Interop.WSASocketW.SafeCloseSocket.cs">
       <Link>Interop\Windows\Winsock\Interop.WSASocketW.SafeCloseSocket.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Windows\Winsock\SafeNativeOverlapped.cs">
-      <Link>Interop\Windows\Winsock\SafeNativeOverlapped.cs</Link>
-    </Compile>
-    <Compile Include="$(CommonPath)\Interop\Windows\Winsock\SafeOverlappedFree.cs">
-      <Link>Interop\Windows\Winsock\SafeOverlappedFree.cs</Link>
-    </Compile>
     <Compile Include="$(CommonPath)\Interop\Windows\Winsock\WSABuffer.cs">
       <Link>Interop\Windows\Winsock\WSABuffer.cs</Link>
-    </Compile>
-  </ItemGroup>
-  <!-- Windows : Win32 + WinRT -->
-  <ItemGroup Condition="'$(TargetsWindows)' == 'true' AND '$(EnableWinRT)' == 'true'">
-    <Compile Include="System\Net\NetworkInformation\IPGlobalPropertiesPal.Uap.cs" />
-    <Compile Include="System\Net\NetworkInformation\NetNativeIPGlobalProperties.cs" />
-    <Compile Include="System\Net\NetworkInformation\NetworkAddressChange.Uap.cs" />
-    <Compile Include="System\Net\NetworkInformation\NetworkInterfacePal.Uap.cs" />
-    <Compile Include="System\Net\NetworkInformation\NetNativeNetworkInterface.cs" />
-    <Compile Include="$(CommonPath)\System\Net\NetworkInformation\HostInformationPal.Uap.cs">
-      <Link>Common\System\Net\NetworkInformation\HostInformationPal.Uap.cs</Link>
     </Compile>
   </ItemGroup>
   <!-- Unix -->
@@ -285,11 +243,11 @@
     <Compile Include="$(CommonPath)\Interop\Unix\System.Native\Interop.MapTcpState.cs">
       <Link>Interop\Unix\System.Native\Interop.MapTcpState.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\Interop\Unix\Interop.Errors.cs">
-      <Link>Interop\Unix\Interop.Errors.cs</Link>
+    <Compile Include="$(CommonPath)\CoreLib\Interop\Unix\Interop.Errors.cs">
+      <Link>Interop\CoreLib\Unix\Interop.Errors.cs</Link>
     </Compile>
-    <Compile Include="$(CommonPath)\System\Threading\Tasks\TaskToApm.cs">
-      <Link>Common\System\Threading\Tasks\TaskToApm.cs</Link>
+    <Compile Include="$(CommonPath)\CoreLib\System\Threading\Tasks\TaskToApm.cs">
+      <Link>Common\CoreLib\System\Threading\Tasks\TaskToApm.cs</Link>
     </Compile>
     <Compile Include="$(CommonPath)\System\IO\RowConfigReader.cs">
       <Link>Common\System\IO\RowConfigReader.cs</Link>
@@ -375,19 +333,29 @@
     <Compile Include="System\Net\NetworkInformation\NetworkInterfacePal.UnknownUnix.cs" />
     <Compile Include="System\Net\NetworkInformation\NetworkAddressChange.UnknownUnix.cs" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetGroup)' == 'net463'">
-    <TargetingPackReference Include="mscorlib" />
-    <TargetingPackReference Include="System" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(TargetGroup)' == 'uap101'">
-    <ProjectReference Include="$(SourceDir)/mscorlib.WinRT-Facade/mscorlib.WinRT-Facade.csproj" />
-    <!-- ToDo: remove once we have new packages https://github.com/dotnet/corefx/issues/12838 -->
-    <ProjectReference Include="..\..\System.Security.Principal\ref\System.Security.Principal.csproj">
-      <UndefineProperties>TargetGroup;OSGroup</UndefineProperties>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup>
-    <None Include="project.json" />
+    <Reference Include="Microsoft.Win32.Primitives" />
+    <Reference Include="System.Collections" />
+    <Reference Include="System.Diagnostics.Debug" />
+    <Reference Include="System.Diagnostics.Tracing" />
+    <Reference Include="System.Net.Primitives" />
+    <Reference Include="System.Net.Sockets" />
+    <Reference Include="System.Resources.ResourceManager" />
+    <Reference Include="System.Runtime" />
+    <Reference Include="System.Runtime.Extensions" />
+    <Reference Include="System.Runtime.InteropServices" />
+    <Reference Include="System.Security.Claims" />
+    <Reference Include="System.Security.Principal.Windows" />
+    <Reference Include="System.Threading" />
+    <Reference Include="System.Threading.Overlapped" />
+    <Reference Include="System.Threading.ThreadPool" />
   </ItemGroup>
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), dir.targets))\dir.targets" />
+  <ItemGroup Condition="'$(TargetsUnix)' == 'true'">
+    <Reference Include="System.IO.FileSystem" />
+    <Reference Include="System.Linq" />
+    <Reference Include="System.Threading.Thread" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetsLinux)' == 'true'">
+    <Reference Include="System.Threading.Timer" />
+  </ItemGroup>
 </Project>

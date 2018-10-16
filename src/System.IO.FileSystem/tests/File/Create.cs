@@ -8,14 +8,10 @@ namespace System.IO.Tests
 {
     public class File_Create_str : FileSystemTest
     {
-        #region Utilities
-
         public virtual FileStream Create(string path)
         {
             return File.Create(path);
         }
-
-        #endregion
 
         #region UniversalTests
 
@@ -56,8 +52,8 @@ namespace System.IO.Tests
             }
         }
 
-        [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)]
+        [ConditionalFact(nameof(UsingNewNormalization))]
+        [PlatformSpecific(TestPlatforms.Windows)]  // Valid Windows path extended prefix
         public void ValidCreation_ExtendedSyntax()
         {
             DirectoryInfo testDir = Directory.CreateDirectory(IOInputs.ExtendedPrefix + GetTestFilePath());
@@ -71,11 +67,11 @@ namespace System.IO.Tests
             }
         }
 
-        [Fact]
-        [PlatformSpecific(TestPlatforms.Windows)]
+        [ConditionalFact(nameof(AreAllLongPathsAvailable))]
+        [PlatformSpecific(TestPlatforms.Windows)]  // Valid Windows path extended prefix, long path
         public void ValidCreation_LongPathExtendedSyntax()
         {
-            DirectoryInfo testDir = Directory.CreateDirectory(IOServices.GetPath(IOInputs.ExtendedPrefix + TestDirectory, characterCount: 500).FullPath);
+            DirectoryInfo testDir = Directory.CreateDirectory(IOServices.GetPath(IOInputs.ExtendedPrefix + TestDirectory, characterCount: 500));
             Assert.StartsWith(IOInputs.ExtendedPrefix, testDir.FullName);
             string testFile = Path.Combine(testDir.FullName, GetTestFileName());
             using (FileStream stream = Create(testFile))
@@ -150,16 +146,22 @@ namespace System.IO.Tests
         }
 
         [Fact]
-        public void LongPath()
+        public void LongPathSegment()
         {
             DirectoryInfo testDir = Directory.CreateDirectory(GetTestFilePath());
-            Assert.Throws<PathTooLongException>(() => Create(Path.Combine(testDir.FullName, new string('a', 300))));
 
-            //TODO #645: File creation does not yet have long path support on Unix or Windows
-            //using (Create(Path.Combine(testDir.FullName, new string('k', 257))))
-            //{
-            //    Assert.True(File.Exists(Path.Combine(testDir.FullName, new string('k', 257))));
-            //}
+            // Long path should throw PathTooLongException on Desktop and IOException
+            // elsewhere.
+            if (PlatformDetection.IsFullFramework)
+            {
+                Assert.Throws<PathTooLongException>(
+                    () => Create(Path.Combine(testDir.FullName, new string('a', 300))));
+            }
+            else
+            {
+                AssertExtensions.ThrowsAny<IOException, DirectoryNotFoundException, PathTooLongException>(
+                    () => Create(Path.Combine(testDir.FullName, new string('a', 300))));
+            }
         }
 
         #endregion
@@ -196,7 +198,8 @@ namespace System.IO.Tests
 
         [Fact]
         [PlatformSpecific(TestPlatforms.Windows)]
-        public void WindowsWildCharacterPath()
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
+        public void WindowsWildCharacterPath_Desktop()
         {
             DirectoryInfo testDir = Directory.CreateDirectory(GetTestFilePath());
             Assert.Throws<ArgumentException>(() => Create(Path.Combine(testDir.FullName, "dls;d", "442349-0", "v443094(*)(+*$#$*", new string(Path.DirectorySeparatorChar, 3))));
@@ -207,36 +210,115 @@ namespace System.IO.Tests
 
         [Fact]
         [PlatformSpecific(TestPlatforms.Windows)]
-        public void WindowsWhitespacePath()
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public void WindowsWildCharacterPath_Core()
         {
-            Assert.Throws<ArgumentException>(() => Create("         "));
-            Assert.Throws<ArgumentException>(() => Create(" "));
-            Assert.Throws<ArgumentException>(() => Create("\n"));
-            Assert.Throws<ArgumentException>(() => Create(">"));
-            Assert.Throws<ArgumentException>(() => Create("<"));
-            Assert.Throws<ArgumentException>(() => Create("\0"));
-            Assert.Throws<ArgumentException>(() => Create("\t"));
+            DirectoryInfo testDir = Directory.CreateDirectory(GetTestFilePath());
+            Assert.ThrowsAny<IOException>(() => Create(Path.Combine(testDir.FullName, "dls;d", "442349-0", "v443094(*)(+*$#$*", new string(Path.DirectorySeparatorChar, 3))));
+            Assert.ThrowsAny<IOException>(() => Create(Path.Combine(testDir.FullName, "*")));
+            Assert.ThrowsAny<IOException>(() => Create(Path.Combine(testDir.FullName, "Test*t")));
+            Assert.ThrowsAny<IOException>(() => Create(Path.Combine(testDir.FullName, "*Tes*t")));
+        }
+
+        [Theory,
+            InlineData("         "),
+            InlineData(""),
+            InlineData("\0"),
+            InlineData(" ")]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        public void WindowsEmptyPath(string path)
+        {
+            Assert.Throws<ArgumentException>(() => Create(path));
+        }
+
+        [Theory,
+            InlineData("\n"),
+            InlineData(">"),
+            InlineData("<"),
+            InlineData("\t")]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
+        public void WindowsInvalidPath_Desktop(string path)
+        {
+            Assert.Throws<ArgumentException>(() => Create(path));
+        }
+
+        [Theory,
+            InlineData("\n"),
+            InlineData(">"),
+            InlineData("<"),
+            InlineData("\t")]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public void WindowsInvalidPath_Core(string path)
+        {
+            Assert.ThrowsAny<IOException>(() => Create(Path.Combine(TestDirectory, path)));
         }
 
         [Fact]
         [PlatformSpecific(TestPlatforms.AnyUnix)]
-        public void UnixWhitespacePath()
+        public void CreateNullThrows_Unix()
+        {
+            Assert.Throws<ArgumentException>(() => Create("\0"));
+        }
+
+        [Theory,
+            InlineData("         "),
+            InlineData(" "),
+            InlineData("\n"),
+            InlineData(">"),
+            InlineData("<"),
+            InlineData("\t")]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]  // Valid file name with Whitespace on Unix
+        public void UnixWhitespacePath(string path)
         {
             DirectoryInfo testDir = Directory.CreateDirectory(GetTestFilePath());
-            Assert.Throws<ArgumentException>(() => Create("\0"));
-            using (Create(Path.Combine(testDir.FullName, "          ")))
-            using (Create(Path.Combine(testDir.FullName, " ")))
-            using (Create(Path.Combine(testDir.FullName, "\n")))
-            using (Create(Path.Combine(testDir.FullName, ">")))
-            using (Create(Path.Combine(testDir.FullName, "<")))
-            using (Create(Path.Combine(testDir.FullName, "\t")))
+            using (Create(Path.Combine(testDir.FullName, path)))
             {
-                Assert.True(File.Exists(Path.Combine(testDir.FullName, "          ")));
-                Assert.True(File.Exists(Path.Combine(testDir.FullName, " ")));
-                Assert.True(File.Exists(Path.Combine(testDir.FullName, "\n")));
-                Assert.True(File.Exists(Path.Combine(testDir.FullName, ">")));
-                Assert.True(File.Exists(Path.Combine(testDir.FullName, "<")));
-                Assert.True(File.Exists(Path.Combine(testDir.FullName, "\t")));
+                Assert.True(File.Exists(Path.Combine(testDir.FullName, path)));
+            }
+        }
+
+        [Theory,
+            InlineData(":bar"),
+            InlineData(":bar:$DATA"),
+            InlineData("::$DATA")]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public void WindowsAlternateDataStream(string streamName)
+        {
+            DirectoryInfo testDirectory = Directory.CreateDirectory(GetTestFilePath());
+            streamName = Path.Combine(testDirectory.FullName, GetTestFileName()) + streamName;
+            using (Create(streamName))
+            {
+                Assert.True(File.Exists(streamName));
+            }
+        }
+
+        [Theory,
+            InlineData(":bar"),
+            InlineData(":bar:$DATA")]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public void WindowsAlternateDataStream_OnExisting(string streamName)
+        {
+            DirectoryInfo testDirectory = Directory.CreateDirectory(GetTestFilePath());
+
+            // On closed file
+            string fileName = Path.Combine(testDirectory.FullName, GetTestFileName());
+            Create(fileName).Dispose();
+            streamName = fileName + streamName;
+            using (Create(streamName))
+            {
+                Assert.True(File.Exists(streamName));
+            }
+
+            // On open file
+            fileName = Path.Combine(testDirectory.FullName, GetTestFileName());
+            using (Create(fileName))
+            using (Create(streamName))
+            {
+                Assert.True(File.Exists(streamName));
             }
         }
 

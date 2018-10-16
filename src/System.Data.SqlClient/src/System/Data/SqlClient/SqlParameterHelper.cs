@@ -175,7 +175,7 @@ namespace System.Data.SqlClient
 
         private byte ValuePrecisionCore(object value)
         {
-            if (value is Decimal)
+            if (value is decimal)
             {
                 return ((System.Data.SqlTypes.SqlDecimal)(Decimal)value).Precision;
             }
@@ -184,9 +184,9 @@ namespace System.Data.SqlClient
 
         private byte ValueScaleCore(object value)
         {
-            if (value is Decimal)
+            if (value is decimal)
             {
-                return (byte)((Decimal.GetBits((Decimal)value)[3] & 0x00ff0000) >> 0x10);
+                return (byte)((decimal.GetBits((decimal)value)[3] & 0x00ff0000) >> 0x10);
             }
             return 0;
         }
@@ -216,6 +216,24 @@ namespace System.Data.SqlClient
                 }
             }
             return 0;
+        }
+
+        internal void CopyTo(SqlParameter destination)
+        {
+            ADP.CheckArgumentNull(destination, nameof(destination));
+
+            // NOTE: _parent is not cloned
+            destination._value = _value;
+            destination._direction = _direction;
+            destination._size = _size;
+            destination._offset = _offset;
+            destination._sourceColumn = _sourceColumn;
+            destination._sourceVersion = _sourceVersion;
+            destination._sourceColumnNullMapping = _sourceColumnNullMapping;
+            destination._isNullable = _isNullable;
+            destination._parameterName = _parameterName;
+            destination._isNull = _isNull;
+            
         }
     }
 }

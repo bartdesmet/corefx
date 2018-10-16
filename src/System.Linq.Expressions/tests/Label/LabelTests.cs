@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -27,8 +25,8 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void NullTarget()
         {
-            Assert.Throws<ArgumentNullException>("target", () => Expression.Label(default(LabelTarget)));
-            Assert.Throws<ArgumentNullException>("target", () => Expression.Label(null, Expression.Default(typeof(int))));
+            AssertExtensions.Throws<ArgumentNullException>("target", () => Expression.Label(default(LabelTarget)));
+            AssertExtensions.Throws<ArgumentNullException>("target", () => Expression.Label(null, Expression.Default(typeof(int))));
         }
 
         [Fact]
@@ -41,13 +39,13 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void NullDefaultValueNotAllowedWithTypedTarget()
         {
-            Assert.Throws<ArgumentException>("target", () => Expression.Label(Expression.Label(typeof(int)), null));
+            AssertExtensions.Throws<ArgumentException>("target", () => Expression.Label(Expression.Label(typeof(int)), null));
         }
 
         [Fact]
         public void DefaultMustMatchLabelType()
         {
-            Assert.Throws<ArgumentException>(null, () => Expression.Label(Expression.Label(typeof(int)), Expression.Constant("hello")));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Label(Expression.Label(typeof(int)), Expression.Constant("hello")));
         }
 
         [Fact]
@@ -59,14 +57,14 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void AssignableOnlyReferenceAssignableNotImplicitConversion()
         {
-            Assert.Throws<ArgumentException>(null, () => Expression.Label(Expression.Label(typeof(long)), Expression.Constant(0)));
+            AssertExtensions.Throws<ArgumentException>(null, () => Expression.Label(Expression.Label(typeof(long)), Expression.Constant(0)));
         }
 
         [Fact]
         public void AssignableDefaultByQuotingAllowed()
         {
-            var lambda = Expression.Lambda<Func<int>>(Expression.Constant(0));
-            var label = Expression.Label(Expression.Label(typeof(Expression<Func<int>>)), lambda);
+            Expression<Func<int>> lambda = Expression.Lambda<Func<int>>(Expression.Constant(0));
+            LabelExpression label = Expression.Label(Expression.Label(typeof(Expression<Func<int>>)), lambda);
             Assert.Equal(typeof(Expression<Func<int>>), label.Type);
             Assert.Equal(ExpressionType.Quote, label.DefaultValue.NodeType);
             Assert.Same(lambda, ((UnaryExpression)label.DefaultValue).Operand);

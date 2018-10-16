@@ -16,15 +16,9 @@ namespace System.Security.Cryptography
     {
         protected MD5() { }
 
-        public static new MD5 Create()
-        {
-            return new Implementation();
-        }
+        public static new MD5 Create() => new Implementation();
 
-        static public new MD5 Create(String algName)
-        {
-            return (MD5)CryptoConfig.CreateFromName(algName);
-        }
+        public static new MD5 Create(string algName) => (MD5)CryptoConfig.CreateFromName(algName);
 
         private sealed class Implementation : MD5
         {
@@ -33,31 +27,25 @@ namespace System.Security.Cryptography
             public Implementation()
             {
                 _hashProvider = HashProviderDispenser.CreateHashProvider(HashAlgorithmNames.MD5);
+                HashSizeValue = _hashProvider.HashSizeInBytes * 8;
             }
 
-            public sealed override int HashSize
-            {
-                get
-                {
-                    return _hashProvider.HashSizeInBytes * 8;
-                }
-            }
-
-            protected sealed override void HashCore(byte[] array, int ibStart, int cbSize)
-            {
+            protected sealed override void HashCore(byte[] array, int ibStart, int cbSize) =>
                 _hashProvider.AppendHashData(array, ibStart, cbSize);
-            }
 
-            protected sealed override byte[] HashFinal()
-            {
-                return _hashProvider.FinalizeHashAndReset();
-            }
+            protected sealed override void HashCore(ReadOnlySpan<byte> source) =>
+                _hashProvider.AppendHashData(source);
+
+            protected sealed override byte[] HashFinal() =>
+                _hashProvider.FinalizeHashAndReset();
+
+            protected sealed override bool TryHashFinal(Span<byte> destination, out int bytesWritten) =>
+                _hashProvider.TryFinalizeHashAndReset(destination, out bytesWritten);
 
             public sealed override void Initialize()
             {
                 // Nothing to do here. We expect HashAlgorithm to invoke HashFinal() and Initialize() as a pair. This reflects the 
                 // reality that our native crypto providers (e.g. CNG) expose hash finalization and object reinitialization as an atomic operation.
-                return;
             }
 
             protected sealed override void Dispose(bool disposing)

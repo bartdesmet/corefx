@@ -37,7 +37,7 @@ namespace System.Linq.Tests
             IEnumerable<int> first = null;
             IEnumerable<int> second = new int[] { 2, 5, 9 };
             
-            Assert.Throws<ArgumentNullException>("first", () => first.Zip<int, int, int>(second, (x, y) => x + y));
+            AssertExtensions.Throws<ArgumentNullException>("first", () => first.Zip<int, int, int>(second, (x, y) => x + y));
         }
 
         [Fact]
@@ -46,7 +46,7 @@ namespace System.Linq.Tests
             IEnumerable<int> first = new int[] { 1, 2, 3 };
             IEnumerable<int> second = null;
             
-            Assert.Throws<ArgumentNullException>("second", () => first.Zip<int, int, int>(second, (x, y) => x + y));
+            AssertExtensions.Throws<ArgumentNullException>("second", () => first.Zip<int, int, int>(second, (x, y) => x + y));
         }
         
         [Fact]
@@ -56,7 +56,7 @@ namespace System.Linq.Tests
             IEnumerable<int> second = new int[] { 2, 4, 6 };
             Func<int, int, int> func = null;
             
-            Assert.Throws<ArgumentNullException>("resultSelector", () => first.Zip(second, func));
+            AssertExtensions.Throws<ArgumentNullException>("resultSelector", () => first.Zip(second, func));
         }
 
         [Fact]
@@ -378,6 +378,17 @@ namespace System.Linq.Tests
             // Don't insist on this behaviour, but check it's correct if it happens
             var en = iterator as IEnumerator<int>;
             Assert.False(en != null && en.MoveNext());
+        }
+
+        [Fact]
+        public void RunOnce()
+        {
+            IEnumerable<int?> first = new[] { 1, (int?)null, 3 };
+            IEnumerable<int> second = new[] { 2, 4, 6, 8 };
+            Func<int?, int, int?> func = (x, y) => x + y;
+            IEnumerable<int?> expected = new int?[] { 3, null, 9 };
+
+            Assert.Equal(expected, first.RunOnce().Zip(second.RunOnce(), func));
         }
     }
 }

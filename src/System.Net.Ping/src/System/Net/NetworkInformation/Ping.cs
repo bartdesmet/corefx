@@ -41,6 +41,42 @@ namespace System.Net.NetworkInformation
             }
         }
 
+        private static void CheckArgs(int timeout, byte[] buffer, PingOptions options)
+        {
+            if (buffer == null)
+            {
+                throw new ArgumentNullException(nameof(buffer));
+            }
+
+            if (buffer.Length > MaxBufferSize)
+            {
+                throw new ArgumentException(SR.net_invalidPingBufferSize, nameof(buffer));
+            }
+
+            if (timeout < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(timeout));
+            }
+        }
+
+        private void CheckArgs(IPAddress address, int timeout, byte[] buffer, PingOptions options)
+        {
+            CheckArgs(timeout, buffer, options);
+
+            if (address == null)
+            {
+                throw new ArgumentNullException(nameof(address));
+            }
+
+            // Check if address family is installed.
+            TestIsIpSupported(address);
+
+            if (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any))
+            {
+                throw new ArgumentException(SR.net_invalid_ip_addr, nameof(address));
+            }
+        }
+        
         private void CheckStart()
         {
             if (_disposeRequested)
@@ -70,6 +106,17 @@ namespace System.Net.NetworkInformation
                 Debug.Assert(currentStatus == Disposed, $"Expected currentStatus == Disposed, got {currentStatus}");
                 throw new ObjectDisposedException(GetType().FullName);
             }
+        }
+
+        private static IPAddress GetAddressSnapshot(IPAddress address)
+        {
+            IPAddress addressSnapshot = address.AddressFamily == AddressFamily.InterNetwork ?
+#pragma warning disable CS0618 // IPAddress.Address is obsoleted, but it's the most efficient way to get the Int32 IPv4 address
+                new IPAddress(address.Address) :
+#pragma warning restore CS0618
+                new IPAddress(address.GetAddressBytes(), address.ScopeId);
+
+            return addressSnapshot;
         }
 
         private void Finish()
@@ -153,14 +200,42 @@ namespace System.Net.NetworkInformation
 
         public PingReply Send(string hostNameOrAddress, int timeout, byte[] buffer, PingOptions options)
         {
-            return SendPingAsync(hostNameOrAddress, timeout, buffer, options).GetAwaiter().GetResult();
+            if (string.IsNullOrEmpty(hostNameOrAddress))
+            {
+                throw new ArgumentNullException(nameof(hostNameOrAddress));
+            }
+
+            if (IPAddress.TryParse(hostNameOrAddress, out IPAddress address))
+            {
+                return Send(address, timeout, buffer, options);
+            }
+
+            CheckArgs(timeout, buffer, options);
+            CheckStart();
+
+            return GetAddressAndSend(hostNameOrAddress, timeout, buffer, options);
         }
 
         public PingReply Send(IPAddress address, int timeout, byte[] buffer, PingOptions options)
         {
-            return SendPingAsync(address, timeout, buffer, options).GetAwaiter().GetResult();
-        }
+            CheckArgs(address, timeout, buffer, options);
 
+            // Need to snapshot the address here, so we're sure that it's not changed between now
+            // and the operation, and to be sure that IPAddress.ToString() is called and not some override.
+            IPAddress addressSnapshot = GetAddressSnapshot(address);
+
+            CheckStart();
+            try
+            {
+                return SendPingCore(addressSnapshot, buffer, timeout, options);
+            }
+            catch (Exception e)
+            {
+                Finish();
+                throw new PingException(SR.net_ping, e);
+            }
+        }
+        
         public void SendAsync(string hostNameOrAddress, object userToken)
         {
             SendAsync(hostNameOrAddress, DefaultTimeout, DefaultSendBuffer, userToken);
@@ -206,7 +281,7 @@ namespace System.Net.NetworkInformation
             pingTask.ContinueWith((t, state) =>
             {
                 var asyncOp = (AsyncOperation)state;
-                var e = new PingCompletedEventArgs(t.Status == TaskStatus.RanToCompletion ? t.Result : null, t.Exception, t.IsCanceled, asyncOp.UserSuppliedState);
+                var e = new PingCompletedEventArgs(t.IsCompletedSuccessfully ? t.Result : null, t.Exception, t.IsCanceled, asyncOp.UserSuppliedState);
                 SendOrPostCallback callback = _onPingCompletedDelegate ?? (_onPingCompletedDelegate = new SendOrPostCallback(o => { OnPingCompleted((PingCompletedEventArgs)o); }));
                 asyncOp.PostOperationCompleted(callback, e);
             }, AsyncOperationManager.CreateOperation(userToken), CancellationToken.None, TaskContinuationOptions.DenyChildAttach, TaskScheduler.Default);
@@ -244,39 +319,11 @@ namespace System.Net.NetworkInformation
 
         public Task<PingReply> SendPingAsync(IPAddress address, int timeout, byte[] buffer, PingOptions options)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (buffer.Length > MaxBufferSize)
-            {
-                throw new ArgumentException(SR.net_invalidPingBufferSize, nameof(buffer));
-            }
-
-            if (timeout < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(timeout));
-            }
-
-            if (address == null)
-            {
-                throw new ArgumentNullException(nameof(address));
-            }
-
-            // Check if address family is installed.
-            TestIsIpSupported(address);
-
-            if (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any))
-            {
-                throw new ArgumentException(SR.net_invalid_ip_addr, nameof(address));
-            }
+            CheckArgs(address, timeout, buffer, options);
 
             // Need to snapshot the address here, so we're sure that it's not changed between now
             // and the operation, and to be sure that IPAddress.ToString() is called and not some override.
-            IPAddress addressSnapshot = (address.AddressFamily == AddressFamily.InterNetwork) ?
-                new IPAddress(address.GetAddressBytes()) :
-                new IPAddress(address.GetAddressBytes(), address.ScopeId);
+            IPAddress addressSnapshot = GetAddressSnapshot(address);
 
             CheckStart();
             try
@@ -297,28 +344,14 @@ namespace System.Net.NetworkInformation
                 throw new ArgumentNullException(nameof(hostNameOrAddress));
             }
 
-            IPAddress address;
-            if (IPAddress.TryParse(hostNameOrAddress, out address))
+            if (IPAddress.TryParse(hostNameOrAddress, out IPAddress address))
             {
                 return SendPingAsync(address, timeout, buffer, options);
             }
 
-            if (buffer == null)
-            {
-                throw new ArgumentNullException(nameof(buffer));
-            }
-
-            if (buffer.Length > MaxBufferSize)
-            {
-                throw new ArgumentException(SR.net_invalidPingBufferSize, nameof(buffer));
-            }
-
-            if (timeout < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(timeout));
-            }
-
+            CheckArgs(timeout, buffer, options);
             CheckStart();
+
             return GetAddressAndSendAsync(hostNameOrAddress, timeout, buffer, options);
         }
 
@@ -337,6 +370,20 @@ namespace System.Net.NetworkInformation
             // As in the .NET Framework, synchronously wait for the in-flight operation to complete.
             // If there isn't one in flight, this event will already be set.
             _lockObject.Wait();
+        }
+
+        private PingReply GetAddressAndSend(string hostNameOrAddress, int timeout, byte[] buffer, PingOptions options)
+        {
+            try
+            {
+                IPAddress[] addresses = Dns.GetHostAddresses(hostNameOrAddress);
+                return SendPingCore(addresses[0], buffer, timeout, options);
+            }
+            catch (Exception e)
+            {
+                Finish();
+                throw new PingException(SR.net_ping, e);
+            }
         }
 
         private async Task<PingReply> GetAddressAndSendAsync(string hostNameOrAddress, int timeout, byte[] buffer, PingOptions options)

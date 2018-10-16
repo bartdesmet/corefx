@@ -12,6 +12,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace System.Collections.Generic
 {
@@ -20,6 +21,7 @@ namespace System.Collections.Generic
     [DebuggerTypeProxy(typeof(QueueDebugView<>))]
     [DebuggerDisplay("Count = {Count}")]
     [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class Queue<T> : IEnumerable<T>,
         System.Collections.ICollection,
         IReadOnlyCollection<T>
@@ -89,12 +91,17 @@ namespace System.Collections.Generic
         {
             if (_size != 0)
             {
-                if (_head < _tail)
-                    Array.Clear(_array, _head, _size);
-                else
+                if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
                 {
-                    Array.Clear(_array, _head, _array.Length - _head);
-                    Array.Clear(_array, 0, _tail);
+                    if (_head < _tail)
+                    {
+                        Array.Clear(_array, _head, _size);
+                    }
+                    else
+                    {
+                        Array.Clear(_array, _head, _array.Length - _head);
+                        Array.Clear(_array, 0, _tail);
+                    }
                 }
 
                 _size = 0;
@@ -227,13 +234,19 @@ namespace System.Collections.Generic
         // InvalidOperationException.
         public T Dequeue()
         {
+            int head = _head;
+            T[] array = _array;
+            
             if (_size == 0)
             {
                 ThrowForEmptyQueue();
             }
 
-            T removed = _array[_head];
-            _array[_head] = default(T);
+            T removed = array[head];
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            {
+                array[head] = default;
+            }
             MoveNext(ref _head);
             _size--;
             _version++;
@@ -242,14 +255,20 @@ namespace System.Collections.Generic
 
         public bool TryDequeue(out T result)
         {
+            int head = _head;
+            T[] array = _array;
+
             if (_size == 0)
             {
-            	result = default(T);
+            	result = default;
             	return false;
             }
 
-            result = _array[_head];
-            _array[_head] = default(T);
+            result = array[head];
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            {
+                array[head] = default;
+            }
             MoveNext(ref _head);
             _size--;
             _version++;
@@ -354,10 +373,15 @@ namespace System.Collections.Generic
         // Increments the index wrapping it if necessary.
         private void MoveNext(ref int index)
         {
-            // It is tempting to use the remainder operator here but it is actually much slower 
-            // than a simple comparison and a rarely taken branch.   
+            // It is tempting to use the remainder operator here but it is actually much slower
+            // than a simple comparison and a rarely taken branch.
+            // JIT produces better code than with ternary operator ?:
             int tmp = index + 1;
-            index = (tmp == _array.Length) ? 0 : tmp;
+            if (tmp == _array.Length)
+            {
+                tmp = 0;
+            }
+            index = tmp;
         }
 
         private void ThrowForEmptyQueue()
@@ -379,7 +403,6 @@ namespace System.Collections.Generic
         // internal version number of the list to ensure that no modifications are
         // made to the list while an enumeration is in progress.
         [SuppressMessage("Microsoft.Performance", "CA1815:OverrideEqualsAndOperatorEqualsOnValueTypes", Justification = "not an expected scenario")]
-        [Serializable]
         public struct Enumerator : IEnumerator<T>,
             System.Collections.IEnumerator
         {

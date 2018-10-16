@@ -14,6 +14,9 @@ namespace System.Globalization.Tests
         [Fact]
         public void CurrentCulture()
         {
+            if (PlatformDetection.IsNetNative && !PlatformDetection.IsInAppContainer) // Tide us over until .Net Native ILC tests run are run inside an appcontainer.
+                return;
+
             RemoteInvoke(() =>
             {
                 CultureInfo newCulture = new CultureInfo(CultureInfo.CurrentCulture.Name.Equals("ja-JP", StringComparison.OrdinalIgnoreCase) ? "ar-SA" : "ja-JP");
@@ -34,12 +37,15 @@ namespace System.Globalization.Tests
         [Fact]
         public void CurrentCulture_Set_Null_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>("value", () => CultureInfo.CurrentCulture = null);
+            AssertExtensions.Throws<ArgumentNullException>("value", () => CultureInfo.CurrentCulture = null);
         }
 
         [Fact]
         public void CurrentUICulture()
         {
+            if (PlatformDetection.IsNetNative && !PlatformDetection.IsInAppContainer) // Tide us over until .Net Native ILC tests run are run inside an appcontainer.
+                return;
+
             RemoteInvoke(() =>
             {
                 CultureInfo newUICulture = new CultureInfo(CultureInfo.CurrentUICulture.Name.Equals("ja-JP", StringComparison.OrdinalIgnoreCase) ? "ar-SA" : "ja-JP");
@@ -57,6 +63,7 @@ namespace System.Globalization.Tests
         }
 
         [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Thread cultures is not honored in UWP.")]
         public void DefaultThreadCurrentCulture()
         {
             RemoteInvoke(() =>
@@ -76,6 +83,7 @@ namespace System.Globalization.Tests
         }
 
         [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Thread cultures is not honored in UWP.")]
         public void DefaultThreadCurrentUICulture()
         {
             RemoteInvoke(() =>
@@ -97,10 +105,10 @@ namespace System.Globalization.Tests
         [Fact]
         public void CurrentUICulture_Set_Null_ThrowsArgumentNullException()
         {
-            Assert.Throws<ArgumentNullException>("value", () => CultureInfo.CurrentUICulture = null);
+            AssertExtensions.Throws<ArgumentNullException>("value", () => CultureInfo.CurrentUICulture = null);
         }
 
-        [PlatformSpecific(TestPlatforms.AnyUnix)]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]  // Windows locale support doesn't rely on LANG variable
         [Theory]
         [InlineData("en-US.UTF-8", "en-US")]
         [InlineData("en-US", "en-US")]
@@ -128,7 +136,7 @@ namespace System.Globalization.Tests
             }, expectedCultureName, new RemoteInvokeOptions { StartInfo = psi }).Dispose();
         }
 
-        [PlatformSpecific(TestPlatforms.AnyUnix)]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]  // When LANG is empty or unset, should default to the invariant culture on Unix.
         [Theory]
         [InlineData("")]
         [InlineData(null)]

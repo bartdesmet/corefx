@@ -2,13 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Diagnostics.Contracts;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace System.IO
 {
     // This class implements a text reader that reads from a string.
-    [Serializable]
     public class StringReader : TextReader
     {
         private string _s;
@@ -44,7 +43,6 @@ namespace System.IO
         // changed by this operation. The returned value is -1 if no further
         // characters are available.
         //
-        [Pure]
         public override int Peek()
         {
             if (_s == null)
@@ -117,6 +115,37 @@ namespace System.IO
             }
             return n;
         }
+
+        public override int Read(Span<char> buffer)
+        {
+            if (GetType() != typeof(StringReader))
+            {
+                // This overload was added after the Read(char[], ...) overload, and so in case
+                // a derived type may have overridden it, we need to delegate to it, which the base does.
+                return base.Read(buffer);
+            }
+
+            if (_s == null)
+            {
+                throw new ObjectDisposedException(null, SR.ObjectDisposed_ReaderClosed);
+            }
+
+            int n = _length - _pos;
+            if (n > 0)
+            {
+                if (n > buffer.Length)
+                {
+                    n = buffer.Length;
+                }
+
+                _s.AsSpan(_pos, n).CopyTo(buffer);
+                _pos += n;
+            }
+
+            return n;
+        }
+
+        public override int ReadBlock(Span<char> buffer) => Read(buffer);
 
         public override string ReadToEnd()
         {
@@ -210,6 +239,10 @@ namespace System.IO
             return Task.FromResult(ReadBlock(buffer, index, count));
         }
 
+        public override ValueTask<int> ReadBlockAsync(Memory<char> buffer, CancellationToken cancellationToken = default) =>
+            cancellationToken.IsCancellationRequested ? new ValueTask<int>(Task.FromCanceled<int>(cancellationToken)) :
+            new ValueTask<int>(ReadBlock(buffer.Span));
+
         public override Task<int> ReadAsync(char[] buffer, int index, int count)
         {
             if (buffer == null)
@@ -227,6 +260,10 @@ namespace System.IO
 
             return Task.FromResult(Read(buffer, index, count));
         }
+
+        public override ValueTask<int> ReadAsync(Memory<char> buffer, CancellationToken cancellationToken = default) =>
+            cancellationToken.IsCancellationRequested ? new ValueTask<int>(Task.FromCanceled<int>(cancellationToken)) :
+            new ValueTask<int>(Read(buffer.Span));
         #endregion
     }
 }

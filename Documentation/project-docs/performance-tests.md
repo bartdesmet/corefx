@@ -1,47 +1,35 @@
-﻿Performance Tests
+Performance Tests
 ======================
 
-This document contains instructions for building, running, and adding Performance tests. 
+This document contains instructions for building, running, and adding Performance tests.
 
-Requirements
---------------------
-### Windows
-To run performance tests on Windows, .NET portable v5.0 is required. This library is included in [the Visual Studio Community 2015 download](https://www.visualstudio.com/products/visual-studio-community-vs). To get the correct packages during installation, follow these steps after opening the installer:
-1. Select "Custom Installation" if no installation is present, or "Modify" otherwise
-2. Check the "Universal Windows App Development Tools" box under the "Windows and Web Development" menu
-3. Install
-### Linux
-Performance tests on Linux require all of the same steps as they do for regular xunit tests - see the linux instructions [here](https://github.com/dotnet/corefx/blob/master/Documentation/building/unix-instructions.md). Once you can have a directory on your Linux machine with a working corerun and xunit.console.netcore.exe (as well as the test dll containing your perf tests!), you only need to run the following command:
-
-`dnu commands install Microsoft.DotNet.xunit.performance.runner.dnx 1.0.0-alpha-build0021 -f https://dotnet.myget.org/F/dotnet-buildtools/api/v3/index.json`
-
-Be careful that your mscorlib, libcoreclr, and test dlls were compiled using the "/p:Configuration=Release" property. Otherwise you may get skewed results.
-
-Running the tests
+Building and Running Tests
 -----------
-### Windows
-Performance test files (if present) are stored within a library's ```tests/Performance``` directory and contain test methods that are all marked with a perf-specific *Benchmark* attribute. The performance tests will only be run if the ```performance``` property is set to ```true```.
+Performance test files (if present) are stored within a library's ```tests/Performance``` directory and contain test methods that are all marked with a perf-specific *Benchmark* attribute.
 
-To build and run the tests using msbuild for a project, run ```msbuild /t:BuildAndTest /p:Performance=true /p:ConfigurationGroup=Release /p:OSGroup=Windows_NT``` from the tests directory. If the v5.0 assemblies aren't installed on your system, an error will be raised and no tests will be run.
+**Step # 1:** Prior to running performance tests, a full build from the repo root must be completed: ```build -release```
 
-Note: Because build.cmd runs tests concurrently, it's not recommended that you execute the perf tests using it.
+**Step # 2:** Change directory to the performance tests directory: ```cd path/to/library/tests/Performance```
 
-results will be in: corefx/bin/tests/Windows_NT.AnyCPU.Release/TESTNAME/netcoreapp1.0
-### Linux
-From your tests directory, run:
-```
-xunit.performance System.Collections.Tests.dll -trait Benchmark=true -verbose -runner ./xunit.console.netcore.exe -runnerhost ./corerun -runid System.Collections.Tests.dll-Linux -outdir results
-```
+**Step # 3:** Build and run the tests:
+ - Windows ```dotnet msbuild /t:BuildAndTest /p:ConfigurationGroup=Release```
+ - Linux: ```dotnet msbuild /t:BuildAndTest /p:ConfigurationGroup=Release```
 
-This will run the perf tests for System.Collections.Tests.dll and output the results in results/System.Collections.Tests.dll-Linux.xml and results/System.Collections.Tests.dll-Linux.csv
+**Note: Because test build runs tests concurrently, do not use it for executing performance tests. If you still want to run them concurrently you need to pass the flag `/p:Performance=true` to it: `build -test -release /p:Performance=true`.**
 
-Adding new Performance tests
+The results files will be dropped in corefx/bin/tests/FLAVOR/TESTLIBRARY/TARGETFRAMEWORK.  The console output will also specify the location of these files.
+
+**Getting memory usage**
+
+To see memory usage as well as time, add the following property to the command lines above: `/p:CollectFlags=stopwatch+gcapi`.
+
+Adding New Performance Tests
 -----------
-Performance tests for CoreFX are built on top of xunit and [the Microsoft xunit-performance runner](https://github.com/Microsoft/xunit-performance/). 
+Performance tests for CoreFX are built on top of xunit and [the Microsoft xunit-performance framework](https://github.com/Microsoft/xunit-performance/).
 
-For the time being, perf tests should reside within their own "Performance" folder within the tests directory of a library (e.g. [corefx/src/System.IO.FileSystem/tests/Performance](https://github.com/dotnet/corefx/tree/master/src/System.IO.FileSystem/tests/Performance) contains perf tests for FileSystem).
+Performance tests should reside within their own "Performance" folder within the tests directory of a library (e.g. [corefx/src/System.IO.FileSystem/tests/Performance](https://github.com/dotnet/corefx/tree/master/src/System.IO.FileSystem/tests/Performance) contains perf tests for FileSystem).
 
-Start by adding the following lines to the tests csproj:
+It's easiest to copy and modify an existing example like the one above. Notice that you'll need these lines in the tests csproj:
 ```
   <ItemGroup>
     <!-- Performance Tests -->
@@ -52,21 +40,17 @@ Start by adding the following lines to the tests csproj:
     </Compile>
   </ItemGroup>
   <!-- Optimizations to configure Xunit for performance -->
-  <ItemGroup>
+  <PropertyGroup>
     <IncludePerformanceTests>true</IncludePerformanceTests>
-  </ItemGroup>
+  </PropertyGroup>
 ```
 (Replace Dictionary/List with whatever class you’re testing.)
 
-Next, the project.json for the tests directory also needs to import the xunit libraries:
+Once that’s all done, you can actually add tests to the file.
 
-```
-    "Microsoft.DotNet.xunit.performance": "1.0.0-*",
-    "xunit": "2.1.0",  
-    "xunit.netcore.extensions": "1.0.0-prerelease-*"  
-```
-Once that’s all done, you can actually add tests to the file. The basic structure of a perf test file with file name Perf.Dictionary.cs should be like so:
-```
+Writing Test Cases
+-----------
+```C#
 using Xunit;
 using Microsoft.Xunit.Performance;
 
@@ -74,18 +58,40 @@ namespace System.Collections.Tests
 {
     public class Perf_Dictionary
     {
-        [Benchmark]
+        private volatile Dictionary<int, string> dict;
+
+        [Benchmark(InnerIterationCount = 2000)]
         public void ctor()
         {
             foreach (var iteration in Benchmark.Iterations)
                 using (iteration.StartMeasurement())
-                    for (int i = 0; i < 20000; i++)
+                    for (int i = 0; i < Benchmark.InnerIterationCount; i++)
                     {
-                        new Dictionary<int, string>();
+                        dict = new Dictionary<int, string>();
                     }
         }
     }
 }
 ```
-The perf-test runner handles a lot of the specifics of the testing for you like iteration control. You won't need to add any Asserts or anything generally used in functional testing to get perf measurements, just make sure the thing within the “using” is big enough to avoid timer resolution errors.
 
+The above benchmark will test the performance of the Dictionary<int, string> constructor. Each iteration of the benchmark will call the constructor 2000 times (`InnerIterationCount`).
+
+Test cases should adhere to the following guidelines, within reason:
+
+* Individual test cases should be of the "microbenchmark" variety. They should test a single function, in as isolated an environment as possible.
+* The "real work" must be done inside of the `using (iteration.StartMeasurement())` block. All extra work (setup, cleanup) should be done outside of this block, so as to not pollute the data being collected.
+* Individual iterations of a test case should take from 100 milliseconds to 1 second. This is everything inside of the `using (iteration.StartMeasurement())` block.
+* Test cases may need to use an "inner iteration" concept in order for individual invocations of the "outer iteration" to last from 100 ms to 1s. The example above shows this.
+* Some functions are prone to being entirely optimized out from test cases. For example, if the results of `Vector3.Add()` are not stored anywhere, then there are no observable side-effects, and the entire operation can be optimized out by the JIT. For operations which are susceptible to this, care must be taken to ensure that the operations are not entirely skipped. Try the following:
+  * Pass intermediate values to a volatile static field. This is done in the example code above.
+  * If the value is a struct, compute a value dependent on the structure, and store that in a volatile static field.
+* There are two main ways to detect when a test case is being "optimized out":
+  * Look at the disassembly of the function (with the Visual Studio disassembler, for example).
+  * Observe unusual changes in the duration metric. If your test suddenly takes 1% of its previous time, odds are something has gone wrong.
+* Before using intrinsic data types (int, string, etc) to represent value and reference types in your test, consider if the code under test is optimized for those types versus normal classes and structs.
+  * Also consider interfaces. For example, methods on ```List<T>``` using equality will be much faster on Ts that implement  ```IEquatable<T>```.
+
+Avoid the following performance test test anti-patterns:
+* Tests for multiple methods which all end up calling the same final overload. This just adds noise and extra duplicate data to sift through.
+* Having too many test cases which only differ by "input data". For example, testing the same operation on a collection with size 1, 10, 100, 1000, 10000, etc. This is a common pitfall when using `[Theory]` and `[InlineData]`. Instead, focus on the key scenarios and minimize the numbers of test cases. This results in less noise, less data to sift through, and less test maintenance cost.
+* Performing more than a single operation in the "core test loop". There are times when this is necessary, but they are few and far between. Take extra care if you notice that your test case is doing too many things, and try to focus on creating a small, isolated microbenchmark.

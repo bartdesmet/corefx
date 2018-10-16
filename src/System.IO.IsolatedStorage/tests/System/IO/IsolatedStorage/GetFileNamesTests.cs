@@ -8,9 +8,11 @@ using Xunit;
 
 namespace System.IO.IsolatedStorage
 {
+    [ActiveIssue(18940, TargetFrameworkMonikers.UapAot)]
     public class GetFileNamesTests : IsoStorageTest
     {
         [Fact]
+        [ActiveIssue("dotnet/corefx #18268", TargetFrameworkMonikers.NetFramework)]
         public void GetFileNames_ThrowsArgumentNull()
         {
             using (var isf = IsolatedStorageFile.GetUserStoreForApplication())
@@ -31,17 +33,17 @@ namespace System.IO.IsolatedStorage
         }
 
         [Fact]
-        public void GetFileNames_ThrowsIsolatedStorageException()
+        public void GetFileNames_Deleted_ThrowsInvalidOperationException()
         {
             using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
             {
                 isf.Remove();
-                Assert.Throws<IsolatedStorageException>(() => isf.GetFileNames("foo"));
+                Assert.Throws<InvalidOperationException>(() => isf.GetFileNames("foo"));
             }
         }
 
         [Fact]
-        public void GetFileNames_ThrowsInvalidOperationException()
+        public void GetFileNames_Closed_ThrowsInvalidOperationException()
         {
             using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
             {
@@ -51,15 +53,29 @@ namespace System.IO.IsolatedStorage
         }
 
         [Fact]
-        public void GetFileNames_RaisesInvalidPath()
+        [ActiveIssue(25428, TestPlatforms.AnyUnix)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public void GetFileNames_RaisesInvalidPath_Core()
         {
+            // We are no longer as agressive with filters for enumerating files
             using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
             {
-                Assert.Throws<ArgumentException>(() => isf.GetFileNames("\0bad"));
+                isf.GetFileNames("\0bad");
             }
         }
 
-        [Theory MemberData(nameof(ValidStores))]
+        [Fact]
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
+        public void GetFileNames_RaisesInvalidPath_Desktop()
+        {
+            using (IsolatedStorageFile isf = IsolatedStorageFile.GetUserStoreForAssembly())
+            {
+                AssertExtensions.Throws<ArgumentException>("path", null, () => isf.GetFileNames("\0bad"));
+            }
+        }
+
+        [Theory, MemberData(nameof(ValidStores))]
+        [ActiveIssue("dotnet/corefx #18265", TargetFrameworkMonikers.NetFramework)]
         public void GetFileNames_GetsFileNames(PresetScopes scope)
         {
             TestHelper.WipeStores();

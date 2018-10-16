@@ -10,16 +10,16 @@
 //
 
 using System.IO;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace System.Net.Mail.Tests
 {
-    public class SmtpClientTest : IDisposable
+    public class SmtpClientTest : FileCleanupTestBase
     {
         private SmtpClient _smtp;
-        private string _tempFolder;
 
         private SmtpClient Smtp
         {
@@ -33,28 +33,17 @@ namespace System.Net.Mail.Tests
         {
             get
             {
-                if (_tempFolder == null)
-                {
-                    _tempFolder = Path.Combine(Path.GetTempPath(), GetType().FullName, Guid.NewGuid().ToString());
-                    if (Directory.Exists(_tempFolder))
-                        Directory.Delete(_tempFolder, true);
-
-                    Directory.CreateDirectory(_tempFolder);
-                }
-
-                return _tempFolder;
+                return TestDirectory;
             }
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
             if (_smtp != null)
             {
                 _smtp.Dispose();
             }
-
-            if (Directory.Exists(_tempFolder))
-                Directory.Delete(_tempFolder, true);
+            base.Dispose(disposing);
         }
 
         [Theory]
@@ -89,7 +78,7 @@ namespace System.Net.Mail.Tests
         public void InvalidHostTest()
         {
             Assert.Throws<ArgumentNullException>(() => Smtp.Host = null);
-            Assert.Throws<ArgumentException>(() => Smtp.Host = "");
+            AssertExtensions.Throws<ArgumentException>("value", () => Smtp.Host = "");
         }
 
         [Fact]
@@ -129,7 +118,7 @@ namespace System.Net.Mail.Tests
             }
         }
 
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Netcoreapp)]
+        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
         [Fact]
         public void ServicePoint_NetFramework_AddressIsInaccessible()
         {
@@ -271,12 +260,31 @@ namespace System.Net.Mail.Tests
         }
 
         [Fact]
+        public void Send_ServerDoesntExist_Throws()
+        {
+            using (var smtp = new SmtpClient(Guid.NewGuid().ToString("N")))
+            {
+                Assert.Throws<SmtpException>(() => smtp.Send("anyone@anyone.com", "anyone@anyone.com", "subject", "body"));
+            }
+        }
+
+        [Fact]
+        public async Task SendAsync_ServerDoesntExist_Throws()
+        {
+            using (var smtp = new SmtpClient(Guid.NewGuid().ToString("N")))
+            {
+                await Assert.ThrowsAsync<SmtpException>(() => smtp.SendMailAsync("anyone@anyone.com", "anyone@anyone.com", "subject", "body"));
+            }
+        }
+
+        [Fact]
         public void TestMailDelivery()
         {
             SmtpServer server = new SmtpServer();
             SmtpClient client = new SmtpClient("localhost", server.EndPoint.Port);
             client.Credentials = new NetworkCredential("user", "password");
             MailMessage msg = new MailMessage("foo@example.com", "bar@example.com", "hello", "howdydoo");
+            string clientDomain = IPGlobalProperties.GetIPGlobalProperties().HostName.Trim().ToLower();
 
             try
             {
@@ -289,6 +297,7 @@ namespace System.Net.Mail.Tests
                 Assert.Equal("<bar@example.com>", server.MailTo);
                 Assert.Equal("hello", server.Subject);
                 Assert.Equal("howdydoo", server.Body);
+                Assert.Equal(clientDomain, server.ClientDomain);
             }
             finally
             {
@@ -297,11 +306,12 @@ namespace System.Net.Mail.Tests
         }
 
         [Fact]
-        public async void TestMailDeliveryAsync()
+        public async Task TestMailDeliveryAsync()
         {
             SmtpServer server = new SmtpServer();
             SmtpClient client = new SmtpClient("localhost", server.EndPoint.Port);
             MailMessage msg = new MailMessage("foo@example.com", "bar@example.com", "hello", "howdydoo");
+            string clientDomain = IPGlobalProperties.GetIPGlobalProperties().HostName.Trim().ToLower();
 
             try
             {
@@ -314,6 +324,7 @@ namespace System.Net.Mail.Tests
                 Assert.Equal("<bar@example.com>", server.MailTo);
                 Assert.Equal("hello", server.Subject);
                 Assert.Equal("howdydoo", server.Body);
+                Assert.Equal(clientDomain, server.ClientDomain);
             }
             finally
             {
@@ -322,11 +333,12 @@ namespace System.Net.Mail.Tests
         }
 
         [Fact]
-        public async void TestCredentialsCopyInAsyncContext()
+        public async Task TestCredentialsCopyInAsyncContext()
         {
             SmtpServer server = new SmtpServer();
             SmtpClient client = new SmtpClient("localhost", server.EndPoint.Port);
             MailMessage msg = new MailMessage("foo@example.com", "bar@example.com", "hello", "howdydoo");
+            string clientDomain = IPGlobalProperties.GetIPGlobalProperties().HostName.Trim().ToLower();
 
             CredentialCache cache = new CredentialCache();
             cache.Add("localhost", server.EndPoint.Port, "NTLM", CredentialCache.DefaultNetworkCredentials);
@@ -344,6 +356,7 @@ namespace System.Net.Mail.Tests
                 Assert.Equal("<bar@example.com>", server.MailTo);
                 Assert.Equal("hello", server.Subject);
                 Assert.Equal("howdydoo", server.Body);
+                Assert.Equal(clientDomain, server.ClientDomain);
             }
             finally
             {

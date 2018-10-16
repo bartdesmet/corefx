@@ -47,9 +47,6 @@ Namespace Microsoft.VisualBasic.CompilerServices
 
         Friend Const OptionCompareTextFlags As CompareOptions = (CompareOptions.IgnoreCase Or CompareOptions.IgnoreWidth Or CompareOptions.IgnoreKanaType)
 
-        ' DON'T ACCESS DIRECTLY! Go through the property below
-        Private Shared s_VBAResourceManager As System.Resources.ResourceManager
-        Private Shared s_triedLoadingResourceManager As Boolean
         Private Shared ReadOnly s_resourceManagerSyncObj As Object = New Object
 
         Friend Shared m_achIntlSpace() As Char = {chSpace, chIntlSpace}
@@ -79,10 +76,15 @@ Namespace Microsoft.VisualBasic.CompilerServices
         '         This one is exposed because I have to be able to get at localized error
         '         strings from the MY template
         '  Param: ID - Identifier for the string to be retrieved
-        '  Param: Args - An array of params used to replace placeholders. 
+        '  Param: Args - An array of params used to replace placeholders.
         'Returns: The resource string if found or an error message string
         '*****************************************************************************
-        Public Shared Function GetResourceString(ByVal resourceKey As String, ByVal ParamArray args() As String) As String
+        Friend Shared Function GetResourceString(ByVal ResourceId As vbErrors) As String
+            Dim id as String = "ID" & CStr(ResourceId)
+            Return SR.GetResourceString(id, id)
+        End Function
+
+        Friend Shared Function GetResourceString(ByVal resourceKey As String, ByVal ParamArray args() As String) As String
             Return SR.Format(resourceKey, args)
         End Function
 
@@ -101,7 +103,7 @@ Namespace Microsoft.VisualBasic.CompilerServices
                 End If
 
                 ' if the cached assembly ref has not been set, then set it here
-                s_VBRuntimeAssembly = GetType(Utils).GetTypeInfo.Assembly
+                s_VBRuntimeAssembly = GetType(Utils).Assembly
                 Return s_VBRuntimeAssembly
             End Get
         End Property
@@ -214,7 +216,7 @@ GetSpecialValue:
 
 
             Dim tc As TypeCode
-            If typ.GetTypeInfo.IsEnum Then
+            If typ.IsEnum Then
                 tc = TypeCode.Object
             Else
                 tc = typ.GetTypeCode
@@ -317,7 +319,7 @@ GetSpecialValue:
 
         Private Shared Function GetGenericArgsSuffix(ByVal typ As Type) As String
 
-            If Not typ.GetTypeInfo.IsGenericType Then
+            If Not typ.IsGenericType Then
                 Return Nothing
             End If
 
@@ -325,7 +327,7 @@ GetSpecialValue:
             Dim totalTypeArgsCount As Integer = typeArgs.Length
             Dim typeArgsCount As Integer = totalTypeArgsCount
 
-            If typ.DeclaringType IsNot Nothing AndAlso typ.DeclaringType.GetTypeInfo.IsGenericType Then
+            If typ.DeclaringType IsNot Nothing AndAlso typ.DeclaringType.IsGenericType Then
                 typeArgsCount = typeArgsCount - typ.DeclaringType.GetGenericArguments().Length
             End If
 
@@ -391,7 +393,7 @@ GetSpecialValue:
             Return resultString
         End Function
 
-        Public Shared Function MethodToString(ByVal method As Reflection.MethodBase) As String
+        Friend Shared Function MethodToString(ByVal method As Reflection.MethodBase) As String
 
             Dim returnType As System.Type = Nothing
             Dim first As Boolean
@@ -408,7 +410,7 @@ GetSpecialValue:
             End If
 
             If (method.Attributes And System.Reflection.MethodAttributes.Virtual) <> 0 Then
-                If Not method.DeclaringType.GetTypeInfo.IsInterface Then
+                If Not method.DeclaringType.IsInterface Then
                     MethodToString &= "Overrides "
                 End If
             ElseIf IsShared(method) Then
@@ -514,7 +516,7 @@ GetSpecialValue:
             resultString &= "Public "
 
             If (accessor.Attributes And MethodAttributes.Virtual) <> 0 Then
-                If Not prop.DeclaringType.GetTypeInfo.IsInterface Then
+                If Not prop.DeclaringType.IsInterface Then
                     resultString &= "Overrides "
                 End If
             ElseIf IsShared(accessor) Then

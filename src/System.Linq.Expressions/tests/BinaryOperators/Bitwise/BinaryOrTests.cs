@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using Xunit;
 
 namespace System.Linq.Expressions.Tests
@@ -231,19 +230,19 @@ namespace System.Linq.Expressions.Tests
             Expression exp = Expression.Or(Expression.Constant(0), Expression.Constant(0));
             Assert.False(exp.CanReduce);
             Assert.Same(exp, exp.Reduce());
-            Assert.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
+            AssertExtensions.Throws<ArgumentException>(null, () => exp.ReduceAndCheck());
         }
 
         [Fact]
         public static void ThrowsOnLeftNull()
         {
-            Assert.Throws<ArgumentNullException>("left", () => Expression.Or(null, Expression.Constant("")));
+            AssertExtensions.Throws<ArgumentNullException>("left", () => Expression.Or(null, Expression.Constant("")));
         }
 
         [Fact]
         public static void ThrowsOnRightNull()
         {
-            Assert.Throws<ArgumentNullException>("right", () => Expression.Or(Expression.Constant(""), null));
+            AssertExtensions.Throws<ArgumentNullException>("right", () => Expression.Or(Expression.Constant(""), null));
         }
 
         private static class Unreadable<T>
@@ -258,26 +257,26 @@ namespace System.Linq.Expressions.Tests
         public static void ThrowsOnLeftUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("left", () => Expression.Or(value, Expression.Constant(1)));
+            AssertExtensions.Throws<ArgumentException>("left", () => Expression.Or(value, Expression.Constant(1)));
         }
 
         [Fact]
         public static void ThrowsOnRightUnreadable()
         {
             Expression value = Expression.Property(null, typeof(Unreadable<int>), "WriteOnly");
-            Assert.Throws<ArgumentException>("right", () => Expression.Or(Expression.Constant(1), value));
+            AssertExtensions.Throws<ArgumentException>("right", () => Expression.Or(Expression.Constant(1), value));
         }
 
         [Fact]
         public static void ToStringTest()
         {
-            var e1 = Expression.Or(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
+            BinaryExpression e1 = Expression.Or(Expression.Parameter(typeof(int), "a"), Expression.Parameter(typeof(int), "b"));
             Assert.Equal("(a | b)", e1.ToString());
 
-            var e2 = Expression.Or(Expression.Parameter(typeof(bool), "a"), Expression.Parameter(typeof(bool), "b"));
+            BinaryExpression e2 = Expression.Or(Expression.Parameter(typeof(bool), "a"), Expression.Parameter(typeof(bool), "b"));
             Assert.Equal("(a Or b)", e2.ToString());
 
-            var e3 = Expression.Or(Expression.Parameter(typeof(bool?), "a"), Expression.Parameter(typeof(bool?), "b"));
+            BinaryExpression e3 = Expression.Or(Expression.Parameter(typeof(bool?), "a"), Expression.Parameter(typeof(bool?), "b"));
             Assert.Equal("(a Or b)", e3.ToString());
         }
     }
