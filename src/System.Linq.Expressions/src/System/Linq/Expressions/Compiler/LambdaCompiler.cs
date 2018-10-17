@@ -216,10 +216,10 @@ namespace System.Linq.Expressions.Compiler
             lambda.ValidateArgumentCount();
 
             // 1. Bind lambda
-            AnalyzedTree tree = AnalyzeLambda(ref lambda, true);
+            AnalyzedTree tree = AnalyzeLambda(ref lambda, compileToDynamicMethod: true);
 
             // 2. Create lambda compiler
-            LambdaCompiler c = new LambdaCompiler(tree, lambda, default(CompilerScope));
+            LambdaCompiler c = new LambdaCompiler(tree, lambda, parent: null);
 
             // 3. Emit
             c.EmitLambdaBody();
@@ -335,7 +335,7 @@ namespace System.Linq.Expressions.Compiler
             //       invoked on DynamicMethod suffers. Passing the argument as object and casting
             //       it inside the lambda turns out to be faster. EmitClosureToLocal ensures this
             //       is only done once.
-            _ilg.EmitConvertToType(typeof(object), _environmentType, false, locals: this);
+            _ilg.EmitConvertToType(typeof(object), _environmentType, isChecked: false, locals: this);
         }
 
         private Delegate CreateDelegate()

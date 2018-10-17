@@ -178,7 +178,7 @@ namespace System.Linq.Expressions.Compiler
                 i = 0;
             }
 
-            for (int j = 0; j < count; j++, i++)
+            for (var j = 0; j < count; j++, i++)
             {
                 ParameterExpression p = lambda.GetParameter(j);
                 result[i] = p.IsByRef ? p.Type.MakeByRefType() : p.Type;

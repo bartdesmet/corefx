@@ -635,7 +635,6 @@ namespace System.Linq.Expressions.Compiler
 
         private bool TryEmitHashtableSwitch(SwitchExpression node, CompilationFlags flags)
         {
-            // All test values must be constant.
             if (!Utils.ShouldEmitHashtableSwitch(node, out int tests))
             {
                 return false;
