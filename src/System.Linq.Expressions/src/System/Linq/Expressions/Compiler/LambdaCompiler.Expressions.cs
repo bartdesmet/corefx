@@ -800,7 +800,7 @@ namespace System.Linq.Expressions.Compiler
 
             if (member is FieldInfo fld)
             {
-                _ilg.EmitFieldSet((FieldInfo)member);
+                _ilg.EmitFieldSet(fld);
             }
             else
             {

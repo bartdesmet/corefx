@@ -116,8 +116,6 @@ namespace System.Linq.Expressions.Compiler
 
         internal VariableStorageKind GetStorageKind(ParameterExpression variable)
         {
-            VariableStorageKind kind;
-
             HoistedLocals locals = this;
 
             while (locals != null)
@@ -127,7 +125,7 @@ namespace System.Linq.Expressions.Compiler
                     return VariableStorageKind.Local;
                 }
 
-                if (locals.Definitions.TryGetValue(variable, out kind))
+                if (locals.Definitions.TryGetValue(variable, out VariableStorageKind kind))
                 {
                     return kind;
                 }
