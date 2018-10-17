@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Reflection;
 using static System.Linq.Expressions.CachedReflectionInfo;
 
 namespace System.Linq.Expressions
@@ -58,28 +57,12 @@ namespace System.Linq.Expressions
             }
         }
 
-        public static bool IsStringSwitch(SwitchExpression node)
-        {
-            // If we have a comparison other than string equality, bail
-            MethodInfo equality = String_op_Equality_String_String;
-            if (equality != null && !equality.IsStatic)
-            {
-                equality = null;
-            }
-
-            if (node.Comparison != equality)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
         public static bool ShouldEmitHashtableSwitch(SwitchExpression node, out int numberOfTests)
         {
             numberOfTests = 0;
 
-            if (!IsStringSwitch(node))
+            // If we have a comparison other than string equality, bail
+            if (node.Comparison != String_op_Equality_String_String && node.Comparison != String_Equals_String_String)
             {
                 return false;
             }

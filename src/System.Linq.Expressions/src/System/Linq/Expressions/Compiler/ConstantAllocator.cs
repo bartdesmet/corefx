@@ -187,7 +187,7 @@ namespace System.Linq.Expressions.Compiler
 
         protected internal override Expression VisitSwitch(SwitchExpression node)
         {
-            if (Utils.IsStringHashtableSwitch(node))
+            if (_compileToDynamicMethod && Utils.IsStringHashtableSwitch(node))
             {
                 Allocate(typeof(StrongBox<Dictionary<string, int>>)); // for switch table lazy field
             }

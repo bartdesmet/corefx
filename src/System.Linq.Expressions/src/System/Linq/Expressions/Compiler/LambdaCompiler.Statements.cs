@@ -635,15 +635,8 @@ namespace System.Linq.Expressions.Compiler
 
         private bool TryEmitHashtableSwitch(SwitchExpression node, CompilationFlags flags)
         {
-            // If we have a comparison other than string equality, bail
-            if (node.Comparison != String_op_Equality_String_String && node.Comparison != String_Equals_String_String)
-            {
-                return false;
-            }
-
             // All test values must be constant.
-            int tests = 0;
-            if (!Utils.ShouldEmitHashtableSwitch(node, out tests))
+            if (!Utils.ShouldEmitHashtableSwitch(node, out int tests))
             {
                 return false;
             }
