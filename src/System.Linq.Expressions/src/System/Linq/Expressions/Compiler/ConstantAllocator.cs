@@ -137,9 +137,9 @@ namespace System.Linq.Expressions.Compiler
             var fi = node.Member as FieldInfo;
             if (fi != null)
             {
-                if (fi.IsLiteral && Utils.TryGetRawConstantValue(fi, out object value))
+                if (fi.IsLiteral)
                 {
-                    Reference(value, node.Type);
+                    Reference(fi.GetRawConstantValue(), node.Type);
                     return node;
                 }
             }

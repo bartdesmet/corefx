@@ -58,24 +58,6 @@ namespace System.Linq.Expressions
             }
         }
 
-        public static bool TryGetRawConstantValue(FieldInfo fi, out object value)
-        {
-            // TODO: It looks like GetRawConstantValue is not available at the moment, use it when it comes back.
-            //value = fi.GetRawConstantValue();
-            //return true;
-
-            try
-            {
-                value = fi.GetValue(obj: null);
-                return true;
-            }
-            catch
-            {
-                value = null;
-                return false;
-            }
-        }
-
         public static bool IsStringSwitch(SwitchExpression node)
         {
             // If we have a comparison other than string equality, bail
@@ -126,8 +108,7 @@ namespace System.Linq.Expressions
 
         public static bool IsStringHashtableSwitch(SwitchExpression node)
         {
-            int ignored = 0;
-            return ShouldEmitHashtableSwitch(node, out ignored);
+            return ShouldEmitHashtableSwitch(node, out _);
         }
     }
 }
