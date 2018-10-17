@@ -137,9 +137,7 @@ namespace System.Linq.Expressions.Compiler
             var fi = node.Member as FieldInfo;
             if (fi != null)
             {
-                object value;
-
-                if (fi.IsLiteral && Utils.TryGetRawConstantValue(fi, out value))
+                if (fi.IsLiteral && Utils.TryGetRawConstantValue(fi, out object value))
                 {
                     Reference(value, node.Type);
                     return node;
@@ -155,8 +153,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 Allocate(node.Type);
 
-                bool hasFreeVariable;
-                if (!_tree.QuoteHasFreeVariable.TryGetValue(node, out hasFreeVariable))
+                if (!_tree.QuoteHasFreeVariable.TryGetValue(node, out bool hasFreeVariable))
                 {
                     hasFreeVariable = FreeVariableScanner.HasFreeVariable(node.Operand);
                     _tree.QuoteHasFreeVariable[node] = hasFreeVariable;
@@ -262,10 +259,7 @@ namespace System.Linq.Expressions.Compiler
 
             protected internal override Expression VisitLambda<T>(Expression<T> node)
             {
-                // TODO: Eliminate the use of Parameters once https://github.com/dotnet/corefx/pull/13133
-                //       is merged in.
-
-                int count = node.Parameters.Count;
+                int count = node.ParameterCount;
                 if (count > 0)
                 {
                     _stack.Push(new HashSet<ParameterExpression>(node.Parameters));
