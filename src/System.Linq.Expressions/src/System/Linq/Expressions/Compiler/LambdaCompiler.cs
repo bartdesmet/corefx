@@ -67,7 +67,7 @@ namespace System.Linq.Expressions.Compiler
         {
             Type[] parameterTypes = GetParameterTypes(lambda, typeof(Closure));
 
-            var method = new DynamicMethod(lambda.Name ?? "lambda_method", lambda.ReturnType, parameterTypes, true);
+            var method = new DynamicMethod(lambda.Name ?? "lambda_method", lambda.ReturnType, parameterTypes, restrictedSkipVisibility: true);
 
             _tree = tree;
             _lambda = lambda;

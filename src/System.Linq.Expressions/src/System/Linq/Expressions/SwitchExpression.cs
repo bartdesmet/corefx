@@ -269,7 +269,7 @@ namespace System.Linq.Expressions
                 // Now we need to validate that switchValue.Type and testValueType
                 // make sense in an Equal node. Fortunately, Equal throws a
                 // reasonable error, so just call it.
-                BinaryExpression equal = Equal(switchValue, firstTestValue, false, comparison);
+                BinaryExpression equal = Equal(switchValue, firstTestValue, liftToNull: false, comparison);
 
                 // Get the comparison function from equals node.
                 comparison = equal.Method;

@@ -59,9 +59,8 @@ namespace System.Linq.Expressions.Interpreter
 
         public override bool Equals(object obj)
         {
-            if (obj is LocalDefinition)
+            if (obj is LocalDefinition other)
             {
-                LocalDefinition other = (LocalDefinition)obj;
                 return other.Index == Index && other.Parameter == Parameter;
             }
 
@@ -90,8 +89,8 @@ namespace System.Linq.Expressions.Interpreter
             var result = new LocalVariable(_localCount++, closure: false);
             _maxLocalCount = Math.Max(_localCount, _maxLocalCount);
 
-            VariableScope existing, newScope;
-            if (_variables.TryGetValue(variable, out existing))
+            VariableScope newScope;
+            if (_variables.TryGetValue(variable, out VariableScope existing))
             {
                 newScope = new VariableScope(result, start, existing);
                 if (existing.ChildScopes == null)
@@ -154,8 +153,7 @@ namespace System.Linq.Expressions.Interpreter
 
         public bool TryGetLocalOrClosure(ParameterExpression var, out LocalVariable local)
         {
-            VariableScope scope;
-            if (_variables.TryGetValue(var, out scope))
+            if (_variables.TryGetValue(var, out VariableScope scope))
             {
                 local = scope.Variable;
                 return true;
@@ -180,7 +178,7 @@ namespace System.Linq.Expressions.Interpreter
             {
                 _closureVariables = new Dictionary<ParameterExpression, LocalVariable>();
             }
-            LocalVariable result = new LocalVariable(_closureVariables.Count, true);
+            LocalVariable result = new LocalVariable(_closureVariables.Count, closure: true);
             _closureVariables.Add(variable, result);
             return result;
         }

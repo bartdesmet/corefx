@@ -58,8 +58,7 @@ namespace System.Linq.Expressions
         {
             ContractUtils.RequiresNotNull(member, nameof(member));
             ExpressionUtils.RequiresCanRead(expression, nameof(expression));
-            Type memberType;
-            ValidateSettableFieldOrPropertyMember(member, out memberType);
+            ValidateSettableFieldOrPropertyMember(member, out Type memberType);
             if (!memberType.IsAssignableFrom(expression.Type))
             {
                 throw Error.ArgumentTypesMustMatch();

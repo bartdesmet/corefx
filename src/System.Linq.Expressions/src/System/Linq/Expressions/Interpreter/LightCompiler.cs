@@ -1488,7 +1488,7 @@ namespace System.Linq.Expressions.Interpreter
                 if (node.IfFalse != AstUtils.Empty)
                 {
                     BranchLabel endOfFalse = _instructions.MakeLabel();
-                    _instructions.EmitBranch(endOfFalse, false, !asVoid);
+                    _instructions.EmitBranch(endOfFalse, hasResult: false, !asVoid);
                     _instructions.MarkLabel(endOfTrue);
                     Compile(node.IfFalse, asVoid);
                     _instructions.MarkLabel(endOfFalse);
@@ -1608,7 +1608,7 @@ namespace System.Linq.Expressions.Interpreter
                     //          {};
                     CompileConditionalExpression(
                         Expression.Condition(
-                            Expression.Equal(temp.Parameter, val, false, node.Comparison),
+                            Expression.Equal(temp.Parameter, val, liftToNull: false, node.Comparison),
                             Expression.Goto(doneLabel, @case.Body),
                             AstUtils.Empty
                         ),
@@ -1640,7 +1640,7 @@ namespace System.Linq.Expressions.Interpreter
             {
                 Debug.Assert(!hasValue);
             }
-            _instructions.EmitBranch(end.GetLabel(this), false, hasValue);
+            _instructions.EmitBranch(end.GetLabel(this), hasResult: false, hasValue);
 
             for (int i = 0; i < node.Cases.Count; i++)
             {
@@ -1657,7 +1657,7 @@ namespace System.Linq.Expressions.Interpreter
 
                 if (i < node.Cases.Count - 1)
                 {
-                    _instructions.EmitBranch(end.GetLabel(this), false, hasValue);
+                    _instructions.EmitBranch(end.GetLabel(this), hasResult: false, hasValue);
                 }
             }
 
@@ -1684,7 +1684,7 @@ namespace System.Linq.Expressions.Interpreter
             {
                 Debug.Assert(!hasValue);
             }
-            _instructions.EmitBranch(end.GetLabel(this), false, hasValue);
+            _instructions.EmitBranch(end.GetLabel(this), hasResult: false, hasValue);
 
             for (int i = 0; i < node.Cases.Count; i++)
             {
@@ -1711,7 +1711,7 @@ namespace System.Linq.Expressions.Interpreter
 
                 if (i < node.Cases.Count - 1)
                 {
-                    _instructions.EmitBranch(end.GetLabel(this), false, hasValue);
+                    _instructions.EmitBranch(end.GetLabel(this), hasResult: false, hasValue);
                 }
             }
 

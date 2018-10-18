@@ -53,8 +53,7 @@ namespace System.Runtime.CompilerServices
             if (collection == null)
                 throw new ArgumentNullException(nameof(collection));
 
-            ICollection<T> c = collection as ICollection<T>;
-            if (c != null)
+            if (collection is ICollection<T> c)
             {
                 int count = c.Count;
                 _items = new T[count];

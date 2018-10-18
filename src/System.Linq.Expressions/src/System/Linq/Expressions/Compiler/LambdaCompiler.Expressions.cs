@@ -207,7 +207,7 @@ namespace System.Linq.Expressions.Compiler
                 Debug.Assert(wb.Count > 0);
                 flags = UpdateEmitAsTailCallFlag(flags, CompilationFlags.EmitAsNoTail);
             }
-            inner.EmitLambdaBody(_scope, true, flags);
+            inner.EmitLambdaBody(_scope, inlined: true, flags);
 
             // 4. Emit write-backs if needed
             EmitWriteBack(wb);
@@ -976,7 +976,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 EmitMemberGet(binding.Member, binding.Member.DeclaringType);
             }
-            EmitMemberInit(binding.Bindings, false, type);
+            EmitMemberInit(binding.Bindings, keepOnStack: false, type);
         }
 
         private void EmitMemberListBinding(MemberListBinding binding)
@@ -994,7 +994,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 EmitMemberGet(binding.Member, binding.Member.DeclaringType);
             }
-            EmitListInit(binding.Initializers, false, type);
+            EmitListInit(binding.Initializers, keepOnStack: false, type);
         }
 
         private void EmitMemberInit(MemberInitExpression init)

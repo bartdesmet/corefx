@@ -340,8 +340,7 @@ namespace System.Linq.Expressions
         {
             if (arguments != null && arguments.Count == 2)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(arguments, alreadyCollection);
                 }
@@ -408,8 +407,7 @@ namespace System.Linq.Expressions
         {
             if (arguments != null && arguments.Count == 3)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(arguments, alreadyCollection);
                 }
@@ -482,8 +480,7 @@ namespace System.Linq.Expressions
         {
             if (arguments != null && arguments.Count == 4)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(arguments, alreadyCollection);
                 }
@@ -562,8 +559,7 @@ namespace System.Linq.Expressions
         {
             if (arguments != null && arguments.Count == 5)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(arguments, alreadyCollection);
                 }
@@ -725,8 +721,7 @@ namespace System.Linq.Expressions
         {
             if (arguments != null && arguments.Count == 2)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(arguments, alreadyCollection);
                 }
@@ -793,8 +788,7 @@ namespace System.Linq.Expressions
         {
             if (arguments != null && arguments.Count == 3)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(arguments, alreadyCollection);
                 }

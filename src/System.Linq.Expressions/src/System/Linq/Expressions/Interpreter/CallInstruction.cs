@@ -149,7 +149,7 @@ namespace System.Linq.Expressions.Interpreter
                     break;
             }
 
-            if ((object)alternativeMethod == null)
+            if (alternativeMethod is null)
             {
                 return new MethodInfoCallInstruction(info, argumentCount);
             }

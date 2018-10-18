@@ -347,25 +347,24 @@ namespace System.Linq.Expressions.Interpreter
 
             if (type == null || type.IsValueType)
             {
-                if (value is bool)
+                switch (value)
                 {
-                    EmitLoad((bool)value);
-                    return;
-                }
-
-                if (value is int)
-                {
-                    int i = (int)value;
-                    if (i >= PushIntMinCachedValue && i <= PushIntMaxCachedValue)
-                    {
-                        if (s_Ints == null)
-                        {
-                            s_Ints = new Instruction[PushIntMaxCachedValue - PushIntMinCachedValue + 1];
-                        }
-                        i -= PushIntMinCachedValue;
-                        Emit(s_Ints[i] ?? (s_Ints[i] = new LoadObjectInstruction(value)));
+                    case bool b:
+                        EmitLoad(b);
                         return;
-                    }
+                    case int i:
+                        if (i >= PushIntMinCachedValue && i <= PushIntMaxCachedValue)
+                        {
+                            if (s_Ints == null)
+                            {
+                                s_Ints = new Instruction[PushIntMaxCachedValue - PushIntMinCachedValue + 1];
+                            }
+                            i -= PushIntMinCachedValue;
+                            Emit(s_Ints[i] ?? (s_Ints[i] = new LoadObjectInstruction(value)));
+                            return;
+                        }
+
+                        break;
                 }
             }
 
@@ -406,9 +405,7 @@ namespace System.Linq.Expressions.Interpreter
 
         internal void SwitchToBoxed(int index, int instructionIndex)
         {
-            var instruction = _instructions[instructionIndex] as IBoxableInstruction;
-
-            if (instruction != null)
+            if (_instructions[instructionIndex] is IBoxableInstruction instruction)
             {
                 Instruction newInstruction = instruction.BoxIfIndexMatches(index);
                 if (newInstruction != null)
@@ -891,8 +888,7 @@ namespace System.Linq.Expressions.Interpreter
         {
             lock (s_loadFields)
             {
-                Instruction instruction;
-                if (!s_loadFields.TryGetValue(field, out instruction))
+                if (!s_loadFields.TryGetValue(field, out Instruction instruction))
                 {
                     if (field.IsStatic)
                     {

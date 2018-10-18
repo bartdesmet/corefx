@@ -99,7 +99,7 @@ namespace System.Linq.Expressions.Compiler
                     // User-created blocks will never hit this case; only our
                     // internally reduced nodes will.
                     //
-                    scope = new CompilerScope(node, false) { NeedsClosure = _scope.NeedsClosure };
+                    scope = new CompilerScope(node, isMethod: false) { NeedsClosure = _scope.NeedsClosure };
                 }
 
                 _scope = scope.Enter(this, _scope);
@@ -214,7 +214,7 @@ namespace System.Linq.Expressions.Compiler
                     EmitExpression(test);
                     _scope.EmitSet(testValue);
                     Debug.Assert(TypeUtils.AreReferenceAssignable(testValue.Type, test.Type));
-                    EmitExpressionAndBranch(true, Expression.Equal(switchValue, testValue, false, node.Comparison), labels[i]);
+                    EmitExpressionAndBranch(branchValue: true, Expression.Equal(switchValue, testValue, liftToNull: false, node.Comparison), labels[i]);
                 }
             }
 

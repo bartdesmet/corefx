@@ -45,12 +45,7 @@ namespace System.Runtime.CompilerServices
         /// </remarks>
         public DynamicAttribute(bool[] transformFlags)
         {
-            if (transformFlags == null)
-            {
-                throw new ArgumentNullException(nameof(transformFlags));
-            }
-
-            _transformFlags = transformFlags;
+            _transformFlags = transformFlags ?? throw new ArgumentNullException(nameof(transformFlags));
         }
 
         /// <summary>
@@ -58,12 +53,6 @@ namespace System.Runtime.CompilerServices
         /// construction, which <see cref="System.Object"/> occurrences are meant to
         /// be treated as a dynamically dispatched type.
         /// </summary>
-        public IList<bool> TransformFlags
-        {
-            get
-            {
-                return _transformFlags;
-            }
-        }
+        public IList<bool> TransformFlags => _transformFlags;
     }
 }

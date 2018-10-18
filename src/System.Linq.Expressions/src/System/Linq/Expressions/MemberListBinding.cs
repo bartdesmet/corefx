@@ -80,8 +80,7 @@ namespace System.Linq.Expressions
         {
             ContractUtils.RequiresNotNull(member, nameof(member));
             ContractUtils.RequiresNotNull(initializers, nameof(initializers));
-            Type memberType;
-            ValidateGettableFieldOrPropertyMember(member, out memberType);
+            ValidateGettableFieldOrPropertyMember(member, out Type memberType);
             ReadOnlyCollection<ElementInit> initList = initializers.ToReadOnly();
             ValidateListInitArgs(memberType, initList, nameof(member));
             return new MemberListBinding(member, initList);

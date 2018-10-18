@@ -163,7 +163,7 @@ namespace System.Linq.Expressions.Interpreter
         internal readonly bool _hasValue;
 
         internal BranchInstruction()
-            : this(false, false)
+            : this(hasResult: false, hasValue: false)
         {
         }
 
@@ -314,12 +314,12 @@ namespace System.Linq.Expressions.Interpreter
 
         internal static EnterTryCatchFinallyInstruction CreateTryFinally(int labelIndex)
         {
-            return new EnterTryCatchFinallyInstruction(labelIndex, true);
+            return new EnterTryCatchFinallyInstruction(labelIndex, hasFinally: true);
         }
 
         internal static EnterTryCatchFinallyInstruction CreateTryCatch()
         {
-            return new EnterTryCatchFinallyInstruction(UnknownInstrIndex, false);
+            return new EnterTryCatchFinallyInstruction(UnknownInstrIndex, hasFinally: false);
         }
 
         public override int Run(InterpretedFrame frame)
@@ -664,8 +664,8 @@ namespace System.Linq.Expressions.Interpreter
     // no-op: we need this just to balance the stack depth.
     internal sealed class EnterExceptionHandlerInstruction : Instruction
     {
-        internal static readonly EnterExceptionHandlerInstruction Void = new EnterExceptionHandlerInstruction(false);
-        internal static readonly EnterExceptionHandlerInstruction NonVoid = new EnterExceptionHandlerInstruction(true);
+        internal static readonly EnterExceptionHandlerInstruction Void = new EnterExceptionHandlerInstruction(hasValue: false);
+        internal static readonly EnterExceptionHandlerInstruction NonVoid = new EnterExceptionHandlerInstruction(hasValue: true);
 
         // True if try-expression is non-void.
         private readonly bool _hasValue;
@@ -739,10 +739,10 @@ namespace System.Linq.Expressions.Interpreter
 
     internal sealed class ThrowInstruction : Instruction
     {
-        internal static readonly ThrowInstruction Throw = new ThrowInstruction(true, false);
-        internal static readonly ThrowInstruction VoidThrow = new ThrowInstruction(false, false);
-        internal static readonly ThrowInstruction Rethrow = new ThrowInstruction(true, true);
-        internal static readonly ThrowInstruction VoidRethrow = new ThrowInstruction(false, true);
+        internal static readonly ThrowInstruction Throw = new ThrowInstruction(hasResult: true, isRethrow: false);
+        internal static readonly ThrowInstruction VoidThrow = new ThrowInstruction(hasResult: false, isRethrow: false);
+        internal static readonly ThrowInstruction Rethrow = new ThrowInstruction(hasResult: true, isRethrow: true);
+        internal static readonly ThrowInstruction VoidRethrow = new ThrowInstruction(hasResult: false, isRethrow: true);
 
         private readonly bool _hasResult, _rethrow;
 
@@ -786,8 +786,7 @@ namespace System.Linq.Expressions.Interpreter
 
         public override int Run(InterpretedFrame frame)
         {
-            int target;
-            return _cases.TryGetValue((T)frame.Pop(), out target) ? target : 1;
+            return _cases.TryGetValue((T)frame.Pop(), out int target) ? target : 1;
         }
     }
 
@@ -816,8 +815,7 @@ namespace System.Linq.Expressions.Interpreter
                 return _nullCase.Value;
             }
 
-            int target;
-            return _cases.TryGetValue((string)value, out target) ? target : 1;
+            return _cases.TryGetValue((string)value, out int target) ? target : 1;
         }
     }
 }

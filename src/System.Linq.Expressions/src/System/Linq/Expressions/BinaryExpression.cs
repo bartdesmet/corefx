@@ -181,7 +181,7 @@ namespace System.Linq.Expressions
             // ... is reduced into ...
             // v = v (op) r
             ExpressionType op = GetBinaryOpFromAssignmentOp(NodeType);
-            Expression r = Expression.MakeBinary(op, Left, Right, false, Method);
+            Expression r = Expression.MakeBinary(op, Left, Right, liftToNull: false, Method);
             LambdaExpression conversion = GetConversion();
             if (conversion != null)
             {
@@ -214,7 +214,7 @@ namespace System.Linq.Expressions
 
                 // 2. temp2 = temp1.b (op) r
                 ExpressionType op = GetBinaryOpFromAssignmentOp(NodeType);
-                Expression e2 = Expression.MakeBinary(op, Expression.MakeMemberAccess(temp1, member.Member), Right, false, Method);
+                Expression e2 = Expression.MakeBinary(op, Expression.MakeMemberAccess(temp1, member.Member), Right, liftToNull: false, Method);
                 LambdaExpression conversion = GetConversion();
                 if (conversion != null)
                 {
@@ -273,7 +273,7 @@ namespace System.Linq.Expressions
 
             // tempValue = tempObj[tempArg0, ... tempArgN] (op) r
             ExpressionType binaryOp = GetBinaryOpFromAssignmentOp(NodeType);
-            Expression op = Expression.MakeBinary(binaryOp, tempIndex, Right, false, Method);
+            Expression op = Expression.MakeBinary(binaryOp, tempIndex, Right, liftToNull: false, Method);
             LambdaExpression conversion = GetConversion();
             if (conversion != null)
             {

@@ -477,13 +477,12 @@ namespace System.Linq.Expressions.Compiler
 
         private static IReadOnlyList<ParameterExpression> GetVariables(object scope)
         {
-            if (scope is LambdaExpression lambda)
+            switch (scope)
             {
-                return new ParameterList(lambda);
-            }
-            if (scope is BlockExpression block)
-            {
-                return block.Variables;
+                case LambdaExpression lambda:
+                    return new ParameterList(lambda);
+                case BlockExpression block:
+                    return block.Variables;
             }
             return new[] { ((CatchBlock)scope).Variable };
         }

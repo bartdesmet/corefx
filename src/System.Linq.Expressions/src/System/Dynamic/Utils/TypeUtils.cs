@@ -283,7 +283,7 @@ namespace System.Dynamic.Utils
             // Object conversion handled by assignable above.
             Debug.Assert(source != typeof(object) && dest != typeof(object));
 
-            return (source.IsArray || dest.IsArray) && StrictHasReferenceConversionTo(source, dest, true);
+            return (source.IsArray || dest.IsArray) && StrictHasReferenceConversionTo(source, dest, skipNonArray: true);
         }
 
         private static bool StrictHasReferenceConversionTo(this Type source, Type dest, bool skipNonArray)
@@ -381,7 +381,7 @@ namespace System.Dynamic.Utils
             {
                 if (AreEquivalent(destGen, iface))
                 {
-                    return StrictHasReferenceConversionTo(source.GetElementType(), destParams[0], false);
+                    return StrictHasReferenceConversionTo(source.GetElementType(), destParams[0], skipNonArray: false);
                 }
             }
 
@@ -408,7 +408,7 @@ namespace System.Dynamic.Utils
             {
                 if (AreEquivalent(sourceGen, iface))
                 {
-                    return StrictHasReferenceConversionTo(sourceParams[0], dest.GetElementType(), false);
+                    return StrictHasReferenceConversionTo(sourceParams[0], dest.GetElementType(), skipNonArray: false);
                 }
             }
 
@@ -856,7 +856,7 @@ namespace System.Dynamic.Utils
         public static bool IsSameOrSubclass(Type type, Type subType) =>
             AreEquivalent(type, subType) || subType.IsSubclassOf(type);
 
-        public static void ValidateType(Type type, string paramName) => ValidateType(type, paramName, false, false);
+        public static void ValidateType(Type type, string paramName) => ValidateType(type, paramName, allowByRef: false, allowPointer: false);
 
         public static void ValidateType(Type type, string paramName, bool allowByRef, bool allowPointer)
         {

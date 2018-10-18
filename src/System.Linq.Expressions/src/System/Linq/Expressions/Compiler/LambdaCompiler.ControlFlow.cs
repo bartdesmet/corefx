@@ -15,7 +15,7 @@ namespace System.Linq.Expressions.Compiler
         {
             if (!_labelInfo.TryGetValue(node, out LabelInfo result))
             {
-                _labelInfo.Add(node, result = new LabelInfo(_ilg, node, false));
+                _labelInfo.Add(node, result = new LabelInfo(_ilg, node, canReturn: false));
             }
             return result;
         }
