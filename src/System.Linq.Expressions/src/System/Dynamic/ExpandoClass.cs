@@ -58,8 +58,7 @@ namespace System.Dynamic
 
                 for (int i = 0; i < infos.Count; i++)
                 {
-                    ExpandoClass klass = infos[i].Target as ExpandoClass;
-                    if (klass == null)
+                    if (!(infos[i].Target is ExpandoClass klass))
                     {
                         infos.RemoveAt(i);
                         i--;
@@ -95,8 +94,7 @@ namespace System.Dynamic
                 _transitions = new Dictionary<int, List<WeakReference>>();
             }
 
-            List<WeakReference> infos;
-            if (!_transitions.TryGetValue(hashCode, out infos))
+            if (!_transitions.TryGetValue(hashCode, out List<WeakReference> infos))
             {
                 _transitions[hashCode] = infos = new List<WeakReference>();
             }

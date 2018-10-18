@@ -303,13 +303,13 @@ namespace System.Dynamic
         {
             ContractUtils.RequiresNotNull(key, nameof(key));
             // Pass null to the class, which forces lookup.
-            TrySetValue(null, -1, value, key, ignoreCase: false, add: true);
+            TrySetValue(indexClass: null, index: -1, value, key, ignoreCase: false, add: true);
         }
 
         private bool TryGetValueForKey(string key, out object value)
         {
             // Pass null to the class, which forces lookup.
-            return TryGetValue(null, -1, key, ignoreCase: false, value: out value);
+            return TryGetValue(indexClass: null, index: -1, key, ignoreCase: false, value: out value);
         }
 
         private bool ExpandoContainsKey(string key)
@@ -623,10 +623,9 @@ namespace System.Dynamic
         {
             get
             {
-                object value;
-                if (!TryGetValueForKey(key, out value))
+                if (!TryGetValueForKey(key, out object value))
                 {
-                    throw System.Linq.Expressions.Error.KeyDoesNotExistInExpando(key);
+                    throw Error.KeyDoesNotExistInExpando(key);
                 }
                 return value;
             }
@@ -656,7 +655,7 @@ namespace System.Dynamic
         {
             ContractUtils.RequiresNotNull(key, nameof(key));
             // Pass null to the class, which forces lookup.
-            return TryDeleteValue(null, -1, key, ignoreCase: false, deleteValue: Uninitialized);
+            return TryDeleteValue(indexClass: null, index: -1, key, ignoreCase: false, deleteValue: Uninitialized);
         }
 
         bool IDictionary<string, object>.TryGetValue(string key, out object value)
@@ -689,7 +688,7 @@ namespace System.Dynamic
             }
 
             // Notify property changed for all properties.
-            var propertyChanged = _propertyChanged;
+            PropertyChangedEventHandler propertyChanged = _propertyChanged;
             if (propertyChanged != null)
             {
                 for (int i = 0, n = data.Class.Keys.Length; i < n; i++)
@@ -704,8 +703,7 @@ namespace System.Dynamic
 
         bool ICollection<KeyValuePair<string, object>>.Contains(KeyValuePair<string, object> item)
         {
-            object value;
-            if (!TryGetValueForKey(item.Key, out value))
+            if (!TryGetValueForKey(item.Key, out object value))
             {
                 return false;
             }
@@ -730,7 +728,7 @@ namespace System.Dynamic
 
         bool ICollection<KeyValuePair<string, object>>.Remove(KeyValuePair<string, object> item)
         {
-            return TryDeleteValue(null, -1, item.Key, ignoreCase: false, deleteValue: item.Value);
+            return TryDeleteValue(indexClass: null, index: -1, item.Key, ignoreCase: false, deleteValue: item.Value);
         }
 
         #endregion
@@ -823,7 +821,7 @@ namespace System.Dynamic
                     result.Restrictions.Merge(fallback.Restrictions)
                 );
 
-                return AddDynamicTestAndDefer(binder, Value.Class, null, result);
+                return AddDynamicTestAndDefer(binder, Value.Class, originalClass: null, result);
             }
 
             public override DynamicMetaObject BindGetMember(GetMemberBinder binder)
@@ -846,7 +844,7 @@ namespace System.Dynamic
                     binder.Name,
                     binder.IgnoreCase,
                     binder.FallbackInvokeMember(this, args),
-                    value => binder.FallbackInvoke(value, args, null)
+                    value => binder.FallbackInvoke(value, args, errorSuggestion: null)
                 );
             }
 
@@ -855,10 +853,7 @@ namespace System.Dynamic
                 ContractUtils.RequiresNotNull(binder, nameof(binder));
                 ContractUtils.RequiresNotNull(value, nameof(value));
 
-                ExpandoClass klass;
-                int index;
-
-                ExpandoClass originalClass = GetClassEnsureIndex(binder.Name, binder.IgnoreCase, Value, out klass, out index);
+                ExpandoClass originalClass = GetClassEnsureIndex(binder.Name, binder.IgnoreCase, Value, out ExpandoClass klass, out int index);
 
                 return AddDynamicTestAndDefer(
                     binder,
@@ -900,13 +895,13 @@ namespace System.Dynamic
                     fallback.Restrictions
                 );
 
-                return AddDynamicTestAndDefer(binder, Value.Class, null, target);
+                return AddDynamicTestAndDefer(binder, Value.Class, originalClass: null, target);
             }
 
             public override IEnumerable<string> GetDynamicMemberNames()
             {
-                var expandoData = Value._data;
-                var klass = expandoData.Class;
+                ExpandoData expandoData = Value._data;
+                ExpandoClass klass = expandoData.Class;
                 for (int i = 0; i < klass.Keys.Length; i++)
                 {
                     object val = expandoData[i];
@@ -1176,7 +1171,7 @@ namespace System.Runtime.CompilerServices
         [Obsolete("do not use this method", error: true), EditorBrowsable(EditorBrowsableState.Never)]
         public static object ExpandoTrySetValue(ExpandoObject expando, object indexClass, int index, object value, string name, bool ignoreCase)
         {
-            expando.TrySetValue(indexClass, index, value, name, ignoreCase, false);
+            expando.TrySetValue(indexClass, index, value, name, ignoreCase, add: false);
             return value;
         }
 

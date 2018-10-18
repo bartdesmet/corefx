@@ -427,7 +427,7 @@ namespace System.Linq.Expressions
                     Condition(
                         Property(left, "HasValue"),
                         Condition(
-                            Call(opTrueFalse, Call(left, "GetValueOrDefault", null)),
+                            Call(opTrueFalse, Call(left, "GetValueOrDefault", typeArguments: null)),
                             left,
                             Block(
                                 new TrueReadOnlyCollection<ParameterExpression>(right),
@@ -438,8 +438,8 @@ namespace System.Linq.Expressions
                                         Convert(
                                             Call(
                                                 Method,
-                                                Call(left, "GetValueOrDefault", null),
-                                                Call(right, "GetValueOrDefault", null)
+                                                Call(left, "GetValueOrDefault", typeArguments: null),
+                                                Call(right, "GetValueOrDefault", typeArguments: null)
                                             ),
                                             Type
                                         ),
@@ -792,8 +792,7 @@ namespace System.Linq.Expressions
         // become "smarter" or that would break tree construction.
         private static bool IsNullConstant(Expression e)
         {
-            var c = e as ConstantExpression;
-            return c != null && c.Value == null;
+            return e is ConstantExpression c && c.Value == null;
         }
 
         private static void ValidateUserDefinedConditionalLogicOperator(ExpressionType nodeType, Type left, Type right, MethodInfo method)

@@ -96,7 +96,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 ParameterExpression p1 = Expression.Variable(b.Left.Type.GetNonNullableType(), name: null);
                 ParameterExpression p2 = Expression.Variable(b.Right.Type.GetNonNullableType(), name: null);
-                MethodCallExpression mc = Expression.Call(null, b.Method, p1, p2);
+                MethodCallExpression mc = Expression.Call(instance: null, b.Method, p1, p2);
                 Type resultType;
                 if (b.IsLiftedToNull)
                 {
@@ -121,7 +121,7 @@ namespace System.Linq.Expressions.Compiler
             }
             else
             {
-                EmitMethodCallExpression(Expression.Call(null, b.Method, b.Left, b.Right), flags);
+                EmitMethodCallExpression(Expression.Call(instance: null, b.Method, b.Left, b.Right), flags);
             }
         }
 

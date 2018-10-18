@@ -19,8 +19,7 @@ namespace System.Dynamic.Utils
         /// </summary>
         public static ReadOnlyCollection<ParameterExpression> ReturnReadOnly(IParameterProvider provider, ref object collection)
         {
-            ParameterExpression tObj = collection as ParameterExpression;
-            if (tObj != null)
+            if (collection is ParameterExpression tObj)
             {
                 // otherwise make sure only one read-only collection ever gets exposed
                 Interlocked.CompareExchange(
@@ -39,8 +38,7 @@ namespace System.Dynamic.Utils
             IReadOnlyList<T> value = collection;
 
             // if it's already read-only just return it.
-            ReadOnlyCollection<T> res = value as ReadOnlyCollection<T>;
-            if (res != null)
+            if (value is ReadOnlyCollection<T> res)
             {
                 return res;
             }
@@ -68,8 +66,7 @@ namespace System.Dynamic.Utils
         /// </summary>
         public static ReadOnlyCollection<Expression> ReturnReadOnly(IArgumentProvider provider, ref object collection)
         {
-            Expression tObj = collection as Expression;
-            if (tObj != null)
+            if (collection is Expression tObj)
             {
                 // otherwise make sure only one read-only collection ever gets exposed
                 Interlocked.CompareExchange(
@@ -93,8 +90,7 @@ namespace System.Dynamic.Utils
         /// </summary>
         public static T ReturnObject<T>(object collectionOrT) where T : class
         {
-            T t = collectionOrT as T;
-            if (t != null)
+            if (collectionOrT is T t)
             {
                 return t;
             }
@@ -281,8 +277,7 @@ namespace System.Dynamic.Utils
             // Ensure arguments is safe to enumerate twice.
             // If we have to build a collection, build a TrueReadOnlyCollection<T>
             // so it won't be built a second time if used.
-            ICollection<T> replacementCol = replacement as ICollection<T>;
-            if (replacementCol == null)
+            if (!(replacement is ICollection<T> replacementCol))
             {
                 replacement = replacementCol = replacement.ToReadOnly();
             }

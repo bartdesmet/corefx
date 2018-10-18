@@ -788,7 +788,7 @@ namespace System.Dynamic.Utils
 
         public static Type FindGenericType(Type definition, Type type)
         {
-            while ((object)type != null && type != typeof(object))
+            while (!(type is null) && type != typeof(object))
             {
                 if (type.IsConstructedGenericType && AreEquivalent(type.GetGenericTypeDefinition(), definition))
                 {

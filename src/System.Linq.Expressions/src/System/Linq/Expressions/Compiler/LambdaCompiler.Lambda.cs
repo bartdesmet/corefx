@@ -193,7 +193,7 @@ namespace System.Linq.Expressions.Compiler
         {
             // The lambda body is the "last" expression of the lambda
             CompilationFlags tailCallFlag = _lambda.TailCall ? CompilationFlags.EmitAsTail : CompilationFlags.EmitAsNoTail;
-            EmitLambdaBody(null, false, tailCallFlag);
+            EmitLambdaBody(parent: null, inlined: false, tailCallFlag);
         }
 
         /// <summary>

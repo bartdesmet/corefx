@@ -18,7 +18,7 @@ namespace System.Linq.Expressions.Compiler
             ConditionalExpression node = (ConditionalExpression)expr;
             Debug.Assert(node.Test.Type == typeof(bool));
             Label labFalse = _ilg.DefineLabel();
-            EmitExpressionAndBranch(false, node.Test, labFalse);
+            EmitExpressionAndBranch(branchValue: false, node.Test, labFalse);
             EmitExpressionAsType(node.IfTrue, node.Type, flags);
 
             if (NotEmpty(node.IfFalse))
@@ -49,13 +49,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private static bool NotEmpty(Expression node)
         {
-            var empty = node as DefaultExpression;
-            if (empty == null || empty.Type != typeof(void))
-            {
-                return true;
-            }
-
-            return false;
+            return !(node is DefaultExpression empty) || empty.Type != typeof(void);
         }
 
         /// <summary>
@@ -64,8 +58,7 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private static bool Significant(Expression node)
         {
-            var block = node as BlockExpression;
-            if (block != null)
+            if (node is BlockExpression block)
             {
                 for (int i = 0; i < block.ExpressionCount; i++)
                 {

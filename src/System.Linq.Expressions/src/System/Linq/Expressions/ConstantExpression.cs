@@ -101,12 +101,12 @@ namespace System.Linq.Expressions
             {
                 if (type == typeof(object))
                 {
-                    return new ConstantExpression(null);
+                    return new ConstantExpression(value: null);
                 }
 
                 if (!type.IsValueType || type.IsNullableType())
                 {
-                    return new TypedConstantExpression(null, type);
+                    return new TypedConstantExpression(value: null, type);
                 }
             }
             else

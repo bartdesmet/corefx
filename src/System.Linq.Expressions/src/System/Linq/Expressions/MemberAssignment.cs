@@ -12,20 +12,18 @@ namespace System.Linq.Expressions
     /// </summary>
     public sealed class MemberAssignment : MemberBinding
     {
-        private readonly Expression _expression;
-
         internal MemberAssignment(MemberInfo member, Expression expression)
 #pragma warning disable 618
             : base(MemberBindingType.Assignment, member)
         {
 #pragma warning restore 618
-            _expression = expression;
+            Expression = expression;
         }
 
         /// <summary>
         /// Gets the <see cref="Expression"/> which represents the object whose member is being assigned to.
         /// </summary>
-        public Expression Expression => _expression;
+        public Expression Expression { get; }
 
         /// <summary>
         /// Creates a new expression that is like this one, but using the
@@ -92,7 +90,7 @@ namespace System.Linq.Expressions
             }
 
             // Null paramName as there are two paths here with different parameter names at the API
-            TypeUtils.ValidateType(decType, null);
+            TypeUtils.ValidateType(decType, paramName: null);
             switch (member)
             {
                 case PropertyInfo pi:

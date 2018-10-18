@@ -105,8 +105,7 @@ namespace System.Linq.Expressions.Compiler
 
         private static bool IsByRef(DynamicMetaObject mo)
         {
-            ParameterExpression pe = mo.Expression as ParameterExpression;
-            return pe != null && pe.IsByRef;
+            return mo.Expression is ParameterExpression pe && pe.IsByRef;
         }
 
 #if FEATURE_COMPILE

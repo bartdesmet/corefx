@@ -20,7 +20,7 @@ namespace System.Linq.Expressions.Compiler
         {
             if (node == null)
             {
-                return new Result(RewriteAction.None, null);
+                return new Result(RewriteAction.None, node: null);
             }
 
             // When compiling deep trees, we run the risk of triggering a terminating StackOverflowException,

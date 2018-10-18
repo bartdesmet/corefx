@@ -41,7 +41,7 @@ namespace System.Linq.Expressions.Compiler
         private readonly MethodInfo _method;
 
         // Currently active LabelTargets and their mapping to IL labels
-        private LabelScopeInfo _labelBlock = new LabelScopeInfo(null, LabelScopeKind.Lambda);
+        private LabelScopeInfo _labelBlock = new LabelScopeInfo(parent: null, LabelScopeKind.Lambda);
         // Mapping of labels used for "long" jumps (jumping out and into blocks)
         private readonly Dictionary<LabelTarget, LabelInfo> _labelInfo = new Dictionary<LabelTarget, LabelInfo>();
 
@@ -258,7 +258,7 @@ namespace System.Linq.Expressions.Compiler
         {
             Debug.Assert(_method is DynamicMethod);
 
-            return _method.CreateDelegate(_lambda.Type, new Closure(_boundConstants.ToArray(), null));
+            return _method.CreateDelegate(_lambda.Type, new Closure(_boundConstants.ToArray(), locals: null));
         }
 
 #if FEATURE_COMPILE_TO_METHODBUILDER
@@ -284,12 +284,12 @@ namespace System.Linq.Expressions.Compiler
             Debug.Assert(_method is DynamicMethod);
 #endif
             {
-                return Expression.Field(Expression.Constant(new StrongBox<T>(default(T))), "Value");
+                return Expression.Field(Expression.Constant(new StrongBox<T>(default)), "Value");
             }
 #if FEATURE_COMPILE_TO_METHODBUILDER
             else
             {
-                return Expression.Field(null, CreateStaticField(name, typeof(T)));
+                return Expression.Field(expression: null, CreateStaticField(name, typeof(T)));
             }
 #endif
         }

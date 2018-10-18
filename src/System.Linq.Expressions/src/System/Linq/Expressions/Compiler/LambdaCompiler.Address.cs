@@ -131,8 +131,7 @@ namespace System.Linq.Expressions.Compiler
         // assumes the instance is already on the stack
         private void EmitMemberAddress(MemberInfo member, Type objectType)
         {
-            FieldInfo field = member as FieldInfo;
-            if ((object)field != null)
+            if (member is FieldInfo field)
             {
                 // Verifiable code may not take the address of an init-only field.
                 // If we are asked to do so then get the value out of the field, stuff it
@@ -260,8 +259,7 @@ namespace System.Linq.Expressions.Compiler
 
         private WriteBack AddressOfWriteBack(MemberExpression node)
         {
-            var property = node.Member as PropertyInfo;
-            if ((object)property == null || !property.CanWrite)
+            if (!(node.Member is PropertyInfo property) || !property.CanWrite)
             {
                 return null;
             }

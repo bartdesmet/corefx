@@ -111,7 +111,7 @@ namespace System.Linq.Expressions
         /// <returns>The created <see cref="SwitchExpression"/>.</returns>
         public static SwitchExpression Switch(Expression switchValue, params SwitchCase[] cases)
         {
-            return Switch(switchValue, null, null, (IEnumerable<SwitchCase>)cases);
+            return Switch(switchValue, defaultBody: null, comparison: null, (IEnumerable<SwitchCase>)cases);
         }
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace System.Linq.Expressions
         /// <returns>The created <see cref="SwitchExpression"/>.</returns>
         public static SwitchExpression Switch(Expression switchValue, Expression defaultBody, params SwitchCase[] cases)
         {
-            return Switch(switchValue, defaultBody, null, (IEnumerable<SwitchCase>)cases);
+            return Switch(switchValue, defaultBody, comparison: null, (IEnumerable<SwitchCase>)cases);
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace System.Linq.Expressions
         /// <returns>The created <see cref="SwitchExpression"/>.</returns>
         public static SwitchExpression Switch(Expression switchValue, Expression defaultBody, MethodInfo comparison, IEnumerable<SwitchCase> cases)
         {
-            return Switch(null, switchValue, defaultBody, comparison, cases);
+            return Switch(type: null, switchValue, defaultBody, comparison, cases);
         }
 
         /// <summary>

@@ -280,8 +280,7 @@ namespace System.Linq.Expressions.Interpreter
             {
                 Debug.Assert(key != null);
 
-                TValue res;
-                if (TryGetValue(key, out res))
+                if (TryGetValue(key, out TValue res))
                 {
                     return res;
                 }

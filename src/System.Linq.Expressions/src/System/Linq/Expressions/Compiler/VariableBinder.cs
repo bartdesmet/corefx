@@ -82,7 +82,7 @@ namespace System.Linq.Expressions.Compiler
 
         protected internal override Expression VisitLambda<T>(Expression<T> node)
         {
-            _scopes.Push(_tree.Scopes[node] = new CompilerScope(node, true));
+            _scopes.Push(_tree.Scopes[node] = new CompilerScope(node, isMethod: true));
             _constants.Push(_tree.Constants[node] = new BoundConstants());
             Visit(MergeScopes(node));
             _constants.Pop();
@@ -98,7 +98,7 @@ namespace System.Linq.Expressions.Compiler
             if (lambda != null)
             {
                 // visit the lambda, but treat it like a scope associated with invocation
-                _scopes.Push(_tree.Scopes[node] = new CompilerScope(lambda, false));
+                _scopes.Push(_tree.Scopes[node] = new CompilerScope(lambda, isMethod: false));
                 Visit(MergeScopes(lambda));
                 _scopes.Pop();
                 // visit the invoke's arguments
@@ -119,7 +119,7 @@ namespace System.Linq.Expressions.Compiler
                 Visit(node.Expressions);
                 return node;
             }
-            _scopes.Push(_tree.Scopes[node] = new CompilerScope(node, false));
+            _scopes.Push(_tree.Scopes[node] = new CompilerScope(node, isMethod: false));
             Visit(MergeScopes(node));
             _scopes.Pop();
             return node;
@@ -133,7 +133,7 @@ namespace System.Linq.Expressions.Compiler
                 Visit(node.Body);
                 return node;
             }
-            _scopes.Push(_tree.Scopes[node] = new CompilerScope(node, false));
+            _scopes.Push(_tree.Scopes[node] = new CompilerScope(node, isMethod: false));
             Visit(node.Filter);
             Visit(node.Body);
             _scopes.Pop();
@@ -145,16 +145,9 @@ namespace System.Linq.Expressions.Compiler
         // array accesses.
         private ReadOnlyCollection<Expression> MergeScopes(Expression node)
         {
-            ReadOnlyCollection<Expression> body;
-            var lambda = node as LambdaExpression;
-            if (lambda != null)
-            {
-                body = new ReadOnlyCollection<Expression>(new[] { lambda.Body });
-            }
-            else
-            {
-                body = ((BlockExpression)node).Expressions;
-            }
+            ReadOnlyCollection<Expression> body = node is LambdaExpression lambda
+                ? new ReadOnlyCollection<Expression>(new[] { lambda.Body })
+                : ((BlockExpression)node).Expressions;
 
             CompilerScope currentScope = _scopes.Peek();
 
@@ -275,8 +268,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 foreach (CompilerScope scope in _scopes)
                 {
-                    var lambda = scope.Node as LambdaExpression;
-                    if (lambda != null)
+                    if (scope.Node is LambdaExpression lambda)
                     {
                         return lambda.Name;
                     }

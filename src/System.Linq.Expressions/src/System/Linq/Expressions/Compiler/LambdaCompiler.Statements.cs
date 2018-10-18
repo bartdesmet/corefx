@@ -43,8 +43,7 @@ namespace System.Linq.Expressions.Compiler
                 CompilationFlags tailCallFlag;
                 if (tailCall != CompilationFlags.EmitAsNoTail)
                 {
-                    var g = next as GotoExpression;
-                    if (g != null && (g.Value == null || !Significant(g.Value)) && ReferenceLabel(g.Target).CanReturn)
+                    if (next is GotoExpression g && (g.Value == null || !Significant(g.Value)) && ReferenceLabel(g.Target).CanReturn)
                     {
                         // Since tail call flags are not passed into EmitTryExpression, CanReturn means the goto will be emitted
                         // as Ret. Therefore we can emit the current expression with tail call.
@@ -87,8 +86,7 @@ namespace System.Linq.Expressions.Compiler
             if (HasVariables(node) &&
                 (_scope.MergedScopes == null || !_scope.MergedScopes.Contains(node)))
             {
-                CompilerScope scope;
-                if (!_tree.Scopes.TryGetValue(node, out scope))
+                if (!_tree.Scopes.TryGetValue(node, out CompilerScope scope))
                 {
                     //
                     // Very often, we want to compile nodes as reductions
@@ -111,12 +109,7 @@ namespace System.Linq.Expressions.Compiler
 
         private static bool HasVariables(object node)
         {
-            var block = node as BlockExpression;
-            if (block != null)
-            {
-                return block.Variables.Count > 0;
-            }
-            return ((CatchBlock)node).Variable != null;
+            return node is BlockExpression block ? block.Variables.Count > 0 : ((CatchBlock)node).Variable != null;
         }
 
         private void ExitScope(object node)
@@ -460,9 +453,8 @@ namespace System.Linq.Expressions.Compiler
         /// </summary>
         private void DefineSwitchCaseLabel(SwitchCase @case, out Label label, out bool isGoto)
         {
-            var jump = @case.Body as GotoExpression;
             // if it's a goto with no value
-            if (jump != null && jump.Value == null)
+            if (@case.Body is GotoExpression jump && jump.Value == null)
             {
                 // Reference the label from the switch. This will cause us to
                 // analyze the jump target and determine if it is safe.

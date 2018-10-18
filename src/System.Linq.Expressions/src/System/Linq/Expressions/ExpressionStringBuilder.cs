@@ -41,8 +41,7 @@ namespace System.Linq.Expressions
                 _ids = new Dictionary<object, int>();
             }
 
-            int id;
-            if (!_ids.TryGetValue(o, out id))
+            if (!_ids.TryGetValue(o, out int id))
             {
                 id = _ids.Count;
                 _ids.Add(o, id);

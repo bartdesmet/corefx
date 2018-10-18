@@ -67,13 +67,12 @@ namespace System.Linq.Expressions.Compiler
         private static TypeInfo NextTypeInfo(Type initialArg, TypeInfo curTypeInfo)
         {
             Type lookingUp = initialArg;
-            TypeInfo nextTypeInfo;
             if (curTypeInfo.TypeChain == null)
             {
                 curTypeInfo.TypeChain = new Dictionary<Type, TypeInfo>();
             }
 
-            if (!curTypeInfo.TypeChain.TryGetValue(lookingUp, out nextTypeInfo))
+            if (!curTypeInfo.TypeChain.TryGetValue(lookingUp, out TypeInfo nextTypeInfo))
             {
                 nextTypeInfo = new TypeInfo();
                 if (!lookingUp.IsCollectible)

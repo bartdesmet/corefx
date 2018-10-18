@@ -2,14 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Dynamic.Utils;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Dynamic.Utils;
 using static System.Linq.Expressions.CachedReflectionInfo;
-using System.Collections;
 
 namespace System.Linq.Expressions.Compiler
 {
@@ -245,8 +245,7 @@ namespace System.Linq.Expressions.Compiler
             // Search IL locals and arguments, but only in this lambda
             for (CompilerScope s = this; s != null; s = s._parent)
             {
-                Storage storage;
-                if (s._locals.TryGetValue(variable, out storage))
+                if (s._locals.TryGetValue(variable, out Storage storage))
                 {
                     return storage;
                 }
@@ -261,8 +260,7 @@ namespace System.Linq.Expressions.Compiler
             // search hoisted locals
             for (HoistedLocals h = hoistedLocals; h != null; h = h.Parent)
             {
-                int index;
-                if (h.Indexes.TryGetValue(variable, out index))
+                if (h.Indexes.TryGetValue(variable, out int index))
                 {
                     return new ElementBoxStorage(
                         ResolveVariable(h.SelfVariable, hoistedLocals),
@@ -368,8 +366,7 @@ namespace System.Linq.Expressions.Compiler
             {
                 if (ShouldCache(refCount.Key, refCount.Value))
                 {
-                    var storage = ResolveVariable(refCount.Key) as ElementBoxStorage;
-                    if (storage != null)
+                    if (ResolveVariable(refCount.Key) is ElementBoxStorage storage)
                     {
                         storage.EmitLoadBox();
                         CacheBoxToLocal(storage.Compiler, refCount.Key);
@@ -393,8 +390,7 @@ namespace System.Linq.Expressions.Compiler
                 return false;
             }
 
-            int refCount;
-            return ReferenceCount.TryGetValue(v, out refCount) && ShouldCache(v, refCount);
+            return ReferenceCount.TryGetValue(v, out int refCount) && ShouldCache(v, refCount);
         }
 
         private void CacheBoxToLocal(LambdaCompiler lc, ParameterExpression v)
@@ -481,13 +477,11 @@ namespace System.Linq.Expressions.Compiler
 
         private static IReadOnlyList<ParameterExpression> GetVariables(object scope)
         {
-            var lambda = scope as LambdaExpression;
-            if (lambda != null)
+            if (scope is LambdaExpression lambda)
             {
                 return new ParameterList(lambda);
             }
-            var block = scope as BlockExpression;
-            if (block != null)
+            if (scope is BlockExpression block)
             {
                 return block.Variables;
             }
@@ -501,8 +495,7 @@ namespace System.Linq.Expressions.Compiler
                 CompilerScope s = this;
                 while (s != null)
                 {
-                    var lambda = s.Node as LambdaExpression;
-                    if (lambda != null)
+                    if (s.Node is LambdaExpression lambda)
                     {
                         return lambda.Name;
                     }

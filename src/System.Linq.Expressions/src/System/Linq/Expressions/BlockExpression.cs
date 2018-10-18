@@ -89,8 +89,7 @@ namespace System.Linq.Expressions
                 {
                     // Ensure expressions is safe to enumerate twice.
                     // (If this means a second call to ToReadOnly it will return quickly).
-                    ICollection<Expression> exps = expressions as ICollection<Expression>;
-                    if (exps == null)
+                    if (!(expressions is ICollection<Expression> exps))
                     {
                         expressions = exps = expressions.ToReadOnly();
                     }
@@ -170,8 +169,7 @@ namespace System.Linq.Expressions
         /// </summary>
         internal static ReadOnlyCollection<Expression> ReturnReadOnlyExpressions(BlockExpression provider, ref object collection)
         {
-            Expression tObj = collection as Expression;
-            if (tObj != null)
+            if (collection is Expression tObj)
             {
                 // otherwise make sure only one read-only collection ever gets exposed
                 Interlocked.CompareExchange(
@@ -214,8 +212,7 @@ namespace System.Linq.Expressions
             Debug.Assert(expressions != null);
             if (expressions.Count == 2)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(expressions, alreadyCollection);
                 }
@@ -268,8 +265,7 @@ namespace System.Linq.Expressions
             Debug.Assert(expressions != null);
             if (expressions.Count == 3)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(expressions, alreadyCollection);
                 }
@@ -338,8 +334,7 @@ namespace System.Linq.Expressions
             Debug.Assert(expressions != null);
             if (expressions.Count == 4)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(expressions, alreadyCollection);
                 }
@@ -427,8 +422,7 @@ namespace System.Linq.Expressions
             Debug.Assert(expressions != null);
             if (expressions.Count == 5)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _arg0 as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_arg0 is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(expressions, alreadyCollection);
                 }
@@ -568,8 +562,7 @@ namespace System.Linq.Expressions
             Debug.Assert(expressions != null);
             if (expressions.Count == 1)
             {
-                ReadOnlyCollection<Expression> alreadyCollection = _body as ReadOnlyCollection<Expression>;
-                if (alreadyCollection != null)
+                if (_body is ReadOnlyCollection<Expression> alreadyCollection)
                 {
                     return ExpressionUtils.SameElements(expressions, alreadyCollection);
                 }
@@ -1002,7 +995,7 @@ namespace System.Linq.Expressions
                 ReadOnlyCollection<Expression> expressionList = expressions.ToReadOnly();
                 RequiresCanRead(expressionList, nameof(expressions));
 
-                return BlockCore(null, variableList, expressionList);
+                return BlockCore(type: null, variableList, expressionList);
             }
         }
 

@@ -798,10 +798,9 @@ namespace System.Linq.Expressions.Compiler
                 _ilg.Emit(OpCodes.Stloc, temp = GetLocal(node.Type));
             }
 
-            var fld = member as FieldInfo;
-            if ((object)fld != null)
+            if (member is FieldInfo fld)
             {
-                _ilg.EmitFieldSet((FieldInfo)member);
+                _ilg.EmitFieldSet(fld);
             }
             else
             {
@@ -835,8 +834,7 @@ namespace System.Linq.Expressions.Compiler
         // assumes instance is already on the stack
         private void EmitMemberGet(MemberInfo member, Type objectType)
         {
-            var fi = member as FieldInfo;
-            if ((object)fi != null)
+            if (member is FieldInfo fi)
             {
                 if (fi.IsLiteral)
                 {

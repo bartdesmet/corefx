@@ -58,21 +58,14 @@ namespace System.Dynamic.Utils
         /// </summary>
         public static ReadOnlyCollection<T> ToReadOnly<T>(this IEnumerable<T> enumerable)
         {
-            if (enumerable == null)
+            switch (enumerable)
             {
-                return EmptyReadOnlyCollection<T>.Instance;
-            }
-
-            var troc = enumerable as TrueReadOnlyCollection<T>;
-            if (troc != null)
-            {
-                return troc;
-            }
-
-            var builder = enumerable as ReadOnlyCollectionBuilder<T>;
-            if (builder != null)
-            {
-                return builder.ToReadOnlyCollection();
+                case null:
+                    return EmptyReadOnlyCollection<T>.Instance;
+                case TrueReadOnlyCollection<T> troc:
+                    return troc;
+                case ReadOnlyCollectionBuilder<T> builder:
+                    return builder.ToReadOnlyCollection();
             }
 
             T[] array = enumerable.ToArray();

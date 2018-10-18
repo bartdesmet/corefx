@@ -336,8 +336,6 @@ namespace System.Linq.Expressions.Interpreter
 
             // Start to run the try/catch/finally blocks
             Instruction[] instructions = frame.Interpreter.Instructions.Instructions;
-            ExceptionHandler exHandler;
-            object unwrappedException;
             try
             {
                 // run the try block
@@ -356,7 +354,7 @@ namespace System.Linq.Expressions.Interpreter
                     frame.InstructionIndex += instructions[index].Run(frame);
                 }
             }
-            catch (Exception exception) when (_tryHandler.HasHandler(frame, exception, out exHandler, out unwrappedException))
+            catch (Exception exception) when (_tryHandler.HasHandler(frame, exception, out ExceptionHandler exHandler, out object unwrappedException))
             {
                 Debug.Assert(!(unwrappedException is RethrowException));
                 frame.InstructionIndex += frame.Goto(exHandler.LabelIndex, unwrappedException, gotoExceptionHandler: true);
@@ -396,7 +394,8 @@ namespace System.Linq.Expressions.Interpreter
                     rethrow = true;
                 }
 
-                if (rethrow) { throw; }
+                if (rethrow)
+                { throw; }
             }
             finally
             {

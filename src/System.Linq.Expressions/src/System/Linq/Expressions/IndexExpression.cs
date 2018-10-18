@@ -195,7 +195,7 @@ namespace System.Linq.Expressions
                 }
             }
 
-            return new IndexExpression(array, null, indexList);
+            return new IndexExpression(array, indexer: null, indexList);
         }
 
         #endregion

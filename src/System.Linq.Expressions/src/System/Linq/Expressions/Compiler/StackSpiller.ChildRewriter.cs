@@ -209,8 +209,7 @@ namespace System.Linq.Expressions.Compiler
                             Expression current = clone[i];
                             if (ShouldSaveToTemp(current))
                             {
-                                Expression temp;
-                                clone[i] = _self.ToTemp(current, out temp, _byRefs?[i] ?? false);
+                                clone[i] = _self.ToTemp(current, out Expression temp, _byRefs?[i] ?? false);
                                 comma.Add(temp);
                             }
                         }
@@ -331,7 +330,7 @@ namespace System.Linq.Expressions.Compiler
             /// </param>
             internal void MarkRefArgs(MethodBase method, int startIndex)
             {
-                var parameters = method.GetParametersCached();
+                ParameterInfo[] parameters = method.GetParametersCached();
 
                 for (int i = 0, n = parameters.Length; i < n; i++)
                 {

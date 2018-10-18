@@ -17,7 +17,6 @@ namespace System.Linq.Expressions.Compiler
             EmitQuote((UnaryExpression)expr);
         }
 
-
         private void EmitQuote(UnaryExpression quote)
         {
             // emit the quoted expression as a runtime constant
@@ -347,7 +346,6 @@ namespace System.Linq.Expressions.Compiler
                 }
             }
         }
-
 
         private void EmitUnaryMethod(UnaryExpression node, CompilationFlags flags)
         {

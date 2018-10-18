@@ -82,7 +82,7 @@ namespace System.Linq.Expressions
         /// <returns>The created <see cref="CatchBlock"/>.</returns>
         public static CatchBlock Catch(Type type, Expression body)
         {
-            return MakeCatchBlock(type, null, body, filter: null);
+            return MakeCatchBlock(type, variable: null, body, filter: null);
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace System.Linq.Expressions
         /// <returns>The created <see cref="CatchBlock"/>.</returns>
         public static CatchBlock Catch(Type type, Expression body, Expression filter)
         {
-            return MakeCatchBlock(type, null, body, filter);
+            return MakeCatchBlock(type, variable: null, body, filter);
         }
 
         /// <summary>

@@ -126,7 +126,7 @@ namespace System.Linq.Expressions
                 return new ListInitExpression(newExpression, EmptyReadOnlyCollection<ElementInit>.Instance);
             }
 
-            MethodInfo addMethod = FindMethod(newExpression.Type, "Add", null, new Expression[] { initializerlist[0] }, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            MethodInfo addMethod = FindMethod(newExpression.Type, "Add", typeArgs: null, new Expression[] { initializerlist[0] }, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             return ListInit(newExpression, addMethod, initializerlist);
         }
 

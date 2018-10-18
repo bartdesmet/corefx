@@ -260,11 +260,9 @@ namespace System.Linq.Expressions.Interpreter
         /// </summary>
         protected static bool TryGetLightLambdaTarget(object instance, out LightLambda lightLambda)
         {
-            var del = instance as Delegate;
-            if ((object)del != null)
+            if (instance is Delegate del)
             {
-                var thunk = del.Target as Func<object[], object>;
-                if ((object)thunk != null)
+                if (del.Target is Func<object[], object> thunk)
                 {
                     lightLambda = thunk.Target as LightLambda;
                     if (lightLambda != null)
@@ -331,8 +329,7 @@ namespace System.Linq.Expressions.Interpreter
 
                 object[] args = GetArgs(frame, first, 1);
 
-                LightLambda targetLambda;
-                if (TryGetLightLambdaTarget(instance, out targetLambda))
+                if (TryGetLightLambdaTarget(instance, out LightLambda targetLambda))
                 {
                     // no need to Invoke, just interpret the lambda body
                     ret = InterpretLambdaInvoke(targetLambda, args);
@@ -429,8 +426,7 @@ namespace System.Linq.Expressions.Interpreter
 
                     args = GetArgs(frame, first, 1);
 
-                    LightLambda targetLambda;
-                    if (TryGetLightLambdaTarget(instance, out targetLambda))
+                    if (TryGetLightLambdaTarget(instance, out LightLambda targetLambda))
                     {
                         // no need to Invoke, just interpret the lambda body
                         ret = InterpretLambdaInvoke(targetLambda, args);

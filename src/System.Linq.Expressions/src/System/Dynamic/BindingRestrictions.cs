@@ -79,7 +79,7 @@ namespace System.Dynamic
             Debug.Assert(obj != null);
             if (obj.Value == null && obj.HasValue)
             {
-                return GetInstanceRestriction(obj.Expression, null);
+                return GetInstanceRestriction(obj.Expression, instance: null);
             }
             else
             {
@@ -215,8 +215,7 @@ namespace System.Dynamic
                 BindingRestrictions top = this;
                 for (;;)
                 {
-                    var m = top as MergedRestriction;
-                    if (m != null)
+                    if (top is MergedRestriction m)
                     {
                         stack.Push(m.Right);
                         top = m.Left;
@@ -311,7 +310,7 @@ namespace System.Dynamic
                     );
                 }
 
-                ParameterExpression temp = Expression.Parameter(typeof(object), null);
+                ParameterExpression temp = Expression.Parameter(typeof(object), name: null);
                 return Expression.Block(
                     new TrueReadOnlyCollection<ParameterExpression>(temp),
                     new TrueReadOnlyCollection<Expression>(
@@ -372,8 +371,7 @@ namespace System.Dynamic
                     BindingRestrictions top = _node;
                     for (;;)
                     {
-                        var m = top as MergedRestriction;
-                        if (m != null)
+                        if (top is MergedRestriction m)
                         {
                             stack.Push(m.Right);
                             top = m.Left;

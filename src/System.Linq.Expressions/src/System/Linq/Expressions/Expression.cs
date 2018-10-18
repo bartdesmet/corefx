@@ -78,8 +78,7 @@ comparand: null
         {
             get
             {
-                ExtensionInfo extInfo;
-                if (s_legacyCtorSupportTable != null && s_legacyCtorSupportTable.TryGetValue(this, out extInfo))
+                if (s_legacyCtorSupportTable != null && s_legacyCtorSupportTable.TryGetValue(this, out ExtensionInfo extInfo))
                 {
                     return extInfo.NodeType;
                 }
@@ -98,8 +97,7 @@ comparand: null
         {
             get
             {
-                ExtensionInfo extInfo;
-                if (s_legacyCtorSupportTable != null && s_legacyCtorSupportTable.TryGetValue(this, out extInfo))
+                if (s_legacyCtorSupportTable != null && s_legacyCtorSupportTable.TryGetValue(this, out ExtensionInfo extInfo))
                 {
                     return extInfo.Type;
                 }

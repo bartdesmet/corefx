@@ -80,8 +80,7 @@ namespace System.Linq.Expressions
             ContractUtils.RequiresNotNull(member, nameof(member));
             ContractUtils.RequiresNotNull(bindings, nameof(bindings));
             ReadOnlyCollection<MemberBinding> roBindings = bindings.ToReadOnly();
-            Type memberType;
-            ValidateGettableFieldOrPropertyMember(member, out memberType);
+            ValidateGettableFieldOrPropertyMember(member, out Type memberType);
             ValidateMemberInitArgs(memberType, roBindings);
             return new MemberMemberBinding(member, roBindings);
         }
@@ -126,7 +125,7 @@ namespace System.Linq.Expressions
             }
 
             // Null paramName as there are several paths here with different parameter names at the API
-            TypeUtils.ValidateType(decType, null, allowByRef: true, allowPointer: true);
+            TypeUtils.ValidateType(decType, paramName: null, allowByRef: true, allowPointer: true);
             switch (member)
             {
                 case PropertyInfo pi:

@@ -595,7 +595,7 @@ namespace System.Linq.Expressions.Compiler
 
             if (action != RewriteAction.None)
             {
-                expr = new UnaryExpression(ExpressionType.Throw, value.Node, node.Type, null);
+                expr = new UnaryExpression(ExpressionType.Throw, value.Node, node.Type, method: null);
             }
 
             return new Result(action, expr);
@@ -805,7 +805,7 @@ namespace System.Linq.Expressions.Compiler
             if (action != RewriteAction.None)
             {
                 // Okay to wrap since we know no one can mutate the clone array.
-                expr = node.Rewrite(null, clone);
+                expr = node.Rewrite(variables: null, clone);
             }
 
             return new Result(action, expr);

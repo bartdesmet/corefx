@@ -378,15 +378,12 @@ namespace System.Linq.Expressions
         {
             ContractUtils.RequiresNotNull(member, nameof(member));
 
-            FieldInfo fi = member as FieldInfo;
-            if (fi != null)
+            switch (member)
             {
-                return Expression.Field(expression, fi);
-            }
-            PropertyInfo pi = member as PropertyInfo;
-            if (pi != null)
-            {
-                return Expression.Property(expression, pi);
+                case FieldInfo fi:
+                    return Expression.Field(expression, fi);
+                case PropertyInfo pi:
+                    return Expression.Property(expression, pi);
             }
             throw Error.MemberNotFieldOrProperty(member, nameof(member));
         }

@@ -285,17 +285,16 @@ namespace System.Dynamic
         {
             ContractUtils.RequiresNotNull(expression, nameof(expression));
 
-            IDynamicMetaObjectProvider ido = value as IDynamicMetaObjectProvider;
-            if (ido != null)
+            if (value is IDynamicMetaObjectProvider ido)
             {
-                var idoMetaObject = ido.GetMetaObject(expression);
+                DynamicMetaObject idoMetaObject = ido.GetMetaObject(expression);
 
                 if (idoMetaObject == null ||
                     !idoMetaObject.HasValue ||
                     idoMetaObject.Value == null ||
                     (object)idoMetaObject.Expression != (object)expression)
                 {
-                    throw System.Linq.Expressions.Error.InvalidMetaObjectCreated(ido.GetType());
+                    throw Error.InvalidMetaObjectCreated(ido.GetType());
                 }
 
                 return idoMetaObject;

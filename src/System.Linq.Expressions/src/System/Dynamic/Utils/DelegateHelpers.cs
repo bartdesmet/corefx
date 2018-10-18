@@ -43,9 +43,7 @@ namespace System.Dynamic.Utils
         // return (TRet)ret;
         private static Delegate CreateObjectArrayDelegateRefEmit(Type delegateType, Func<object[], object> handler)
         {
-            DynamicMethod thunkMethod;
-
-            if (!s_thunks.TryGetValue(delegateType, out thunkMethod))
+            if (!s_thunks.TryGetValue(delegateType, out DynamicMethod thunkMethod))
             {
                 MethodInfo delegateInvokeMethod = delegateType.GetInvokeMethod();
 

@@ -53,8 +53,7 @@ namespace System.Linq.Expressions.Interpreter
 
                 foreach (Instruction instruction in instructions)
                 {
-                    var enterTryCatchFinally = instruction as EnterTryCatchFinallyInstruction;
-                    if (enterTryCatchFinally != null)
+                    if (instruction is EnterTryCatchFinallyInstruction enterTryCatchFinally)
                     {
                         TryCatchFinallyHandler handler = enterTryCatchFinally.Handler;
 
@@ -84,8 +83,7 @@ namespace System.Linq.Expressions.Interpreter
                         }
                     }
 
-                    var enterTryFault = instruction as EnterTryFaultInstruction;
-                    if (enterTryFault != null)
+                    if (instruction is EnterTryFaultInstruction enterTryFault)
                     {
                         TryFaultHandler handler = enterTryFault.Handler;
 
@@ -100,8 +98,7 @@ namespace System.Linq.Expressions.Interpreter
 
             private void AddTryStart(int index)
             {
-                int count;
-                if (!_tryStart.TryGetValue(index, out count))
+                if (!_tryStart.TryGetValue(index, out int count))
                 {
                     _tryStart.Add(index, 1);
                     return;
@@ -112,8 +109,7 @@ namespace System.Linq.Expressions.Interpreter
 
             private void AddHandlerExit(int index)
             {
-                int count;
-                _handlerExit[index] = _handlerExit.TryGetValue(index, out count) ? count + 1 : 1;
+                _handlerExit[index] = _handlerExit.TryGetValue(index, out int count) ? count + 1 : 1;
             }
 
             private void Indent()
@@ -147,8 +143,7 @@ namespace System.Linq.Expressions.Interpreter
                 {
                     EmitExits(sb, i);
 
-                    int startCount;
-                    if (_tryStart.TryGetValue(i, out startCount))
+                    if (_tryStart.TryGetValue(i, out int startCount))
                     {
                         for (int j = 0; j < startCount; j++)
                         {
@@ -158,8 +153,7 @@ namespace System.Linq.Expressions.Interpreter
                         }
                     }
 
-                    string handler;
-                    if (_handlerEnter.TryGetValue(i, out handler))
+                    if (_handlerEnter.TryGetValue(i, out string handler))
                     {
                         sb.Append(_indent).AppendLine(handler);
                         sb.Append(_indent).AppendLine("{");
@@ -180,8 +174,7 @@ namespace System.Linq.Expressions.Interpreter
 
             private void EmitExits(StringBuilder sb, int index)
             {
-                int exitCount;
-                if (_handlerExit.TryGetValue(index, out exitCount))
+                if (_handlerExit.TryGetValue(index, out int exitCount))
                 {
                     for (int j = 0; j < exitCount; j++)
                     {

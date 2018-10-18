@@ -50,7 +50,7 @@ namespace System.Dynamic
         {
             ContractUtils.RequiresNotNull(argNames, nameof(argNames));
 
-            var argNameCol = argNames.ToReadOnly();
+            ReadOnlyCollection<string> argNameCol = argNames.ToReadOnly();
 
             if (argCount < argNameCol.Count) throw System.Linq.Expressions.Error.ArgCntMustBeGreaterThanNameCnt();
             ContractUtils.RequiresNotNullItems(argNameCol, nameof(argNames));
@@ -85,8 +85,7 @@ namespace System.Dynamic
         /// <returns>true if the specified instance is equal to the current one otherwise, false.</returns>
         public override bool Equals(object obj)
         {
-            var other = obj as CallInfo;
-            return other != null && ArgumentCount == other.ArgumentCount && ArgumentNames.ListEquals(other.ArgumentNames);
+            return obj is CallInfo other && ArgumentCount == other.ArgumentCount && ArgumentNames.ListEquals(other.ArgumentNames);
         }
     }
 }

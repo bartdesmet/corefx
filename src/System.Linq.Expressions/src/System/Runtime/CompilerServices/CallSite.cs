@@ -181,7 +181,7 @@ namespace System.Runtime.CompilerServices
         internal CallSite GetMatchmaker()
         {
             // check if we have a cached matchmaker and attempt to atomically grab it.
-            var matchmaker = _cachedMatchmaker;
+            CallSite matchmaker = _cachedMatchmaker;
             if (matchmaker != null)
             {
                 matchmaker = Interlocked.Exchange(ref _cachedMatchmaker, null);
@@ -305,10 +305,9 @@ namespace System.Runtime.CompilerServices
             return CreateCustomUpdateDelegate(invoke);
 #else
             Type target = typeof(T);
-            Type[] args;
             MethodInfo invoke = target.GetInvokeMethod();
 
-            if (target.IsGenericType && IsSimpleSignature(invoke, out args))
+            if (target.IsGenericType && IsSimpleSignature(invoke, out Type[] args))
             {
                 MethodInfo method = null;
                 MethodInfo noMatchMethod = null;

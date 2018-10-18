@@ -627,8 +627,7 @@ namespace System.Linq.Expressions.Interpreter
 
             private IStrongBox GetBox(ParameterExpression variable)
             {
-                LocalVariable var;
-                if (_variables.TryGetValue(variable, out var))
+                if (_variables.TryGetValue(variable, out LocalVariable var))
                 {
                     if (var.InClosure)
                     {

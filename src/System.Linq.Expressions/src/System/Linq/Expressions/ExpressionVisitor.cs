@@ -154,8 +154,7 @@ namespace System.Linq.Expressions
             T[] newNodes = null;
             for (int i = 0, n = nodes.Count; i < n; i++)
             {
-                T node = Visit(nodes[i]) as T;
-                if (node == null)
+                if (!(Visit(nodes[i]) is T node))
                 {
                     throw Error.MustRewriteToSameNode(callerName, typeof(T), callerName);
                 }
@@ -209,7 +208,7 @@ namespace System.Linq.Expressions
         protected internal virtual Expression VisitBlock(BlockExpression node)
         {
             Expression[] nodes = ExpressionVisitorUtils.VisitBlockExpressions(this, node);
-            ReadOnlyCollection<ParameterExpression> v = VisitAndConvert(node.Variables, "VisitBlock");
+            ReadOnlyCollection<ParameterExpression> v = VisitAndConvert(node.Variables, nameof(VisitBlock));
 
             if (v == node.Variables && nodes == null)
             {

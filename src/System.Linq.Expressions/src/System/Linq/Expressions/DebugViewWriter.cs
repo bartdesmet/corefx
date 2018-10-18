@@ -89,8 +89,7 @@ namespace System.Linq.Expressions
             }
             else
             {
-                int id;
-                if (!ids.TryGetValue(e, out id))
+                if (!ids.TryGetValue(e, out int id))
                 {
                     // e is met the first time
                     id = ids.Count + 1;
@@ -131,8 +130,7 @@ namespace System.Linq.Expressions
 
         private void WriteTo(Expression node)
         {
-            var lambda = node as LambdaExpression;
-            if (lambda != null)
+            if (node is LambdaExpression lambda)
             {
                 WriteLambda(lambda);
             }
@@ -430,8 +428,7 @@ namespace System.Linq.Expressions
 
         private static bool IsSimpleExpression(Expression node)
         {
-            var binary = node as BinaryExpression;
-            if (binary != null)
+            if (node is BinaryExpression binary)
             {
                 return !(binary.Left is BinaryExpression || binary.Right is BinaryExpression);
             }

@@ -94,7 +94,7 @@ namespace System.Linq.Expressions
     internal sealed class NewValueTypeExpression : NewExpression
     {
         internal NewValueTypeExpression(Type type, ReadOnlyCollection<Expression> arguments, ReadOnlyCollection<MemberInfo> members)
-            : base(null, arguments, members)
+            : base(constructor: null, arguments, members)
         {
             Type = type;
         }
@@ -140,7 +140,7 @@ namespace System.Linq.Expressions
             ReadOnlyCollection<Expression> argList = arguments.ToReadOnly();
             ValidateArgumentTypes(constructor, ExpressionType.New, ref argList, nameof(constructor));
 
-            return new NewExpression(constructor, argList, null);
+            return new NewExpression(constructor, argList, members: null);
         }
 
         /// <summary>
@@ -197,7 +197,7 @@ namespace System.Linq.Expressions
                 }
                 return New(ci);
             }
-            return new NewValueTypeExpression(type, EmptyReadOnlyCollection<Expression>.Instance, null);
+            return new NewValueTypeExpression(type, EmptyReadOnlyCollection<Expression>.Instance, members: null);
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1502:AvoidExcessiveComplexity")]
@@ -226,8 +226,7 @@ namespace System.Linq.Expressions
                     {
                         throw Error.ArgumentMemberNotDeclOnType(member.Name, constructor.DeclaringType.Name, nameof(members), i);
                     }
-                    Type memberType;
-                    ValidateAnonymousTypeMember(ref member, out memberType, nameof(members), i);
+                    ValidateAnonymousTypeMember(ref member, out Type memberType, nameof(members), i);
                     if (!TypeUtils.AreReferenceAssignable(memberType, arg.Type))
                     {
                         if (!TryQuote(memberType, ref arg))
